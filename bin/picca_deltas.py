@@ -14,6 +14,8 @@ import argparse
 from picca.data import forest, delta
 from picca import prep_del, io
 from picca.utils import print
+from picca import constants
+
 
 def cont_fit(data):
     for d in data:
@@ -431,13 +433,16 @@ if __name__ == '__main__':
                 ]
 
                 if (args.delta_format=='Pk1D'):
+
+                    dll = d.dll
+                    if (args.mode=='desi'):
+                        dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)
+
+                    d.mean_reso*=constants.speed_light/1000.*dll*sp.log(10.0)
                     hd += [{'name':'MEANZ','value':d.mean_z,'comment':'Mean redshift'},
                            {'name':'MEANRESO','value':d.mean_reso,'comment':'Mean resolution'},
                            {'name':'MEANSNR','value':d.mean_SNR,'comment':'Mean SNR'},
                     ]
-                    dll = d.dll
-                    if (args.mode=='desi'):
-                        dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)
                     hd += [{'name':'DLL','value':dll,'comment':'Loglam bin size [log Angstrom]'}]
                     diff = d.diff
                     if diff is None:
