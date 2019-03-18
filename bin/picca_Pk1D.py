@@ -191,6 +191,7 @@ if __name__ == '__main__':
                     d.mean_SNR=1e5
                     d.mean_reso=1e-3
                     d.diff=0*d.de
+                    d.dll=(d.ll[-1]-d.ll[0])/(len(d.ll)-1)
 
 
                 noiseless_fullres=True
