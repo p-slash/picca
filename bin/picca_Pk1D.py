@@ -190,6 +190,8 @@ if __name__ == '__main__':
                     d.iv=0*d.de+1e10
                     d.mean_SNR=1e5
                     d.mean_reso=1e-3
+                    d.diff=0*d.de
+
 
                 noiseless_fullres=True
         elif (args.in_format=='ascii') :
