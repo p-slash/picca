@@ -185,7 +185,7 @@ if __name__ == '__main__':
                 dels = [delta.from_fitsio(h,Pk1D_type=True) for h in hdus[1:]]
             except ValueError:
                 print("Pk1d_type=True didn't work on read in, maybe perfect model? Trying without!")
-                dels = [delta.from_fitsio(h,Pk1D_type=Falseview) for h in hdus[1:]]
+                dels = [delta.from_fitsio(h,Pk1D_type=False) for h in hdus[1:]]
                 noiseless_fullres=True
         elif (args.in_format=='ascii') :
             ascii_file = open(f,'r')
