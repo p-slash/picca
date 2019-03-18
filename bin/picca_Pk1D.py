@@ -187,7 +187,10 @@ if __name__ == '__main__':
                 print("Pk1d_type=True didn't work on read in, maybe perfect model? Trying without!")
                 dels = [delta.from_fitsio(h,Pk1D_type=False) for h in hdus[1:]]
                 for d in dels:
-                    d.iv=0*d.delta+1e10
+                    d.iv=0*d.de+1e10
+                    d.mean_SNR=1e5
+                    d.mean_reso=1e-3
+
                 noiseless_fullres=True
         elif (args.in_format=='ascii') :
             ascii_file = open(f,'r')
@@ -201,8 +204,7 @@ if __name__ == '__main__':
         for d in dels:
 
             # Selection over the SNR and the resolution
-            if not noiseless_fullres:
-                if (d.mean_SNR<=args.SNR_min or d.mean_reso>=args.reso_max) : continue
+            if (d.mean_SNR<=args.SNR_min or d.mean_reso>=args.reso_max) : continue
 
             # first pixel in forest
             for first_pixel,first_pixel_ll in enumerate(d.ll):
