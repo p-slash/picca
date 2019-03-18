@@ -411,7 +411,8 @@ class delta(qso):
         de = h['DELTA'][:]
         ll = h['LOGLAM'][:]
 
-
+        de=de.astype(float)   #to ensure the endianess is right for the fft
+        ll=ll.astype(float)
         if  Pk1D_type :
             iv = h['IVAR'][:]
             diff = h['DIFF'][:]
@@ -421,6 +422,10 @@ class delta(qso):
             dll =  head['DLL']
             we = None
             co = None
+            iv=iv.astype(float)   #to ensure the endianess is right for the fft
+            diff=diff.astype(float)
+            if reso is not None:
+                reso=reso.astype(float)
         else :
             iv = None
             diff = None
