@@ -184,7 +184,7 @@ if __name__ == '__main__':
             try:
                 dels = [delta.from_fitsio(h,Pk1D_type=True) for h in hdus[1:]]
             except ValueError:
-                print("Pk1d_type=True didn't work on read in, maybe perfect model? Trying without!")
+                print("\nPk1d_type=True didn't work on read in, maybe perfect model? Trying without!")
                 dels = [delta.from_fitsio(h,Pk1D_type=False) for h in hdus[1:]]
                 for d in dels:
                     d.iv=0*d.de+1e10
