@@ -159,6 +159,7 @@ if __name__ == '__main__':
         hdelta_RF_we.Sumw2()
         hdelta_OBS_we.Sumw2()
 
+    noiseless_fullres=False #stores if the read in spectra didn't contain ivar and reso info (if this is True everything will be treated as noiseless, infinite resolution)
 
     # Read deltas
     if (args.in_format=='fits') :
@@ -184,7 +185,8 @@ if __name__ == '__main__':
                 dels = [delta.from_fitsio(h,Pk1D_type=True) for h in hdus[1:]]
             except ValueError:
                 print("Pk1d_type=True didn't work on read in, maybe perfect model? Trying without!")
-                dels = [delta.from_fitsio(h,Pk1D_type=False) for h in hdus[1:]]
+                dels = [delta.from_fitsio(h,Pk1D_type=Falseview) for h in hdus[1:]]
+                noiseless_fullres=True
         elif (args.in_format=='ascii') :
             ascii_file = open(f,'r')
             dels = [delta.from_ascii(line) for line in ascii_file]
@@ -197,7 +199,8 @@ if __name__ == '__main__':
         for d in dels:
 
             # Selection over the SNR and the resolution
-            if (d.mean_SNR<=args.SNR_min or d.mean_reso>=args.reso_max) : continue
+            if not noiseless_fullres:
+                if (d.mean_SNR<=args.SNR_min or d.mean_reso>=args.reso_max) : continue
 
             # first pixel in forest
             for first_pixel,first_pixel_ll in enumerate(d.ll):
