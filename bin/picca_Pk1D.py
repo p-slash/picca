@@ -187,7 +187,7 @@ if __name__ == '__main__':
                 print("Pk1d_type=True didn't work on read in, maybe perfect model? Trying without!")
                 dels = [delta.from_fitsio(h,Pk1D_type=False) for h in hdus[1:]]
                 for d in dels:
-                    d.iv=0*d.flux+1e10
+                    d.iv=0*d.delta+1e10
                 noiseless_fullres=True
         elif (args.in_format=='ascii') :
             ascii_file = open(f,'r')
