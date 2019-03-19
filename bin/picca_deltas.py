@@ -406,6 +406,9 @@ if __name__ == '__main__':
                 nbpixel = len(d.de)
                 dll = d.dll
                 if (args.mode=='desi') : dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)
+
+                d.mean_reso*=constants.speed_light/1000.*dll*sp.log(10.0)
+
                 line = '{} {} {} '.format(d.plate,d.mjd,d.fid)
                 line += '{} {} {} '.format(d.ra,d.dec,d.zqso)
                 line += '{} {} {} {} {} '.format(d.mean_z,d.mean_SNR,d.mean_reso,dll,nbpixel)
