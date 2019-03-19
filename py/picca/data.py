@@ -424,8 +424,6 @@ class delta(qso):
             co = None
             iv=iv.astype(float)   #to ensure the endianess is right for the fft
             diff=diff.astype(float)
-            if reso is not None:
-                reso=reso.astype(float)
         else :
             iv = None
             diff = None
