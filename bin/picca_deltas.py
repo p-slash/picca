@@ -15,6 +15,7 @@ from picca.data import forest, delta
 from picca import prep_del, io
 from picca.utils import print
 from picca import constants
+import ipdb
 
 
 def cont_fit(data):
@@ -409,7 +410,7 @@ if __name__ == '__main__':
                 if (args.mode=='desi') :
                     #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
                     dll=sp.median(10**-d.ll)*desi_pixsize #this is 1 angstrom pixel size * mean(1/lambda)
-
+                ipdb.set_trace()
                 d.mean_reso*=constants.speed_light/1000.*dll*sp.log(10.0)
 
                 line = '{} {} {} '.format(d.plate,d.mjd,d.fid)
