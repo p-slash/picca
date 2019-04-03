@@ -406,10 +406,11 @@ if __name__ == '__main__':
             for d in deltas[p]:
                 nbpixel = len(d.de)
                 dll = d.dll
-                desi_pixsize=1 #set desi pixel size to one angstrom, generalize later
+                #desi_pixsize=1 #set desi pixel size to one angstrom, generalize later
                 if (args.mode=='desi') :
                     #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin [e.g. due to masking]
-                    dll=sp.median(10**-d.ll)*desi_pixsize #this is 1 angstrom pixel size * mean(1/lambda)
+                    dll=sp.median(sp.diff(d.ll))
+                    #dll=sp.median(10**-d.ll)*desi_pixsize/sp.log(10.) #this is 1 angstrom pixel size * mean(1/lambda)
                 d.mean_reso*=constants.speed_light/1000.*dll*sp.log(10.0)
 
                 line = '{} {} {} '.format(d.plate,d.mjd,d.fid)
@@ -443,7 +444,8 @@ if __name__ == '__main__':
                     desi_pixsize=1 #set desi pixel size to one angstrom, generalize later
                     if (args.mode=='desi') :
                         #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin [e.g. due to masking]
-                        dll=sp.median(10**-d.ll)*desi_pixsize #this is 1 angstrom pixel size * mean(1/lambda)
+                        dll=sp.median(sp.diff(d.ll))
+                        #dll=sp.median(10**-d.ll)*desi_pixsize/sp.log(10.) #this is 1 angstrom pixel size * mean(1/lambda)
                     d.mean_reso*=constants.speed_light/1000.*dll*sp.log(10.0)
 
 
