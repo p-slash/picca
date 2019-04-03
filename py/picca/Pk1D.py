@@ -155,16 +155,27 @@ def compute_Pk_noise(dll,iv,diff,ll,run_noise):
 
     return Pk,Pk_diff
 
-def compute_cor_reso(delta_pixel,mean_reso,k):
+def compute_cor_reso(delta_pixel, mean_reso, k, delta_pixel2, pixel_correction=None):
 
     nb_bin_FFT = len(k)
     cor = sp.ones(nb_bin_FFT)
 
-    sinc = sp.ones(nb_bin_FFT)
-    sinc[k>0.] =  (sp.sin(k[k>0.]*delta_pixel/2.0)/(k[k>0.]*delta_pixel/2.0))**2
+    if pixel_correction == 'default':  # default correction
+        sinc = sp.ones(nb_bin_FFT)
+        sinc[k > 0.] = (sp.sin(k[k > 0.] * delta_pixel / 2.0) /
+                        (k[k > 0.] * delta_pixel / 2.0))**2
+        cor *= sinc
+    # the following is to undo the pixelization correction that is part of the resolution matrix and then redo the correction using the current pixelization (values are hardcoded for the moment)
+    elif pixel_correction == 'undo_resmat_conv':
+        sinc = sp.ones(nb_bin_FFT)
+        sinc[k > 0.] =  (sp.sin(k[k > 0.]*delta_pixel/2.0)/(k[k > 0.]*delta_pixel/2.0))**2
+        cor *= sinc
+        sinc2 = sp.ones(nb_bin_FFT)
+        sinc2[k > 0.] = (sp.sin(k[k > 0.] *delta_pixel2 /2.0) /(k[k > 0.] *delta_pixel2 /2.0))**2
+        cor /= sinc2
+
 
     cor *= sp.exp(-(k*mean_reso)**2)
-    cor *= sinc
     return cor
 
 

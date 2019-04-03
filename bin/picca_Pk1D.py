@@ -127,6 +127,8 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true', default=False, required=False,
         help='Fill root histograms for debugging')
 
+    parser.add_argument('--pixel-correction', default='default', required=False,
+        help='Which type of pixel correction to apply')
 
     args = parser.parse_args()
 
@@ -246,7 +248,8 @@ if __name__ == '__main__':
 
                 # Compute resolution correction
                 delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
-                cor_reso = compute_cor_reso(delta_pixel,d.mean_reso,k)
+                delta_pixel2 = 1./np.mean(10**ll_new)*constants.speed_light/1000. #pixelization in which the resolution matrix is binned converted to velocity space
+                cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction)
 
                 # Compute 1D Pk
                 if (args.noise_estimate=='pipeline'):
