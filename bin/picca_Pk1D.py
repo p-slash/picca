@@ -248,7 +248,7 @@ if __name__ == '__main__':
 
                 # Compute resolution correction
                 delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
-                delta_pixel2 = 1./sp.median(10**ll_new)*constants.speed_light/1000. #pixelization in which the resolution matrix is binned converted to velocity space
+                delta_pixel2 = sp.median(10**-ll_new)*constants.speed_light/1000. #pixelization in which the resolution matrix is binned converted to velocity space
                 cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction)
 
                 # Compute 1D Pk
