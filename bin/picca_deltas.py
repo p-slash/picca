@@ -15,7 +15,6 @@ from picca.data import forest, delta
 from picca import prep_del, io
 from picca.utils import print
 from picca import constants
-import ipdb
 
 
 def cont_fit(data):

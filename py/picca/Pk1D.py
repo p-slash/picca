@@ -113,7 +113,7 @@ def fill_masked_pixels(dll,ll,delta,diff,iv,no_apply_filling):
 
     return ll_new,delta_new,diff_new,iv_new,nb_masked_pixel
 
-def compute_Pk_raw(dll,delta,ll):
+def compute_Pk_raw(dll,delta,ll):   #MW: why does this function depend on ll at all? Every computation is based on dll only, so the explicit dependence on dll is not necessary
 
     #   Length in km/s
     length_lambda = dll*constants.speed_light/1000.*sp.log(10.)*len(delta)
