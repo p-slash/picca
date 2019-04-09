@@ -153,7 +153,7 @@ if __name__ == '__main__':
     forest.lmax_rest = sp.log10(args.lambda_rest_max)
     forest.rebin = args.rebin
 #    forest.dll = args.rebin*1e-4
-    forest.dll = args.rebin*1/((constants.absorber_IGM['LYA'])*3)/sp.log(10)     #note that this hack will not make it into master!!! It's meant to ensure that the log-pixels are always at least the size of a DESI pixel for z>2
+    forest.dll = args.rebin*1/((constants.absorber_IGM['LYA'])*4.6)/sp.log(10)     #note that this hack will not make it into master!!! It's meant to ensure that the log-pixels are always at least the size of a DESI pixel for z>2
 
     ## minumum dla transmission
     forest.dla_mask = args.dla_mask
