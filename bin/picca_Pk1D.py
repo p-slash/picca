@@ -6,6 +6,7 @@ import argparse
 import glob
 import os
 from array import array
+from multiprocessing import Pool
 
 import fitsio
 import scipy as sp
@@ -131,6 +132,9 @@ if __name__ == '__main__':
     parser.add_argument('--pixel-correction', default='default', required=False,
         help='Which type of pixel correction to apply')
 
+    parser.add_argument('--nproc', type=int, default=1, required=False,
+        help='Number of processors')
+
     args = parser.parse_args()
 
 #   Create root file
@@ -176,8 +180,9 @@ if __name__ == '__main__':
     # initialize randoms
     sp.random.seed(4)
 
-    # loop over input files
-    for i,f in enumerate(fi):
+    # define per file function
+    def process_file(i,f):
+        f=fi[i]
         if os.path.exists(args.out_dir+'/Pk1D-'+str(i)+'.fits.gz'):
             continue #skip existing files
         
@@ -320,6 +325,14 @@ if __name__ == '__main__':
                         out.write(cols,names=names,header=hd,comment=comments,units=units)
         if (args.out_format=='fits' and out is not None):
             out.close()
+    if args.nproc>1:
+        pool=Pool(args.nproc)
+        pool.map(process_file,range(len(fi)))
+    else:
+        for i,f in enumerate(fi):
+            process_file(i)
+    # define per file functionloop over input files
+
 
 # Store root file results
     if (args.out_format=='root'):
