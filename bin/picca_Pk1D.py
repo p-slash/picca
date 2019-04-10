@@ -82,12 +82,6 @@ def compute_mean_delta(ll,delta,iv,zqso):
 
     return
 
-data = {}
-ndata = 0
-
-# initialize randoms
-sp.random.seed(4)
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -180,11 +174,15 @@ if __name__ == '__main__':
     elif (args.in_format=='ascii') :
         fi = glob.glob(args.in_dir+"/*.txt")
 
+    data = {}
+    ndata = 0
 
+    # initialize randoms
+    sp.random.seed(4)
 
     # define per file function
     def process_file(i):
-        
+        global ndata, data
         f=fi[i]
         if os.path.exists(args.out_dir+'/Pk1D-'+str(i)+'.fits.gz'):
             return 1#skip existing files
