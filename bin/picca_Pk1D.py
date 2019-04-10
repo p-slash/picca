@@ -181,7 +181,7 @@ if __name__ == '__main__':
     sp.random.seed(4)
 
     # define per file function
-    def process_file(i,f):
+    def process_file(i):
         f=fi[i]
         if os.path.exists(args.out_dir+'/Pk1D-'+str(i)+'.fits.gz'):
             return 1#skip existing files
