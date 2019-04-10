@@ -184,7 +184,7 @@ if __name__ == '__main__':
     def process_file(i,f):
         f=fi[i]
         if os.path.exists(args.out_dir+'/Pk1D-'+str(i)+'.fits.gz'):
-            continue #skip existing files
+            return 1#skip existing files
         
         if i%1==0:
             print("\rread {} of {} {}".format(i,len(fi),ndata),end="")
@@ -325,6 +325,7 @@ if __name__ == '__main__':
                         out.write(cols,names=names,header=hd,comment=comments,units=units)
         if (args.out_format=='fits' and out is not None):
             out.close()
+        return 0
     if args.nproc>1:
         pool=Pool(args.nproc)
         pool.map(process_file,range(len(fi)))
