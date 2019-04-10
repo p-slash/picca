@@ -177,6 +177,9 @@ if __name__ == '__main__':
 
     # loop over input files
     for i,f in enumerate(fi):
+        if os.path.exists(args.out_dir+'/Pk1D-'+str(i)+'.fits.gz'):
+            continue #skip existing files
+        
         if i%1==0:
             print("\rread {} of {} {}".format(i,len(fi),ndata),end="")
 
@@ -193,7 +196,7 @@ if __name__ == '__main__':
                     d.mean_SNR=1e5
                     d.mean_reso=1e-3
                     d.diff=0*d.de
-                    d.dll=(d.ll[-1]-d.ll[0])/(len(d.ll)-1)
+                    d.dll=np.mean(np.diff(d.ll)) #(d.ll[-1]-d.ll[0])/(len(d.ll)-1) #both of those should give the same result, but the first is more explicite
 
 
                 noiseless_fullres=True
