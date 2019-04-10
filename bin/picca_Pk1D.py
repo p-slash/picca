@@ -4,11 +4,12 @@ from __future__ import division, print_function
 
 import argparse
 import glob
+import os
 from array import array
 
+import fitsio
 import scipy as sp
 
-import fitsio
 from picca import constants
 from picca.data import delta
 from picca.Pk1D import (compute_cor_reso, compute_Pk_noise, compute_Pk_raw,
