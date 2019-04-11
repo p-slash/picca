@@ -139,6 +139,9 @@ if __name__ == '__main__':
     parser.add_argument('--nspec', type=int, default=None, required=False,
         help='Maximum number of spectra to read')
 
+    parser.add_argument('--use-resolution-matrix', action='store_true', default = False,
+        help='should the resolution matrix be stored with the deltas (only implemented for Pk1D)')
+
 
     parser.add_argument('--use-mock-continuum', action='store_true', default = False,
             help='use the mock continuum for computing the deltas')
@@ -421,6 +424,8 @@ if __name__ == '__main__':
                 for i in range(nbpixel): line += '{} '.format(d.ll[i])
                 for i in range(nbpixel): line += '{} '.format(d.iv[i])
                 for i in range(nbpixel): line += '{} '.format(d.diff[i])
+                if args.use_resolution_matrix:
+                    print('the resolution matrix will only be output when using FITS format')
                 line +=' \n'
                 out_ascii.write(line)
 
@@ -446,7 +451,7 @@ if __name__ == '__main__':
                     if (args.mode=='desi') :
                         #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
                         dll=sp.mean(sp.diff(d.ll)) #this is better as masking is ignored [e.g. due to masking]
-                        dll_resmat=sp.median(10**-d.ll)*desi_pixsize/sp.log(10.) #this is 1 angstrom pixel size * mean(1/lambda)
+                        dll_resmat=sp.median(10**-d.ll)*desi_pixsize/sp.log(10.) #this is 1 angstrom pixel size * mean(1/lambda) or median(1/lambda)
                         d.mean_reso*=constants.speed_light/1000.*dll_resmat*sp.log(10.0)
 
 
@@ -455,14 +460,23 @@ if __name__ == '__main__':
                            {'name':'MEANSNR','value':d.mean_SNR,'comment':'Mean SNR'},
                     ]
                     hd += [{'name':'DLL','value':dll,'comment':'Loglam bin size [log Angstrom]'}]
+                    if args.use_resolution_matrix:
+                        hd += [{'name':'DLL_RES','value':dll_resmat,'comment':'Loglam bin size for resolution matrix'}]
                     diff = d.diff
                     if diff is None:
                         diff = d.ll*0
+                    if args.use_resolution_matrix and args.mode=='desi':
+                        resomat=d.reso_matrix.T
 
                     cols=[d.ll,d.de,d.iv,diff]
                     names=['LOGLAM','DELTA','IVAR','DIFF']
                     units=['log Angstrom','','','']
                     comments = ['Log lambda','Delta field','Inverse variance','Difference']
+                    if args.use_resolution_matrix and args.mode=='desi':
+                        cols.extend([resomat])
+                        names.extend(['RESOMAT'])
+                        units.extend(['(pixel)'])
+                        comments.extend(['Resolution','Resolution matrix','Resolution in pixel units'])
                 else :
                     cols=[d.ll,d.de,d.we,d.co]
                     names=['LOGLAM','DELTA','WEIGHT','CONT']
