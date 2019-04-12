@@ -196,7 +196,7 @@ def compute_cor_reso(delta_pixel, mean_reso, k, delta_pixel2, pixel_correction=N
     cor *= sp.exp(-(k*mean_reso)**2)
     return cor
 
-def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel_2, ll, pixel_correction=None):
+def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel2, ll, pixel_correction=None):
     """
     Perform the resolution + pixelization correction assuming general resolution kernel
      as e.g. DESI resolution matrix
@@ -220,7 +220,7 @@ def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel
 
     cor = sp.ones(len(k))
     cor *= Wres2
-
+    nb_bin_FFT = len(k)
     if pixel_correction == 'default':  # default correction
         sinc = sp.ones(nb_bin_FFT)
         sinc[k > 0.] = (sp.sin(k[k > 0.] * delta_pixel / 2.0) /
