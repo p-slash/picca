@@ -238,7 +238,7 @@ if __name__ == '__main__':
             if args.res_estimate == 'Gaussian':
                 m_z_arr,ll_arr,de_arr,diff_arr,iv_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel)
             elif args.res_estimate == 'matrix':
-                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, reso_mat_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,matrix=d.reso_matrix)
+                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, reso_mat_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,reso_matrix=d.reso_matrix)
             for f in range(nb_part):
 
                 # rebin diff spectrum
