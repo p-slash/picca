@@ -251,7 +251,7 @@ if __name__ == '__main__':
                 elif args.res_estimate == 'matrix':
                     #for resolution matrix the filling is not yet fully implemented, so far just the mean is taken here
                     ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll,ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling)
-                    reso_mat_new=np.mean(reso_mat_arr,axis=1)
+                    reso_mat_new=sp.mean(reso_mat_arr,axis=1)
 
 
                 if (nb_masked_pixel> args.nb_pixel_masked_max) : continue
