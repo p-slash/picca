@@ -11,6 +11,7 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso
 
     ll_limit=[ll[first_pixel]]
     nb_bin= (len(ll)-first_pixel)//nb_part
+    lam_lya = constants.absorber_IGM["LYA"]
 
     m_z_arr = []
     ll_arr = []
@@ -43,7 +44,6 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso
         if reso_matrix is not None:
             reso_matrix_part = reso_matrix_c[:, selection]
 
-        lam_lya = constants.absorber_IGM["LYA"]
         m_z = sp.mean([10**ll_part[-1],10**ll_part[0]])/lam_lya -1.0
 
         m_z_arr.append(m_z)
