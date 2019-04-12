@@ -56,9 +56,9 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso
 
     out=[m_z_arr, ll_arr, de_arr, diff_arr, iv_arr]
     if reso_matrix is not None:
-        out += reso_matrix_arr
+        out.append(reso_matrix_arr)
     if dll_reso is not None:
-        out += dll_reso_arr
+        out.append(dll_reso_arr)
 
     return out
 
