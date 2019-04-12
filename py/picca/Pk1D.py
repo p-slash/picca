@@ -19,6 +19,7 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso
     diff_arr = []
     iv_arr = []
     dll_reso_arr = []
+    reso_matrix_arr = []
 
     ll_c = ll.copy()
     de_c = de.copy()
@@ -26,7 +27,6 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso
     iv_c = iv.copy()
     if reso_matrix is not None:
         reso_matrix_c=reso_matrix.copy()
-        reso_matrix_arr=[]
     for p in range(1,nb_part) :
         ll_limit.append(ll[nb_bin*p+first_pixel])
 
@@ -53,6 +53,8 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso
         iv_arr.append(iv_part)
         if dll_reso is not None:
             dll_reso_arr.append(dll_reso*(1+m_z_init)/(1+m_z))
+        if reso_matrix is not None:
+            reso_matrix_arr.append(reso_matrix_part)
 
     out=[m_z_arr, ll_arr, de_arr, diff_arr, iv_arr]
     if reso_matrix is not None:
