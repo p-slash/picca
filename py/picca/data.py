@@ -101,9 +101,13 @@ class forest(qso):
     mean_SNR = None
     mean_reso = None
     mean_z = None
+    
+    ## resolution matrix for desi forests
+    reso_matrix = None
+    mean_reso_matrix = None
 
 
-    def __init__(self,ll,fl,iv,thid,ra,dec,zqso,plate,mjd,fid,order, diff=None,reso=None, mmef = None):
+    def __init__(self,ll,fl,iv,thid,ra,dec,zqso,plate,mjd,fid,order, diff=None,reso=None, mmef = None, reso_matrix=None):
         qso.__init__(self,thid,ra,dec,zqso,plate,mjd,fid)
 
         if not self.ebv_map is None:
@@ -132,6 +136,8 @@ class forest(qso):
             diff=diff[w]
         if reso is not None:
             reso=reso[w]
+        if reso_matrix is not None:
+            reso_matrix = reso_matrix[:, w]
 
         ## rebin
         cll = forest.lmin + sp.arange(bins.max()+1)*forest.dll
@@ -147,6 +153,13 @@ class forest(qso):
             cdiff = sp.bincount(bins,weights=iv*diff)
         if reso is not None:
             creso = sp.bincount(bins,weights=iv*reso)
+        if reso_matrix is not None:
+            creso_matrix = sp.zeros((reso_matrix.shape[0], bins.max() + 1))
+            for i, r in enumerate(reso_matrix):
+                # need to think about this, does rebinning even make sense for the resolution matrix, probably not, but to be able to get the following lines right this would be needed. And this is probably the best way if it is sensible at all, it might be necessary to compute everything in lambda instead of log(lambda) in the end
+                creso_matrix[i, :] = sp.bincount(bins, weights=iv * r)
+        if reso_matrix is not None:
+            reso_matrix = creso_matrix[:, w] / civ[sp.newaxis, w]
 
         cfl[:len(ccfl)] += ccfl
         civ[:len(cciv)] += cciv
@@ -164,7 +177,7 @@ class forest(qso):
             diff = cdiff[w]/civ[w]
         if reso is not None:
             reso = creso[w]/civ[w]
-
+        
         ## Flux calibration correction
         if not self.correc_flux is None:
             correction = self.correc_flux(ll)
@@ -183,12 +196,17 @@ class forest(qso):
         #if diff is not None :
         self.diff = diff
         self.reso = reso
+        self.reso_matrix = reso_matrix
+
 #        else :
 #           self.diff = sp.zeros(len(ll))
 #           self.reso = sp.ones(len(ll))
 
         # compute means
         if reso is not None : self.mean_reso = sum(reso)/float(len(reso))
+        if reso_matrix is not None:
+            nremove=reso_matrix.shape[0]//2
+            self.mean_reso_matrix = sp.mean(reso_matrix[:,nremove:-nremove],axis=1)
 
         err = 1.0/sp.sqrt(iv)
         SNR = fl/err

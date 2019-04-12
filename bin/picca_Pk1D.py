@@ -14,7 +14,8 @@ import scipy as sp
 from picca import constants
 from picca.data import delta
 from picca.Pk1D import (compute_cor_reso, compute_Pk_noise, compute_Pk_raw,
-                        fill_masked_pixels, rebin_diff_noise, split_forest)
+                        fill_masked_pixels, rebin_diff_noise, split_forest,
+                        compute_cor_reso_matrix)
 from picca.utils import print
 
 
@@ -134,6 +135,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--nproc', type=int, default=1, required=False,
         help='Number of processors')
+    parser.add_argument('--res-estimate', default='Gaussian', required=False,
+        help='Resolution correction estimated by: Gaussian, matrix, noresolution')
 
     args = parser.parse_args()
 
@@ -203,7 +206,7 @@ if __name__ == '__main__':
                     d.mean_SNR=1e5
                     d.mean_reso=1e-3
                     d.diff=0*d.de
-                    d.dll=sp.mean(sp.diff(d.ll)) #(d.ll[-1]-d.ll[0])/(len(d.ll)-1) #both of those should give the same result, but the first is more explicite
+                    d.dll=sp.mean(sp.diff(d.ll)) #(d.ll[-1]-d.ll[0])/(len(d.ll)-1) #both of those should give the same result, but the first is more explicite, second one should be faster, but this shouldn't be a dominant effect
 
 
                 noiseless_fullres=True
@@ -258,7 +261,7 @@ if __name__ == '__main__':
 
                 # Compute resolution correction
                 delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
-                delta_pixel2 = sp.median(10**-ll_new)*constants.speed_light/1000. #pixelization in which the resolution matrix is binned converted to velocity space
+                delta_pixel2 = d.dll_res*sp.log(10.)*constants.speed_light/1000.#sp.median(10**-ll_new)*constants.speed_light/1000. #pixelization in which the resolution matrix is binned converted to velocity space
                 cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction)
 
                 # Compute 1D Pk
