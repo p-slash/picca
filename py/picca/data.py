@@ -475,6 +475,7 @@ class delta(qso):
                 dll_resmat = head['DLL_RESMAT']
             except (KeyError, ValueError):
                 dll_resmat = None
+                raise
             we = None
             co = None
             iv=iv.astype(float)   #to ensure the endianess is right for the fft
