@@ -206,9 +206,9 @@ def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel
     W2arr=[]
     for resmat in reso_matrix:
         r=sp.append(resmat, sp.zeros(ll.size-resmat.size))
-        k_resmat,W2=compute_Pk_raw(dll_resmat, r, ll, linear_binning=True) #this assumes a pixel scale of 1 Angstrom inside the reso matrix
+        k_resmat,W2=compute_Pk_raw(dll_resmat, r, ll) #this assumes a pixel scale of 1 Angstrom inside the reso matrix
         W2/=W2[0]
-        #print ('kvel: {:s}'.format(' '.join(['{:.3f}'.format(ki) for ki in k_vel]) ))
+        #this interpolates to the final k_binning if different
         W2int=spint.interp1d(k_resmat,W2,bounds_error=False)
 
         W2arr.append(W2int(k))
