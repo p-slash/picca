@@ -271,11 +271,11 @@ if __name__ == '__main__':
 
                 # Compute resolution correction
                 delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
-                delta_pixel2 = d.dll_res*sp.log(10.)*constants.speed_light/1000. #this should be changed to d.dll_res
+                delta_pixel2 = d.dll_resmat*sp.log(10.)*constants.speed_light/1000. #this should be changed to d.dll_res
                 if args.res_estimate == 'Gaussian':
                     cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction)
                 elif  args.res_estimate == 'matrix':
-                    cor_reso = compute_cor_reso_matrix(d.dll_res, reso_mat_new, k, delta_pixel, delta_pixel_2)
+                    cor_reso = compute_cor_reso_matrix(d.dll_resmat, reso_mat_new, k, delta_pixel, delta_pixel_2)
                 else:
                     cor_reso = 1
 
