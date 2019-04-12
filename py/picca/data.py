@@ -467,11 +467,13 @@ class delta(qso):
             try:
                 resomat=h['RESOMAT'][:]
                 mean_resomat = sp.mean(resomat,axis=1)
-                dll_resmat = head['DLL_RESMAT']
                 #mean_resomat=head['MEANRESO_MATRIX'] #in principle one could output this to file, not implemented currently
             except (KeyError, ValueError):
                 resomat = None
                 mean_resomat = None
+            try:
+                dll_resmat = head['DLL_RESMAT']
+            except (KeyError, ValueError):
                 dll_resmat = None
             we = None
             co = None
