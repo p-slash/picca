@@ -396,6 +396,7 @@ if __name__ == '__main__':
         deltas[p] = [delta.from_forest(d,st,forest.var_lss,forest.eta,forest.fudge, args.use_mock_continuum) for d in data[p] if d.bad_cont is None]
         data_bad_cont = data_bad_cont + [d for d in data[p] if d.bad_cont is not None]
 
+
     for d in data_bad_cont:
         log.write("rejected {} due to {}\n".format(d.thid,d.bad_cont))
 
@@ -410,11 +411,9 @@ if __name__ == '__main__':
             for d in deltas[p]:
                 nbpixel = len(d.de)
                 dll = d.dll
-                #desi_pixsize=1 #set desi pixel size to one angstrom, generalize later
                 if (args.mode=='desi') :
                     #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
                     dll=sp.median(sp.diff(d.ll)) #this is better as masking is ignored [e.g. due to masking]
-                    dll_resmat=sp.mean(10**-d.ll)*desi_pixsize/sp.log(10.) #this is 1 angstrom pixel size * mean(1/lambda)
                     d.mean_reso*=constants.speed_light/1000.*dll_resmat*sp.log(10.0)
 
                 line = '{} {} {} '.format(d.plate,d.mjd,d.fid)
@@ -452,6 +451,8 @@ if __name__ == '__main__':
                         #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
                         dll=sp.mean(sp.diff(d.ll)) #this is better as masking is ignored [e.g. due to masking]
                         dll_resmat=sp.median(10**-d.ll)*desi_pixsize/sp.log(10.) #this is 1 angstrom pixel size * mean(1/lambda) or median(1/lambda)
+                        if args.use_resolution_matrix:
+                            d.dll_resmat=dll_resmat 
                         d.mean_reso*=constants.speed_light/1000.*dll_resmat*sp.log(10.0)
 
 
@@ -476,7 +477,7 @@ if __name__ == '__main__':
                         cols.extend([resomat])
                         names.extend(['RESOMAT'])
                         units.extend(['(pixel)'])
-                        comments.extend(['Resolution','Resolution matrix','Resolution in pixel units'])
+                        comments.extend(['Resolution matrix'])
                 else :
                     cols=[d.ll,d.de,d.we,d.co]
                     names=['LOGLAM','DELTA','WEIGHT','CONT']

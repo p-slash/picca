@@ -158,8 +158,6 @@ class forest(qso):
             for i, r in enumerate(reso_matrix):
                 # need to think about this, does rebinning even make sense for the resolution matrix, probably not, but to be able to get the following lines right this would be needed. And this is probably the best way if it is sensible at all, it might be necessary to compute everything in lambda instead of log(lambda) in the end
                 creso_matrix[i, :] = sp.bincount(bins, weights=iv * r)
-        if reso_matrix is not None:
-            reso_matrix = creso_matrix[:, w] / civ[sp.newaxis, w]
 
         cfl[:len(ccfl)] += ccfl
         civ[:len(cciv)] += cciv
@@ -177,7 +175,8 @@ class forest(qso):
             diff = cdiff[w]/civ[w]
         if reso is not None:
             reso = creso[w]/civ[w]
-        
+        if reso_matrix is not None:
+            reso_matrix = creso_matrix[:, w] / civ[sp.newaxis, w]        
         ## Flux calibration correction
         if not self.correc_flux is None:
             correction = self.correc_flux(ll)
@@ -203,16 +202,15 @@ class forest(qso):
 #           self.reso = sp.ones(len(ll))
 
         # compute means
-        if reso is not None : self.mean_reso = sum(reso)/float(len(reso))
+        if reso is not None : 
+            self.mean_reso = sum(reso)/float(len(reso))
         if reso_matrix is not None:
-            nremove=reso_matrix.shape[0]//2
-            self.mean_reso_matrix = sp.mean(reso_matrix[:,nremove:-nremove],axis=1)
-
+            self.mean_reso_matrix = sp.mean(reso_matrix,axis=1)
         err = 1.0/sp.sqrt(iv)
         SNR = fl/err
         self.mean_SNR = sum(SNR)/float(len(SNR))
         lam_lya = constants.absorber_IGM["LYA"]
-        self.mean_z = (sp.power(10.,ll[len(ll)-1])+sp.power(10.,ll[0]))/2./lam_lya -1.0
+        self.mean_z = sp.mean([10.**ll[-1], 10.**ll[0]])/lam_lya -1.0
 
 
     def __add__(self,d):
@@ -232,7 +230,8 @@ class forest(qso):
             dic['diff'] = sp.append(self.diff, d.diff)
         if self.reso is not None:
             dic['reso'] = sp.append(self.reso, d.reso)
-
+        if self.reso_matrix is not None:
+            dic['reso_matrix'] = sp.append(self.reso_matrix, d.reso_matrix,axis=1)
         bins = sp.floor((ll-forest.lmin)/forest.dll+0.5).astype(int)
         cll = forest.lmin + sp.arange(bins.max()+1)*forest.dll
         civ = sp.zeros(bins.max()+1)
@@ -243,19 +242,28 @@ class forest(qso):
         self.iv = civ[w]
 
         for k, v in dic.items():
-            cnew = sp.zeros(bins.max() + 1)
-            ccnew = sp.bincount(bins, weights=iv * v)
-            cnew[:len(ccnew)] += ccnew
-            setattr(self, k, cnew[w] / civ[w])
+            if len(v.shape)==1: #for 1d-arrays
+                cnew = sp.zeros(bins.max() + 1)
+                ccnew = sp.bincount(bins, weights=iv * v)
+                cnew[:len(ccnew)] += ccnew
+                setattr(self, k, cnew[w] / civ[w])
+            else: #for e.g. the reso matrix
+                cnew = sp.zeros([v.shape[0],bins.max() + 1])
+                for ivsub,vsub in enumerate(v):
+                    ccsubnew = sp.bincount(bins, weights=iv * vsub)
+                    cnew[ivsub,:len(ccnew)] += ccsubnew
+                setattr(self, k, cnew[:,w] / civ[w])
 
         # recompute means of quality variables
         if self.reso is not None:
             self.mean_reso = self.reso.mean()
+        if self.reso_matrix is not None:
+            self.mean_reso_matrix = self.reso_matrix.mean(axis=1)
         err = 1./sp.sqrt(self.iv)
         SNR = self.fl/err
         self.mean_SNR = SNR.mean()
         lam_lya = constants.absorber_IGM["LYA"]
-        self.mean_z = (sp.power(10.,ll[len(ll)-1])+sp.power(10.,ll[0]))/2./lam_lya -1.0
+        self.mean_z = sp.mean([10.**ll[-1], 10.**ll[0]])/lam_lya -1.0
 
         return self
 
@@ -278,6 +286,10 @@ class forest(qso):
              self.diff = self.diff[w]
         if self.reso is not None:
              self.reso = self.reso[w]
+             self.mean_reso = sp.mean(self.reso)
+        if self.reso_matrix is not None:
+            self.reso_matrix = self.reso_matrix[:,w]
+            self.mean_reso_matrix = sp.mean(self.reso_matrix,axis=1)
 
     def add_dla(self,zabs,nhi,mask=None):
         if not hasattr(self,'ll'):
@@ -302,6 +314,10 @@ class forest(qso):
             self.diff = self.diff[w]
         if self.reso is not None:
             self.reso = self.reso[w]
+            self.mean_reso = sp.mean(self.reso)
+        if self.reso_matrix is not None:
+            self.reso_matrix = self.reso_matrix[:,w]
+            self.mean_reso_matrix = sp.mean(self.reso_matrix, axis=1)
 
     def add_absorber(self,lambda_absorber):
         if not hasattr(self,'ll'):
@@ -317,6 +333,11 @@ class forest(qso):
             self.diff = self.diff[w]
         if self.reso is not None:
             self.reso = self.reso[w]
+            self.mean_reso = sp.mean(self.reso)
+        if self.reso_matrix is not None:
+             self.reso_matrix = self.reso_matrix[:,w]
+             self.mean_reso_matrix = sp.mean(self.reso_matrix,axis=1)
+
 
     def cont_fit(self):
         lmax = forest.lmax_rest+sp.log10(1+self.zqso)
@@ -381,7 +402,7 @@ class forest(qso):
 
 class delta(qso):
 
-    def __init__(self,thid,ra,dec,zqso,plate,mjd,fid,ll,we,co,de,order,iv,diff,m_SNR,m_reso,m_z,dll):
+    def __init__(self,thid,ra,dec,zqso,plate,mjd,fid,ll,we,co,de,order,iv,diff,m_SNR,m_reso,m_z,dll,m_reso_matrix=None,reso_matrix=None,dll_resmat=None):
 
         qso.__init__(self,thid,ra,dec,zqso,plate,mjd,fid)
         self.ll = ll
@@ -395,6 +416,10 @@ class delta(qso):
         self.mean_reso = m_reso
         self.mean_z = m_z
         self.dll = dll
+        self.mean_reso_matrix = m_reso_matrix
+        self.reso_matrix = reso_matrix
+        self.dll_resmat = dll_resmat
+
 
     @classmethod
     def from_forest(cls,f,st,var_lss,eta,fudge,mc=False):
@@ -417,7 +442,8 @@ class delta(qso):
         iv = f.iv/(eta+(eta==0))*(mef**2)
 
         return cls(f.thid,f.ra,f.dec,f.zqso,f.plate,f.mjd,f.fid,ll,we,f.co,de,f.order,
-                   iv,diff,f.mean_SNR,f.mean_reso,f.mean_z,f.dll)
+                   iv,diff,f.mean_SNR,f.mean_reso,f.mean_z,f.dll,m_reso_matrix=f.mean_reso_matrix,
+                   reso_matrix=f.reso_matrix)
 
 
     @classmethod
@@ -438,10 +464,21 @@ class delta(qso):
             m_reso = head['MEANRESO']
             m_z = head['MEANZ']
             dll =  head['DLL']
+            try:
+                resomat=h['RESOMAT'][:]
+                mean_resomat = sp.mean(resomat,axis=1)
+                dll_resmat = head['DLL_RESMAT']
+                #mean_resomat=head['MEANRESO_MATRIX'] #in principle one could output this to file, not implemented currently
+            except (KeyError, ValueError):
+                resomat = None
+                mean_resomat = None
+                dll_resmat = None
             we = None
             co = None
             iv=iv.astype(float)   #to ensure the endianess is right for the fft
             diff=diff.astype(float)
+            if resomat is not None:
+                resomat=resomat.astype(float)
         else :
             iv = None
             diff = None
@@ -466,7 +503,8 @@ class delta(qso):
         except KeyError:
             order = 1
         return cls(thid,ra,dec,zqso,plate,mjd,fid,ll,we,co,de,order,
-                   iv,diff,m_SNR,m_reso,m_z,dll)
+                   iv,diff,m_SNR,m_reso,m_z,dll,m_reso_matrix=mean_resomat,
+                   reso_matrix=resomat,dll_resmat=dll_resmat)
 
 
     @classmethod

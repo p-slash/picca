@@ -235,7 +235,10 @@ if __name__ == '__main__':
             # Split in n parts the forest
             nb_part_max = (len(d.ll)-first_pixel)//nb_pixel_min
             nb_part = min(args.nb_part,nb_part_max)
-            m_z_arr,ll_arr,de_arr,diff_arr,iv_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel)
+            if args.res_estimate == 'Gaussian':
+                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel)
+            elif args.res_estimate == 'matrix':
+                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, reso_mat_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,matrix=d.reso_matrix)
             for f in range(nb_part):
 
                 # rebin diff spectrum
@@ -243,7 +246,14 @@ if __name__ == '__main__':
                     diff_arr[f]=rebin_diff_noise(d.dll,ll_arr[f],diff_arr[f])
 
                 # Fill masked pixels with 0.
-                ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll,ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling)
+                if args.res_estimate == 'Gaussian':
+                    ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll,ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling)
+                elif args.res_estimate == 'matrix':
+                    #for resolution matrix the filling is not yet fully implemented, so far just the mean is taken here
+                    ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll,ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling)
+                    reso_mat_new=np.mean(reso_mat_arr,axis=1)
+
+
                 if (nb_masked_pixel> args.nb_pixel_masked_max) : continue
                 if (args.out_format=='root' and  args.debug): compute_mean_delta(ll_new,delta_new,iv_new,d.zqso)
 
@@ -261,8 +271,14 @@ if __name__ == '__main__':
 
                 # Compute resolution correction
                 delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
-                delta_pixel2 = d.dll_res*sp.log(10.)*constants.speed_light/1000.#sp.median(10**-ll_new)*constants.speed_light/1000. #pixelization in which the resolution matrix is binned converted to velocity space
-                cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction)
+                delta_pixel2 = d.dll_res*sp.log(10.)*constants.speed_light/1000. #this should be changed to d.dll_res
+                if args.res_estimate == 'Gaussian':
+                    cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction)
+                elif  args.res_estimate == 'matrix':
+                    cor_reso = compute_cor_reso_matrix(d.dll_res, reso_mat_new, k, delta_pixel, delta_pixel_2)
+                else:
+                    cor_reso = 1
+
 
                 # Compute 1D Pk
                 if (args.noise_estimate=='pipeline'):
@@ -320,7 +336,7 @@ if __name__ == '__main__':
                     names=['k','Pk_raw','Pk_noise','Pk_diff','cor_reso','Pk']
                     comments=['Wavenumber', 'Raw power spectrum', "Noise's power spectrum", 'Noise coadd difference power spectrum',\
                               'Correction resolution function', 'Corrected power spectrum (resolution and noise)']
-                    units=['(km/s)^-1', 'km/s', 'km/s', 'km/s', 'km/s', 'km/s']
+                    units=['(km/s)^-1', 'km/s', 'km/s', 'km/s', '', 'km/s']
 
                     try:
                         out.write(cols,names=names,header=hd,comments=comments,units=units)

@@ -7,7 +7,7 @@ from picca import constants
 from picca.utils import print
 
 
-def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel):
+def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None):
 
     ll_limit=[ll[first_pixel]]
     nb_bin= (len(ll)-first_pixel)//nb_part
@@ -22,7 +22,9 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel):
     de_c = de.copy()
     diff_c = diff.copy()
     iv_c = iv.copy()
-
+    if reso_matrix is not None:
+        reso_matrix_c=reso_matrix.copy()
+        reso_matrix_arr=[]
     for p in range(1,nb_part) :
         ll_limit.append(ll[nb_bin*p+first_pixel])
 
@@ -36,17 +38,21 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel):
         de_part = de_c[selection]
         diff_part = diff_c[selection]
         iv_part = iv_c[selection]
+        if reso_matrix is not None:
+            reso_matrix_part = reso_matrix_c[selection, :]
 
         lam_lya = constants.absorber_IGM["LYA"]
-        m_z = (sp.power(10.,ll_part[len(ll_part)-1])+sp.power(10.,ll_part[0]))/2./lam_lya -1.0
+        m_z = sp.mean([10**ll_part[-1],10**ll_part[0]])/lam_lya -1.0
 
         m_z_arr.append(m_z)
         ll_arr.append(ll_part)
         de_arr.append(de_part)
         diff_arr.append(diff_part)
         iv_arr.append(iv_part)
-
-    return m_z_arr,ll_arr,de_arr,diff_arr,iv_arr
+    if reso_matrix is not None:
+        return m_z_arr, ll_arr, de_arr, diff_arr, iv_arr, reso_matrix_arr
+    else:
+        return m_z_arr, ll_arr, de_arr, diff_arr, iv_arr
 
 def rebin_diff_noise(dll,ll,diff):
 
@@ -178,6 +184,47 @@ def compute_cor_reso(delta_pixel, mean_reso, k, delta_pixel2, pixel_correction=N
     cor *= sp.exp(-(k*mean_reso)**2)
     return cor
 
+def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel_2):
+    """
+    Perform the resolution + pixelization correction assuming general resolution kernel
+     as e.g. DESI resolution matrix
+    """
+    if len(reso_matrix.shape)==1:
+        #assume you got a mean reso_matrix
+        reso_matrix=reso_matrix[sp.newaxis,:]
+
+    W2arr=[]
+    for resmat in reso_matrix:
+        r=sp.append(resmat, sp.zeros(ll.size-resmat.size))
+        k_resmat,W2=compute_Pk_raw(dll_resmat, r, ll, linear_binning=True) #this assumes a pixel scale of 1 Angstrom inside the reso matrix
+        W2/=W2[0]
+        #print ('kvel: {:s}'.format(' '.join(['{:.3f}'.format(ki) for ki in k_vel]) ))
+        W2int=spint.interp1d(k_resmat,W2,bounds_error=False)
+
+        W2arr.append(W2int(k))
+        #print ('k: {}'.format(' '.join(['{:.3f}'.format(ki) for ki in k]) ))
+
+    Wres2=sp.mean(W2arr,axis=0)
+
+    cor = sp.ones(len(k))
+    cor *= Wres2
+
+    if pixel_correction == 'default':  # default correction
+        sinc = sp.ones(nb_bin_FFT)
+        sinc[k > 0.] = (sp.sin(k[k > 0.] * delta_pixel / 2.0) /
+                        (k[k > 0.] * delta_pixel / 2.0))**2
+        cor *= sinc
+    # the following is to undo the pixelization correction that is part of the resolution matrix and then redo the correction using the current pixelization (values are hardcoded for the moment)
+    elif pixel_correction == 'undo_resmat_conv':
+        sinc = sp.ones(nb_bin_FFT)
+        sinc[k > 0.] =  (sp.sin(k[k > 0.]*delta_pixel/2.0)/(k[k > 0.]*delta_pixel/2.0))**2
+        cor *= sinc
+        sinc2 = sp.ones(nb_bin_FFT)
+        sinc2[k > 0.] = (sp.sin(k[k > 0.] *delta_pixel2 /2.0) /(k[k > 0.] *delta_pixel2 /2.0))**2
+        cor /= sinc2
+
+
+    return cor
 
 class Pk1D :
 
