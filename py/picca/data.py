@@ -465,7 +465,7 @@ class delta(qso):
             m_z = head['MEANZ']
             dll =  head['DLL']
             try:
-                resomat=h['RESOMAT'][:]
+                resomat=h['RESOMAT'][:].T
                 mean_resomat = sp.mean(resomat,axis=1)
                 #mean_resomat=head['MEANRESO_MATRIX'] #in principle one could output this to file, not implemented currently
             except (KeyError, ValueError):
