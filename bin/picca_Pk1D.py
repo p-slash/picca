@@ -236,9 +236,9 @@ if __name__ == '__main__':
             nb_part_max = (len(d.ll)-first_pixel)//nb_pixel_min
             nb_part = min(args.nb_part,nb_part_max)
             if args.res_estimate == 'Gaussian':
-                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel)
+                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,dll_reso=d.dll_resmat)
             elif args.res_estimate == 'matrix':
-                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, reso_mat_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,reso_matrix=d.reso_matrix)
+                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, reso_mat_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,reso_matrix=d.reso_matrix,dll_reso=d.dll_resmat)
             for f in range(nb_part):
 
                 # rebin diff spectrum
@@ -251,7 +251,8 @@ if __name__ == '__main__':
                 elif args.res_estimate == 'matrix':
                     #for resolution matrix the filling is not yet fully implemented, so far just the mean is taken here
                     ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll,ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling)
-                    reso_mat_new=sp.mean(reso_mat_arr,axis=1)
+                    reso_mat_new=sp.mean(reso_mat_arr[f],axis=1)
+                dll_reso=dll_res_arr[f]
 
 
                 if (nb_masked_pixel> args.nb_pixel_masked_max) : continue
@@ -271,11 +272,11 @@ if __name__ == '__main__':
 
                 # Compute resolution correction
                 delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
-                delta_pixel2 = d.dll_resmat*sp.log(10.)*constants.speed_light/1000. #this should be changed to d.dll_res
+                delta_pixel2 = dll_reso*sp.log(10.)*constants.speed_light/1000. #this should be changed to d.dll_res
                 if args.res_estimate == 'Gaussian':
                     cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction)
                 elif  args.res_estimate == 'matrix':
-                    cor_reso = compute_cor_reso_matrix(d.dll_resmat, reso_mat_new, k, delta_pixel, delta_pixel_2)
+                    cor_reso = compute_cor_reso_matrix(dll_reso, reso_mat_new, k, delta_pixel, delta_pixel_2)
                 else:
                     cor_reso = 1
 

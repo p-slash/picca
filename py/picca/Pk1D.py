@@ -7,7 +7,7 @@ from picca import constants
 from picca.utils import print
 
 
-def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None):
+def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso=None):
 
     ll_limit=[ll[first_pixel]]
     nb_bin= (len(ll)-first_pixel)//nb_part
@@ -17,6 +17,7 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None):
     de_arr = []
     diff_arr = []
     iv_arr = []
+    dll_reso_arr = []
 
     ll_c = ll.copy()
     de_c = de.copy()
@@ -29,6 +30,7 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None):
         ll_limit.append(ll[nb_bin*p+first_pixel])
 
     ll_limit.append(ll[len(ll)-1]+0.1*dll)
+    m_z_init = sp.mean([10**ll_c[-1],10**ll_c[0]])/lam_lya -1.0
 
     for p in range(nb_part) :
 
@@ -39,7 +41,7 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None):
         diff_part = diff_c[selection]
         iv_part = iv_c[selection]
         if reso_matrix is not None:
-            reso_matrix_part = reso_matrix_c[selection, :]
+            reso_matrix_part = reso_matrix_c[:, selection]
 
         lam_lya = constants.absorber_IGM["LYA"]
         m_z = sp.mean([10**ll_part[-1],10**ll_part[0]])/lam_lya -1.0
@@ -49,10 +51,16 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None):
         de_arr.append(de_part)
         diff_arr.append(diff_part)
         iv_arr.append(iv_part)
+        if dll_reso is not None:
+            dll_reso_arr.append(dll_reso*(1+m_z_init)/(1+m_z))
+
+    out=[m_z_arr, ll_arr, de_arr, diff_arr, iv_arr]
     if reso_matrix is not None:
-        return m_z_arr, ll_arr, de_arr, diff_arr, iv_arr, reso_matrix_arr
-    else:
-        return m_z_arr, ll_arr, de_arr, diff_arr, iv_arr
+        out += reso_matrix_arr
+    if dll_reso is not None:
+        out += dll_reso_arr
+
+    return out
 
 def rebin_diff_noise(dll,ll,diff):
 
