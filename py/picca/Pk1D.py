@@ -2,9 +2,11 @@ from __future__ import print_function
 
 import scipy as sp
 from scipy.fftpack import fft
+import scipy.interpolate as spint
 
 from picca import constants
 from picca.utils import print
+
 
 
 def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso=None):
