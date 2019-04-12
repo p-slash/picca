@@ -276,7 +276,7 @@ if __name__ == '__main__':
                 if args.res_estimate == 'Gaussian':
                     cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction)
                 elif  args.res_estimate == 'matrix':
-                    cor_reso = compute_cor_reso_matrix(dll_reso, reso_mat_new, k, delta_pixel, delta_pixel_2)
+                    cor_reso = compute_cor_reso_matrix(dll_reso, reso_mat_new, k, delta_pixel, delta_pixel2)
                 else:
                     cor_reso = 1
 
