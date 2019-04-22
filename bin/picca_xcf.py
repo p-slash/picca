@@ -1,29 +1,43 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import scipy as sp
-from scipy import random
 import fitsio
 import argparse
-import sys
 from multiprocessing import Pool,Lock,cpu_count,Value
 
-from picca import constants, xcf, io, utils
+from picca import constants, xcf, io, prep_del, utils
+from picca.data import forest
+from picca.utils import print
 
-def calc_dmat(p):
-    xcf.fill_neighs(p)
-    tmp = xcf.dmat(p)
-    return tmp
+def corr_func(pixels):
+    """Send correlation on one processor for a list of healpix
+
+    Args:
+        pixels (list of int): list of healpix to compute
+            the correlation on.
+
+    Returns:
+        cor (list of scipy array): list of array with the
+            computed correlation and other attributes.
+
+    """
+    xcf.fill_neighs(pixels)
+    cor = xcf.xcf(pixels)
+    return cor
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='Compute the distortion matrix of the cross-correlation delta x object.')
+        description='Compute the cross-correlation between a catalog of objects and a delta field.')
 
     parser.add_argument('--out', type=str, default=None, required=True,
         help='Output file name')
 
     parser.add_argument('--in-dir', type=str, default=None, required=True,
         help='Directory to delta files')
+
+    parser.add_argument('--from-image', type=str, default=None, required=False,
+        help='Read delta from image format', nargs='*')
 
     parser.add_argument('--drq', type=str, default=None, required=True,
         help='Catalog of objects in DRQ format')
@@ -72,8 +86,11 @@ if __name__ == '__main__':
     parser.add_argument('--fid-Om', type=float, default=0.315, required=False,
         help='Omega_matter(z=0) of fiducial LambdaCDM cosmology')
 
-    parser.add_argument('--rej', type=float, default=1., required=False,
-        help='Fraction of rejected pairs: -1=no rejection, 1=all rejection')
+    parser.add_argument('--no-project', action='store_true', required=False,
+        help='Do not project out continuum fitting modes')
+
+    parser.add_argument('--no-remove-mean-lambda-obs', action='store_true', required=False,
+        help='Do not remove mean delta versus lambda_obs')
 
     parser.add_argument('--nside', type=int, default=16, required=False,
         help='Healpix nside')
@@ -84,54 +101,74 @@ if __name__ == '__main__':
     parser.add_argument('--nspec', type=int, default=None, required=False,
         help='Maximum number of spectra to read')
 
+    parser.add_argument('--shuffle-distrib-obj-seed', type=int, default=None, required=False,
+        help='Shuffle the distribution of objects on the sky following the given seed. Do not shuffle if None')
 
     args = parser.parse_args()
 
     if args.nproc is None:
         args.nproc = cpu_count()//2
 
-    print("nproc",args.nproc)
-
     xcf.rp_max = args.rp_max
     xcf.rp_min = args.rp_min
-    xcf.rt_max = args.rt_max
     xcf.z_cut_max = args.z_cut_max
     xcf.z_cut_min = args.z_cut_min
+    xcf.rt_max = args.rt_max
     xcf.np = args.np
     xcf.nt = args.nt
     xcf.nside = args.nside
-    xcf.zref = args.z_ref
-    xcf.alpha = args.z_evol_del
     xcf.lambda_abs = constants.absorber_IGM[args.lambda_abs]
-    xcf.rej = args.rej
 
     cosmo = constants.cosmo(args.fid_Om)
 
     ### Read deltas
     dels, ndels, zmin_pix, zmax_pix = io.read_deltas(args.in_dir, args.nside, xcf.lambda_abs,
-        args.z_evol_del, args.z_ref, cosmo=cosmo,nspec=args.nspec)
+        args.z_evol_del, args.z_ref, cosmo=cosmo,nspec=args.nspec,no_project=args.no_project,
+        from_image=args.from_image)
     xcf.npix = len(dels)
     xcf.dels = dels
     xcf.ndels = ndels
-    sys.stderr.write("\n")
+    print("")
     print("done, npix = {}\n".format(xcf.npix))
+
+    ### Remove <delta> vs. lambda_obs
+    if not args.no_remove_mean_lambda_obs:
+        forest.dll = None
+        for p in xcf.dels:
+            for d in xcf.dels[p]:
+                dll = sp.asarray([d.ll[ii]-d.ll[ii-1] for ii in range(1,d.ll.size)]).min()
+                if forest.dll is None:
+                    forest.dll = dll
+                else:
+                    forest.dll = min(dll,forest.dll)
+        forest.lmin  = sp.log10( (zmin_pix+1.)*xcf.lambda_abs )-forest.dll/2.
+        forest.lmax  = sp.log10( (zmax_pix+1.)*xcf.lambda_abs )+forest.dll/2.
+        ll,st, wst   = prep_del.stack(xcf.dels,delta=True)
+        for p in xcf.dels:
+            for d in xcf.dels[p]:
+                bins = ((d.ll-forest.lmin)/forest.dll+0.5).astype(int)
+                d.de -= st[bins]
 
     ### Find the redshift range
     if (args.z_min_obj is None):
         dmin_pix = cosmo.r_comoving(zmin_pix)
         dmin_obj = max(0.,dmin_pix+xcf.rp_min)
         args.z_min_obj = cosmo.r_2_z(dmin_obj)
-        sys.stderr.write("\r z_min_obj = {}\r".format(args.z_min_obj))
+        print("\r z_min_obj = {}\r".format(args.z_min_obj),end="")
     if (args.z_max_obj is None):
         dmax_pix = cosmo.r_comoving(zmax_pix)
         dmax_obj = max(0.,dmax_pix+xcf.rp_max)
         args.z_max_obj = cosmo.r_2_z(dmax_obj)
-        sys.stderr.write("\r z_max_obj = {}\r".format(args.z_max_obj))
+        print("\r z_max_obj = {}\r".format(args.z_max_obj),end="")
 
     ### Read objects
     objs,zmin_obj = io.read_objects(args.drq, args.nside, args.z_min_obj, args.z_max_obj,\
                                 args.z_evol_obj, args.z_ref,cosmo)
-    sys.stderr.write("\n")
+
+    if not args.shuffle_distrib_obj_seed is None:
+        objs = utils.shuffle_distrib_obj(objs,args.shuffle_distrib_obj_seed)
+
+    print("")
     xcf.objs = objs
 
     ###
@@ -139,31 +176,35 @@ if __name__ == '__main__':
 
 
 
-
     xcf.counter = Value('i',0)
 
     xcf.lock = Lock()
-
     cpu_data = {}
-    for i,p in enumerate(sorted(list(dels.keys()))):
-        ip = i%args.nproc
-        if not ip in cpu_data:
-            cpu_data[ip] = []
-        cpu_data[ip].append(p)
+    for p in list(dels.keys()):
+        cpu_data[p] = [p]
 
-    random.seed(0)
     pool = Pool(processes=args.nproc)
-    dm = pool.map(calc_dmat,sorted(list(cpu_data.values())))
+
+    cfs = pool.map(corr_func,sorted(list(cpu_data.values())))
     pool.close()
-    dm = sp.array(dm)
-    wdm =dm[:,0].sum(axis=0)
-    npairs=dm[:,2].sum(axis=0)
-    npairs_used=dm[:,3].sum(axis=0)
-    dm=dm[:,1].sum(axis=0)
 
-    w = wdm>0.
-    dm[w,:] /= wdm[w,None]
+    cfs=sp.array(cfs)
+    wes=cfs[:,0,:]
+    rps=cfs[:,2,:]
+    rts=cfs[:,3,:]
+    zs=cfs[:,4,:]
+    nbs=cfs[:,5,:].astype(sp.int64)
+    cfs=cfs[:,1,:]
+    hep=sp.array(sorted(list(cpu_data.keys())))
 
+    cut      = (wes.sum(axis=0)>0.)
+    rp       = (rps*wes).sum(axis=0)
+    rp[cut] /= wes.sum(axis=0)[cut]
+    rt       = (rts*wes).sum(axis=0)
+    rt[cut] /= wes.sum(axis=0)[cut]
+    z        = (zs*wes).sum(axis=0)
+    z[cut]  /= wes.sum(axis=0)[cut]
+    nb = nbs.sum(axis=0)
 
     out = fitsio.FITS(args.out,'rw',clobber=True)
     head = [ {'name':'RPMIN','value':xcf.rp_min,'comment':'Minimum r-parallel [h^-1 Mpc]'},
@@ -173,9 +214,16 @@ if __name__ == '__main__':
         {'name':'NT','value':xcf.nt,'comment':'Number of bins in r-transverse'},
         {'name':'ZCUTMIN','value':xcf.z_cut_min,'comment':'Minimum redshift of pairs'},
         {'name':'ZCUTMAX','value':xcf.z_cut_max,'comment':'Maximum redshift of pairs'},
-        {'name':'REJ','value':xcf.rej,'comment':'Rejection factor'},
-        {'name':'NPALL','value':npairs,'comment':'Number of pairs'},
-        {'name':'NPUSED','value':npairs_used,'comment':'Number of used pairs'},
+        {'name':'NSIDE','value':xcf.nside,'comment':'Healpix nside'}
     ]
-    out.write([wdm,dm],names=['WDM','DM'],header=head,comment=['Sum of weight','Distortion matrix'],extname='DMAT')
+    out.write([rp,rt,z,nb],names=['RP','RT','Z','NB'],
+        comment=['R-parallel','R-transverse','Redshift','Number of pairs'],
+        units=['h^-1 Mpc','h^-1 Mpc','',''],
+        header=head,extname='ATTRI')
+
+    head2 = [{'name':'HLPXSCHM','value':'RING','comment':'Healpix scheme'}]
+    out.write([hep,wes,cfs],names=['HEALPID','WE','DA'],
+        comment=['Healpix index', 'Sum of weight', 'Correlation'],
+        header=head2,extname='COR')
+
     out.close()

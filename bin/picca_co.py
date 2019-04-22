@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import scipy as sp
 import fitsio
 import argparse
@@ -17,7 +17,6 @@ def corr_func(p):
     return tmp
 
 if __name__ == '__main__':
-
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Compute the auto and cross-correlation between catalogs of objects')
@@ -46,6 +45,12 @@ if __name__ == '__main__':
     parser.add_argument('--nt', type=int, default=50, required=False,
         help='Number of r-transverse bins')
 
+    parser.add_argument('--z-cut-min', type=float, default=0., required=False,
+        help='Use only pairs of object x object with the mean redshift larger than z-cut-min')
+
+    parser.add_argument('--z-cut-max', type=float, default=10., required=False,
+        help='Use only pairs of object x object with the mean redshift lower than z-cut-max')
+
     parser.add_argument('--z-min-obj', type=float, default=None, required=False,
         help='Min redshift for object field')
 
@@ -65,7 +70,7 @@ if __name__ == '__main__':
         help='Omega_matter(z=0) of fiducial LambdaCDM cosmology')
 
     parser.add_argument('--type-corr', type=str, default='DD', required=False,
-        help='type of correlation: DD, RR, DR, xDD, xRR, xD1R2, xD2R1')
+        help='type of correlation: DD, RR, DR, RD, xDD, xRR, xD1R2, xR1D2')
 
     parser.add_argument('--nside', type=int, default=16, required=False,
         help='Healpix nside')
@@ -82,12 +87,14 @@ if __name__ == '__main__':
     co.rp_max = args.rp_max
     co.rp_min = args.rp_min
     co.rt_max = args.rt_max
+    co.z_cut_min = args.z_cut_min
+    co.z_cut_max = args.z_cut_max
     co.np     = args.np
     co.nt     = args.nt
     co.nside  = args.nside
     co.type_corr = args.type_corr
-    if co.type_corr not in ['DD', 'RR', 'DR', 'xDD', 'xRR', 'xD1R2', 'xD2R1']:
-        print("ERROR: type-corr not in ['DD', 'RR', 'DR', 'xDD', 'xRR', 'xD1R2', 'xD2R1']")
+    if co.type_corr not in ['DD', 'RR', 'DR', 'RD', 'xDD', 'xRR', 'xD1R2', 'xR1D2']:
+        print("ERROR: type-corr not in ['DD', 'RR', 'DR', 'RD', 'xDD', 'xRR', 'xD1R2', 'xR1D2']")
         sys.exit()
     if args.drq2 is None:
         co.x_correlation = False
@@ -98,7 +105,7 @@ if __name__ == '__main__':
 
     ### Read objects 1
     objs,zmin_obj = io.read_objects(args.drq, args.nside, args.z_min_obj, args.z_max_obj,args.z_evol_obj, args.z_ref, cosmo)
-    sys.stderr.write("\n")
+    print("")
     co.objs = objs
     co.ndata = len([o1 for p in co.objs for o1 in co.objs[p]])
     co.angmax = utils.compute_ang_max(cosmo,co.rt_max,zmin_obj)
@@ -106,7 +113,7 @@ if __name__ == '__main__':
     ### Read objects 2
     if co.x_correlation:
         objs2,zmin_obj2 = io.read_objects(args.drq2, args.nside, args.z_min_obj, args.z_max_obj, args.z_evol_obj2, args.z_ref,cosmo)
-        sys.stderr.write("\n")
+        print("")
         co.objs2 = objs2
         co.angmax = utils.compute_ang_max(cosmo,co.rt_max,zmin_obj,zmin_obj2)
 
@@ -160,4 +167,4 @@ if __name__ == '__main__':
     out.write([hep,wes,nbs],names=['HEALPID','WE','NB'],header=head2,comment=comment,extname='COR')
     out.close()
 
-    sys.stderr.write("\nFinished\n")
+    print("\nFinished")

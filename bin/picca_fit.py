@@ -1,13 +1,11 @@
 #!/usr/bin/env python
-
-from picca.fitter import parameters
-from picca.fitter import cosmo
-from picca.fitter import Chi2
-from picca.fitter import metals
+from __future__ import print_function
 import iminuit
-import scipy
 import sys
 import configargparse
+
+from picca.utils import print
+from picca.fitter import parameters, cosmo, Chi2, metals
 
 ### Get the parser
 param = parameters.parameters()
@@ -49,8 +47,6 @@ if not dic_init['metals'] is None:
         kw[n]=v
         kw['error_'+n]=0.005
     print()
-
-sys.stdout.flush()
 
 m=cosmo.model(dic_init)
 if not dic_init['data_auto'] is None:
@@ -120,8 +116,6 @@ for i in kw:
     if not kw[i]: continue
     kw[ 'error_'+i[4:] ] = 0.
 
-sys.stdout.flush()
-
 mig = iminuit.Minuit(chi2, throw_nan=True ,forced_parameters=chi2.pname,print_level=dic_init['verbose'],errordef=1,**kw)
 mig.tol = dic_init['migrad_tol']
 if not dic_init['debug']:
@@ -151,22 +145,3 @@ if not dic_init['chi2Scan'] is None:
 ### Realisation of fast Monte-Carlo
 elif not dic_init['fastMonteCarlo'] is None:
     chi2.fastMonteCarlo(mig,kw)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

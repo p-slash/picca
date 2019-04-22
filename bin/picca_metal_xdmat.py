@@ -1,17 +1,17 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import scipy as sp
-from scipy import random
 import fitsio
 import argparse
-import sys
 from functools import partial
 from multiprocessing import Pool,Lock,cpu_count,Value
 
 from picca import constants, xcf, io, utils
+from picca.utils import print
 
 def calc_metal_xdmat(abs_igm,p):
     xcf.fill_neighs(p)
+    sp.random.seed(p[0])
     tmp = xcf.metal_dmat(p,abs_igm=abs_igm)
     return tmp
 
@@ -43,6 +43,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--nt', type=int, default=50, required=False,
         help='Number of r-transverse bins')
+
+    parser.add_argument('--coef-binning-model', type=int, default=1, required=False,
+        help='Coefficient multiplying np and nt to get finner binning for the model')
 
     parser.add_argument('--z-min-obj', type=float, default=None, required=False,
         help='Min redshift for object field')
@@ -102,16 +105,14 @@ if __name__ == '__main__':
     xcf.rt_max = args.rt_max
     xcf.z_cut_max = args.z_cut_max
     xcf.z_cut_min = args.z_cut_min
-    xcf.np = args.np
-    xcf.nt = args.nt
+    xcf.np = args.np*args.coef_binning_model
+    xcf.nt = args.nt*args.coef_binning_model
+    xcf.npm = args.np*args.coef_binning_model
+    xcf.ntm = args.nt*args.coef_binning_model
     xcf.nside = args.nside
     xcf.zref = args.z_ref
     xcf.lambda_abs = constants.absorber_IGM[args.lambda_abs]
     xcf.rej = args.rej
-
-    ## use a metal grid equal to the lya grid
-    xcf.npm = args.np
-    xcf.ntm = args.nt
 
     cosmo = constants.cosmo(args.fid_Om)
     xcf.cosmo=cosmo
@@ -129,12 +130,12 @@ if __name__ == '__main__':
         dmin_pix = cosmo.r_comoving(zmin_pix)
         dmin_obj = max(0.,dmin_pix+xcf.rp_min)
         args.z_min_obj = cosmo.r_2_z(dmin_obj)
-        sys.stderr.write("\r z_min_obj = {}\r".format(args.z_min_obj))
+        print("\r z_min_obj = {}\r".format(args.z_min_obj),end="")
     if (args.z_max_obj is None):
         dmax_pix = cosmo.r_comoving(zmax_pix)
         dmax_obj = max(0.,dmax_pix+xcf.rp_max)
         args.z_max_obj = cosmo.r_2_z(dmax_obj)
-        sys.stderr.write("\r z_max_obj = {}\r".format(args.z_max_obj))
+        print("\r z_max_obj = {}\r".format(args.z_max_obj),end="")
 
     objs,zmin_obj = io.read_objects(args.drq, args.nside, args.z_min_obj, args.z_max_obj,\
                                 args.z_evol_obj, args.z_ref,cosmo)
@@ -152,8 +153,6 @@ if __name__ == '__main__':
             cpu_data[ip] = []
         cpu_data[ip].append(p)
 
-    random.seed(0)
-
     dm_all=[]
     wdm_all=[]
     rp_all=[]
@@ -167,10 +166,16 @@ if __name__ == '__main__':
     for i,abs_igm in enumerate(args.abs_igm):
         xcf.counter.value=0
         f=partial(calc_metal_xdmat,abs_igm)
-        sys.stderr.write("\n")
-        pool = Pool(processes=args.nproc)
-        dm = pool.map(f,sorted(list(cpu_data.values())))
-        pool.close()
+        print("")
+
+        if args.nproc>1:
+            pool = Pool(processes=args.nproc)
+            dm = pool.map(f,sorted(cpu_data.values()))
+            pool.close()
+        elif args.nproc==1:
+            dm = map(f,sorted(cpu_data.values()))
+            dm = list(dm)
+
         dm = sp.array(dm)
         wdm =dm[:,0].sum(axis=0)
         rp = dm[:,2].sum(axis=0)
@@ -203,6 +208,7 @@ if __name__ == '__main__':
         {'name':'RTMAX','value':xcf.rt_max,'comment':'Maximum r-transverse [h^-1 Mpc]'},
         {'name':'NP','value':xcf.np,'comment':'Number of bins in r-parallel'},
         {'name':'NT','value':xcf.nt,'comment':'Number of bins in r-transverse'},
+        {'name':'COEFMOD','value':args.coef_binning_model,'comment':'Coefficient for model binning'},
         {'name':'ZCUTMIN','value':xcf.z_cut_min,'comment':'Minimum redshift of pairs'},
         {'name':'ZCUTMAX','value':xcf.z_cut_max,'comment':'Maximum redshift of pairs'},
         {'name':'REJ','value':xcf.rej,'comment':'Rejection factor'},

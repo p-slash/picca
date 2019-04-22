@@ -1,24 +1,20 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import scipy as sp
-from scipy import random
 import fitsio
 import argparse
-import glob
-import healpy
-import sys
 from functools import partial
-import copy
 from multiprocessing import Pool,Lock,cpu_count,Value
 
-from picca import constants, cf, utils
-from picca.data import delta
+from picca import constants, cf, utils, io
+from picca.utils import print
 
 def calc_metal_dmat(abs_igm1,abs_igm2,p):
-    if x_correlation:
+    if args.in_dir2:
         cf.fill_neighs_x_correlation(p)
     else:
         cf.fill_neighs(p)
+    sp.random.seed(p[0])
     tmp = cf.metal_dmat(p,abs_igm1=abs_igm1,abs_igm2=abs_igm2)
     return tmp
 
@@ -52,6 +48,9 @@ if __name__ == '__main__':
     parser.add_argument('--nt', type=int, default=50, required=False,
         help='Number of r-transverse bins')
 
+    parser.add_argument('--coef-binning-model', type=int, default=1, required=False,
+        help='Coefficient multiplying np and nt to get finner binning for the model')
+
     parser.add_argument('--z-cut-min', type=float, default=0., required=False,
         help='Use only pairs of forest x object with the mean of the last absorber \
         redshift and the object redshift larger than z-cut-min')
@@ -66,7 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('--lambda-abs2', type=str, default=None, required=False,
         help='Name of the absorption in picca.constants defining the redshift of the 2nd delta')
 
-    parser.add_argument('--abs-igm', type=str,default=None, required=False,nargs='*',
+    parser.add_argument('--abs-igm', type=str,default=[], required=False,nargs='*',
         help='List of names of metal absorption in picca.constants present in forest')
 
     parser.add_argument('--abs-igm2', type=str,default=[], required=False,nargs='*',
@@ -82,13 +81,13 @@ if __name__ == '__main__':
         help='Exponent of the redshift evolution of the 2nd delta field')
 
     parser.add_argument('--metal-alpha', type=float, default=1., required=False,
-        help='Dxponent of the redshift evolution of the metal delta field')
+        help='Exponent of the redshift evolution of the metal delta field')
 
     parser.add_argument('--fid-Om', type=float, default=0.315, required=False,
         help='Omega_matter(z=0) of fiducial LambdaCDM cosmology')
 
-    parser.add_argument('--no-same-wavelength-pairs', action='store_true', required=False,
-        help='Reject pairs with same wavelength')
+    parser.add_argument('--remove-same-half-plate-close-pairs', action='store_true', required=False,
+        help='Reject pairs in the first bin in r-parallel from same half plate')
 
     parser.add_argument('--rej', type=float, default=1., required=False,
         help='Fraction of rejected forest-forest pairs: -1=no rejection, 1=all rejection')
@@ -102,6 +101,8 @@ if __name__ == '__main__':
     parser.add_argument('--nspec', type=int, default=None, required=False,
         help='Maximum number of spectra to read')
 
+    parser.add_argument('--unfold-cf', action='store_true', required=False,
+        help='rp can be positive or negative depending on the relative position between absorber1 and absorber2')
 
     args = parser.parse_args()
 
@@ -110,142 +111,64 @@ if __name__ == '__main__':
 
     print("nproc",args.nproc)
 
+
     cf.rp_max = args.rp_max
-    cf.rp_min = args.rp_min
     cf.rt_max = args.rt_max
+    cf.rp_min = args.rp_min
     cf.z_cut_max = args.z_cut_max
     cf.z_cut_min = args.z_cut_min
-    cf.np = args.np
-    cf.nt = args.nt
-
-    ## use a metal grid equal to the lya grid
-    cf.npm = args.np
-    cf.ntm = args.nt
-
+    cf.np = args.np*args.coef_binning_model
+    cf.nt = args.nt*args.coef_binning_model
+    cf.npm = args.np*args.coef_binning_model
+    cf.ntm = args.nt*args.coef_binning_model
     cf.nside = args.nside
     cf.zref = args.z_ref
     cf.alpha = args.z_evol
     cf.rej = args.rej
-    cf.no_same_wavelength_pairs = args.no_same_wavelength_pairs
+    cf.lambda_abs = constants.absorber_IGM[args.lambda_abs]
+    cf.remove_same_half_plate_close_pairs = args.remove_same_half_plate_close_pairs
+
     cf.alpha_abs = {}
-    cf.alpha_abs[args.lambda_abs] = args.z_evol
-    if args.lambda_abs2 : cf.alpha_abs[args.lambda_abs2] = args.z_evol2
-    for m in args.abs_igm :
+    cf.alpha_abs[args.lambda_abs] = cf.alpha
+    for m in args.abs_igm:
         cf.alpha_abs[m] = args.metal_alpha
 
-    for m in args.abs_igm2 :
-        cf.alpha_abs[m] = args.metal_alpha
+    cf.cosmo = constants.cosmo(args.fid_Om)
 
-    cosmo = constants.cosmo(args.fid_Om)
-    cf.cosmo=cosmo
-
-    lambda_abs  = constants.absorber_IGM[args.lambda_abs]
-    if args.lambda_abs2: lambda_abs2 = constants.absorber_IGM[args.lambda_abs2]
-    else: lambda_abs2 = constants.absorber_IGM[args.lambda_abs]
-
-    cf.lambda_abs = lambda_abs
-    cf.lambda_abs2 = lambda_abs2
-
-    z_min_pix = 1.e6
-    ndata=0
-    if (len(args.in_dir)>8) and (args.in_dir[-8:]==".fits.gz"):
-        fi = glob.glob(args.in_dir)
-    else:
-        fi = glob.glob(args.in_dir+"/*.fits.gz")
-    fi = sorted(fi)
-    data = {}
-    dels = []
-    for i,f in enumerate(fi):
-        sys.stderr.write("\rread {} of {} {}".format(i,len(fi),ndata))
-        hdus = fitsio.FITS(f)
-        dels += [delta.from_fitsio(h) for h in hdus[1:]]
-        ndata+=len(hdus[1:])
-        hdus.close()
-        if not args.nspec is None:
-            if ndata>args.nspec:break
-    sys.stderr.write("read {}\n".format(ndata))
-
-    x_correlation=False
-    if args.in_dir2:
-        x_correlation=True
-        ndata2 = 0
-        if (len(args.in_dir2)>8) and (args.in_dir2[-8:]==".fits.gz"):
-            fi = glob.glob(args.in_dir2)
-        else:
-            fi = glob.glob(args.in_dir2+"/*.fits.gz")
-        fi = sorted(fi)
-        data2 = {}
-        dels2 = []
-        for i,f in enumerate(fi):
-            sys.stderr.write("\rread {} of {} {}".format(i,len(fi),ndata))
-            hdus = fitsio.FITS(f)
-            dels2 += [delta.from_fitsio(h) for h in hdus[1:]]
-            ndata2+=len(hdus[1:])
-            hdus.close()
-            if not args.nspec is None:
-                if ndata2>args.nspec:break
-        sys.stderr.write("read {}\n".format(ndata2))
-
-    elif lambda_abs != lambda_abs2:
-        x_correlation=True
-        data2  = copy.deepcopy(data)
-        ndata2 = copy.deepcopy(ndata)
-        dels2  = copy.deepcopy(dels)
-    cf.x_correlation=x_correlation
-
-    z_min_pix = 10**dels[0].ll[0]/lambda_abs-1.
-    phi = [d.ra for d in dels]
-    th = [sp.pi/2.-d.dec for d in dels]
-    pix = healpy.ang2pix(cf.nside,th,phi)
-    for d,p in zip(dels,pix):
-        if not p in data:
-            data[p]=[]
-        data[p].append(d)
-
-        z = 10**d.ll/lambda_abs-1.
-        z_min_pix = sp.amin( sp.append([z_min_pix],z) )
-        d.z = z
-        d.r_comov = cosmo.r_comoving(z)
-        d.we *= ((1.+z)/(1.+args.z_ref))**(cf.alpha-1.)
-
-    cf.angmax = utils.compute_ang_max(cosmo,cf.rt_max,z_min_pix)
-
-    if x_correlation:
-        cf.alpha2 = args.z_evol2
-        z_min_pix2 = 10**dels2[0].ll[0]/lambda_abs2-1.
-        z_min_pix=sp.amin(sp.append(z_min_pix,z_min_pix2))
-        phi2 = [d.ra for d in dels2]
-        th2 = [sp.pi/2.-d.dec for d in dels2]
-        pix2 = healpy.ang2pix(cf.nside,th2,phi2)
-
-        for d,p in zip(dels2,pix2):
-            if not p in data2:
-                data2[p]=[]
-            data2[p].append(d)
-
-            z = 10**d.ll/lambda_abs2-1.
-            z_min_pix2 = sp.amin(sp.append([z_min_pix2],z) )
-            d.z = z
-            d.r_comov = cosmo.r_comoving(z)
-            d.we *= ((1.+z)/(1.+args.z_ref))**(cf.alpha2-1.)
-
-        cf.angmax = utils.compute_ang_max(cosmo,cf.rt_max,z_min_pix,z_min_pix2)
-
+    ### Read data 1
+    data, ndata, zmin_pix, zmax_pix = io.read_deltas(args.in_dir, cf.nside, cf.lambda_abs, cf.alpha, cf.zref, cf.cosmo, nspec=args.nspec)
     cf.npix = len(data)
     cf.data = data
     cf.ndata = ndata
+    cf.angmax = utils.compute_ang_max(cf.cosmo,cf.rt_max,zmin_pix)
+    print("")
+    print("done, npix = {}".format(cf.npix))
 
-    if x_correlation:
-       print("doing cross-correlation ... ")
-       cf.data2 = data2
-       cf.ndata2 = ndata2
-    print("done")
+    ### Read data 2
+    if args.in_dir2 or args.lambda_abs2:
+        if args.lambda_abs2 or args.unfold_cf:
+            cf.x_correlation = True
+        cf.alpha2 = args.z_evol2
+        if args.in_dir2 is None:
+            args.in_dir2 = args.in_dir
+        if args.lambda_abs2:
+            cf.lambda_abs2 = constants.absorber_IGM[args.lambda_abs2]
+        else:
+            cf.lambda_abs2 = cf.lambda_abs
+        cf.alpha_abs[args.lambda_abs2] = cf.alpha2
+        for m in args.abs_igm2:
+            cf.alpha_abs[m] = args.metal_alpha
+
+        data2, ndata2, zmin_pix2, zmax_pix2 = io.read_deltas(args.in_dir2, cf.nside, cf.lambda_abs2, cf.alpha2, cf.zref, cf.cosmo, nspec=args.nspec)
+        cf.data2 = data2
+        cf.ndata2 = ndata2
+        cf.angmax = utils.compute_ang_max(cf.cosmo,cf.rt_max,zmin_pix,zmin_pix2)
+        print("")
+        print("done, npix = {}".format(len(data2)))
 
 
     cf.counter = Value('i',0)
-
     cf.lock = Lock()
-
     cpu_data = {}
     for i,p in enumerate(sorted(list(data.keys()))):
         ip = i%args.nproc
@@ -253,7 +176,6 @@ if __name__ == '__main__':
             cpu_data[ip] = []
         cpu_data[ip].append(p)
 
-    random.seed(0)
 
     dm_all=[]
     wdm_all=[]
@@ -273,7 +195,7 @@ if __name__ == '__main__':
 
     abs_igm_2 = [args.lambda_abs2]+args.abs_igm2
 
-    if x_correlation:
+    if cf.x_correlation:
         print("abs_igm2 = {}".format(abs_igm_2))
 
     for i,abs_igm1 in enumerate(abs_igm):
@@ -285,10 +207,16 @@ if __name__ == '__main__':
                 continue
             cf.counter.value=0
             f=partial(calc_metal_dmat,abs_igm1,abs_igm2)
-            sys.stderr.write("\n")
-            pool = Pool(processes=args.nproc)
-            dm = pool.map(f,sorted(list(cpu_data.values())))
-            pool.close()
+            print("")
+
+            if args.nproc>1:
+                pool = Pool(processes=args.nproc)
+                dm = pool.map(f,sorted(cpu_data.values()))
+                pool.close()
+            elif args.nproc==1:
+                dm = map(f,sorted(cpu_data.values()))
+                dm = list(dm)
+
             dm = sp.array(dm)
             wdm =dm[:,0].sum(axis=0)
             rp = dm[:,2].sum(axis=0)
@@ -321,6 +249,7 @@ if __name__ == '__main__':
         {'name':'RTMAX','value':cf.rt_max,'comment':'Maximum r-transverse [h^-1 Mpc]'},
         {'name':'NP','value':cf.np,'comment':'Number of bins in r-parallel'},
         {'name':'NT','value':cf.nt,'comment':'Number of bins in r-transverse'},
+        {'name':'COEFMOD','value':args.coef_binning_model,'comment':'Coefficient for model binning'},
         {'name':'ZCUTMIN','value':cf.z_cut_min,'comment':'Minimum redshift of pairs'},
         {'name':'ZCUTMAX','value':cf.z_cut_max,'comment':'Maximum redshift of pairs'},
         {'name':'REJ','value':cf.rej,'comment':'Rejection factor'},

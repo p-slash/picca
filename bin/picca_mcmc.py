@@ -1,17 +1,15 @@
 #!/usr/bin/env python
-
-from picca.fitter import parameters
-from picca.fitter import cosmo
-from picca.fitter import Chi2
-from picca.fitter import metals
-import sys
+from __future__ import print_function
 import iminuit
-
 import types
 import configargparse
 import emcee
 import numpy as np
 from numpy import random
+
+from picca.utils import print
+from picca.fitter import parameters, cosmo, Chi2, metals
+
 
 param = parameters.parameters()
 parser = configargparse.ArgParser()

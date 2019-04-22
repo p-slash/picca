@@ -1,14 +1,13 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import scipy as sp
 import fitsio
 import argparse
-import sys
 import traceback
 from multiprocessing import Pool,Lock,cpu_count,Value
 
 from picca import constants, cf, io
-
+from picca.utils import print
 
 def cf1d(p):
     try:
@@ -20,7 +19,7 @@ def cf1d(p):
         traceback.print_exc()
     with cf.lock:
         cf.counter.value += 1
-    sys.stderr.write("\rcomputing xi: {}%".format(round(cf.counter.value*100./cf.npix,2)))
+    print("\rcomputing xi: {}%".format(round(cf.counter.value*100./cf.npix,2)),end="")
     return tmp
 
 if __name__ == '__main__':
@@ -99,7 +98,7 @@ if __name__ == '__main__':
     cf.npix  = len(data)
     cf.data  = data
     cf.ndata = ndata
-    sys.stderr.write("\n")
+    print("")
     print("done, npix = {}\n".format(cf.npix))
 
     ### Read data 2
@@ -108,7 +107,7 @@ if __name__ == '__main__':
         data2, ndata2, zmin_pix2, zmax_pix2 = io.read_deltas(args.in_dir2, cf.nside, cf.lambda_abs2,args.z_evol2, args.z_ref, cosmo=None,nspec=args.nspec,no_project=args.no_project)
         cf.data2  = data2
         cf.ndata2 = ndata2
-        sys.stderr.write("\n")
+        print("")
         print("done, npix = {}\n".format(len(data2)))
     elif cf.lambda_abs != cf.lambda_abs2:
         cf.x_correlation = True
@@ -116,6 +115,10 @@ if __name__ == '__main__':
         cf.data2  = data2
         cf.ndata2 = ndata2
 
+    ### Convert lists to arrays
+    cf.data = {k:sp.array(v) for k,v in cf.data.items()}
+    if cf.x_correlation:
+        cf.data2 = {k:sp.array(v) for k,v in cf.data2.items()}
 
     ###
     cf.counter = Value('i',0)
@@ -123,12 +126,10 @@ if __name__ == '__main__':
     pool = Pool(processes=args.nproc)
 
     if cf.x_correlation:
-        keys = []
-        for i in list(data.keys()):
-            if i in list(data2.keys()):
-                keys.append(i)
-        cfs = pool.map(cf1d,sorted(keys))
-    else: cfs = pool.map(cf1d,sorted(list(data.keys())))
+        keys = sorted([ k for k in list(cf.data.keys()) if k in list(cf.data2.keys()) ])
+    else:
+        keys = sorted(list(cf.data.keys()))
+    cfs = pool.map(cf1d,keys)
     pool.close()
     print('\n')
 

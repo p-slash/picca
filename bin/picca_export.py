@@ -7,7 +7,7 @@ import scipy.linalg
 import argparse
 
 from picca.utils import smooth_cov, cov
-
+from picca.utils import print
 
 if __name__ == '__main__':
 
@@ -25,6 +25,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--cov', type=str, default=None, required=False,
         help='Covariance matrix (if not provided will be calculated by subsampling)')
+
+    parser.add_argument('--cor', type=str, default=None, required=False,
+        help='Correlation matrix (if not provided will be calculated by subsampling)')
 
     parser.add_argument('--do-not-smooth-cov', action='store_true', default=False,
         help='Do not smooth the covariance matrix')
@@ -51,9 +54,20 @@ if __name__ == '__main__':
     h.close()
 
     if args.cov is not None:
+        print('INFO: The covariance-matrix will be read from file: {}'.format(args.cov))
         hh = fitsio.FITS(args.cov)
         co = hh[1]['CO'][:]
         hh.close()
+    elif args.cor is not None:
+        print('INFO: The correlation-matrix will be read from file: {}'.format(args.cor))
+        hh = fitsio.FITS(args.cor)
+        cor = hh[1]['COR'][:]
+        hh.close()
+        if (cor.min()<-1.) | (cor.min()>1.) | (cor.max()<-1.) | (cor.max()>1.) | sp.any(sp.diag(cor)!=1.):
+            print('WARNING: The correlation-matrix has some incorrect values')
+        co = cov(da,we)
+        var = sp.diagonal(co)
+        co = cor * sp.sqrt(var*var[:,None])
     else:
         binSizeP = (rp_max-rp_min) / np
         binSizeT = (rt_max-0.) / nt
@@ -71,15 +85,30 @@ if __name__ == '__main__':
 
     try:
         scipy.linalg.cholesky(co)
-    except:
-        print("Warning: Matrix is not positive definite")
+    except scipy.linalg.LinAlgError:
+        print('WARNING: Matrix is not positive definite')
 
     if args.dmat is not None:
         h = fitsio.FITS(args.dmat)
         dm = h[1]['DM'][:]
+        try:
+            dmrp = h[2]['RP'][:]
+            dmrt = h[2]['RT'][:]
+            dmz = h[2]['Z'][:]
+        except IOError:
+            dmrp = rp.copy()
+            dmrt = rt.copy()
+            dmz = z.copy()
+        if dm.shape==(da.size,da.size):
+            dmrp = rp.copy()
+            dmrt = rt.copy()
+            dmz = z.copy()
         h.close()
     else:
         dm = sp.eye(len(da))
+        dmrp = rp.copy()
+        dmrt = rt.copy()
+        dmz = z.copy()
 
     h = fitsio.FITS(args.out,'rw',clobber=True)
     head = [ {'name':'RPMIN','value':rp_min,'comment':'Minimum r-parallel'},
@@ -90,4 +119,6 @@ if __name__ == '__main__':
     ]
     comment = ['R-parallel','R-transverse','Redshift','Correlation','Covariance matrix','Distortion matrix','Number of pairs']
     h.write([rp,rt,z,da,co,dm,nb],names=['RP','RT','Z','DA','CO','DM','NB'],comment=comment,header=head,extname='COR')
+    comment = ['R-parallel model','R-transverse model','Redshift model']
+    h.write([dmrp,dmrt,dmz],names=['DMRP','DMRT','DMZ'],comment=comment,extname='DMATTRI')
     h.close()

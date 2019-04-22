@@ -23,14 +23,10 @@ def parse_chi2(filename):
 
     dic_init['fiducial'] = {}
 
-    if cp.has_section('fiducial'):
-        p = cp.get('fiducial','filename')
-        p = os.path.expandvars(p)
-        print('INFO: reading input Pk {}'.format(p))
-    else:
-        p = resource_filename('picca', 'fitter2/models/PlanckDR12/PlanckDR12.fits')
-        p = os.path.expandvars(p)
-        print('INFO: reading default Pk {}'.format(p))
+    p = cp.get('fiducial','filename')
+    print('INFO: reading input Pk {}'.format(p))
+    p = resource_filename('picca', 'fitter2')+'/models/{}'.format(p)
+    p = os.path.expandvars(p)
 
     h = fitsio.FITS(p)
     zref = h[1].read_header()['ZREF']
@@ -40,6 +36,7 @@ def parse_chi2(filename):
     dic_init['fiducial']['k'] = h[1]['K'][:]
     dic_init['fiducial']['pk'] = h[1]['PK'][:]
     dic_init['fiducial']['pksb'] = h[1]['PKSB'][:]
+    h.close()
 
     zeff = float(cp.get('data sets','zeff'))
     dic_init['data sets'] = {}
@@ -52,6 +49,9 @@ def parse_chi2(filename):
 
     if 'verbosity' in cp.sections():
         dic_init['verbosity'] = int(cp.get('verbosity','level'))
+
+    if 'hesse' in cp.sections():
+        dic_init['hesse'] = int(cp.get('hesse','level'))==1
 
     if 'fast mc' in cp.sections():
         dic_init['fast mc'] = {}
@@ -111,6 +111,7 @@ def parse_data(filename,zeff,fiducial):
     dic_init['model']['zref'] = fiducial['zref']
     dic_init['model']['Om'] = fiducial['Om']
     dic_init['model']['OL'] = fiducial['OL']
+    dic_init['model']['pk'] = fiducial['pk']
     for item, value in cp.items('model'):
         dic_init['model'][item] = value
 
@@ -119,6 +120,7 @@ def parse_data(filename,zeff,fiducial):
     dic_init['parameters']['errors'] = {}
     dic_init['parameters']['limits'] = {}
     dic_init['parameters']['fix'] = {}
+
     for item, value in cp.items('parameters'):
         value = value.split()
         dic_init['parameters']['values'][item] = float(value[0])
@@ -139,6 +141,36 @@ def parse_data(filename,zeff,fiducial):
             dic_init['metals']['in tracer1'] = dic_init['metals']['in tracer1'].split()
         if 'in tracer2' in dic_init['metals']:
             dic_init['metals']['in tracer2'] = dic_init['metals']['in tracer2'].split()
+
+    if 'broadband' in cp.sections():
+        dic_init['broadband'] = []
+        for item, value in cp.items('broadband'):
+            dic_bb = {}
+            value = value.split()
+            assert value[0] == 'add' or value[0] == 'mul'
+            dic_bb['type'] = value[0]
+
+            assert value[1] == 'pre' or value[1] == 'pos'
+            dic_bb['pre'] = value[1]
+
+            assert value[2]=='rp,rt' or value[2]=='r,mu'
+            dic_bb['rp_rt'] = value[2]
+
+            if len(value)==6:
+                dic_bb['func'] = value[5]
+            else:
+                dic_bb['func'] = 'broadband'
+
+            deg_r_min,deg_r_max,ddeg_r = value[3].split(':')
+            dic_bb['deg_r_min'] = int(deg_r_min)
+            dic_bb['deg_r_max'] = int(deg_r_max)
+            dic_bb['ddeg_r'] = int(ddeg_r)
+
+            deg_mu_min, deg_mu_max, ddeg_mu = value[4].split(':')
+            dic_bb['deg_mu_min'] = int(deg_mu_min)
+            dic_bb['deg_mu_max'] = int(deg_mu_max)
+            dic_bb['ddeg_mu'] = int(ddeg_mu)
+            dic_init['broadband'].append(dic_bb)
 
     if 'priors' in cp.sections():
         for item, value in cp.items('priors'):

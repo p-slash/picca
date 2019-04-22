@@ -1,24 +1,20 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import scipy as sp
 import fitsio
 import argparse
 import glob
 import healpy
-import sys
-from scipy import random
 from scipy.interpolate import interp1d
-
-from picca import constants
-from picca import cf
-from picca.data import delta
-from picca import utils
-
 from multiprocessing import Pool,Lock,cpu_count,Value
 
+from picca import constants, cf, utils
+from picca.data import delta
+from picca.utils import print
 
 def calc_t123(p):
     cf.fill_neighs(p)
+    sp.random.seed(p[0])
     tmp = cf.t123(p)
     return tmp
 
@@ -125,7 +121,7 @@ if __name__ == '__main__':
     ndata = 0
     for i,f in enumerate(fi):
         if i%10==0:
-            sys.stderr.write("\rread {} of {} {}".format(i,len(fi),ndata))
+            print("\rread {} of {} {}".format(i,len(fi),ndata),end="")
         hdus = fitsio.FITS(f)
         dels = [delta.from_fitsio(h) for h in hdus[1:]]
         ndata+=len(dels)
@@ -146,7 +142,7 @@ if __name__ == '__main__':
                 d.project()
         if not args.nspec is None:
             if ndata>args.nspec:break
-    sys.stderr.write("\n")
+    print("")
 
     cf.angmax = utils.compute_ang_max(cosmo,cf.rt_max,z_min_pix)
 
@@ -166,7 +162,6 @@ if __name__ == '__main__':
             cpu_data[ip] = []
         cpu_data[ip].append(p)
 
-    random.seed(0)
     pool = Pool(processes=args.nproc)
     t123 = pool.map(calc_t123,sorted(list(cpu_data.values())))
     pool.close()

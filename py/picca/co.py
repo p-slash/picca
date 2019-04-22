@@ -1,7 +1,10 @@
+from __future__ import print_function
+
 import scipy as sp
-import sys
 from healpy import query_disc
 from numba import jit
+
+from picca.utils import print
 
 np = None
 nt = None
@@ -29,7 +32,8 @@ def fill_neighs(pix):
             ang = o1^neighs
             w = ang<angmax
             neighs = sp.array(neighs)[w]
-            o1.neighs = sp.array([o2 for o2 in neighs if o2.ra > o1.ra])
+            o1.neighs = sp.array([o2 for o2 in neighs if (o2.zqso+o1.zqso)/2.>=z_cut_min and (o2.zqso+o1.zqso)/2.<z_cut_max])
+
 
 def fill_neighs_x_correlation(pix):
     for ipix in pix:
@@ -40,7 +44,7 @@ def fill_neighs_x_correlation(pix):
             ang = o1^neighs
             w = ang<angmax
             neighs = sp.array(neighs)[w]
-            o1.neighs = sp.array([o2 for o2 in neighs])
+            o1.neighs = sp.array([o2 for o2 in neighs if (o2.zqso+o1.zqso)/2.>=z_cut_min and (o2.zqso+o1.zqso)/2.<z_cut_max])
 
 def co(pix):
 
@@ -53,7 +57,7 @@ def co(pix):
     for ipix in pix:
         for o1 in objs[ipix]:
 
-            sys.stderr.write("\rcomputing xi: {}%".format(round(counter.value*100./ndata,2)))
+            print("\rcomputing xi: {}%".format(round(counter.value*100./ndata,2)),end="")
             with lock:
                 counter.value += 1
 
@@ -82,7 +86,7 @@ def co(pix):
 def fast_co(z1,r1,w1,z2,r2,w2,ang):
 
     rp  = (r1-r2)*sp.cos(ang/2.)
-    if not x_correlation or type_corr=='DR':
+    if not x_correlation or type_corr in ['DR','RD']:
         rp = sp.absolute(rp)
     rt  = (r1+r2)*sp.sin(ang/2.)
     z   = (z1+z2)/2.

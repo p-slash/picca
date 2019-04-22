@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-import fitsio
+from __future__ import division, print_function
+
 import argparse
 import glob
-import sys
+from array import array
+
 import scipy as sp
 
+import fitsio
 from picca import constants
-from picca.Pk1D import Pk1D, compute_Pk_raw, compute_Pk_noise, compute_cor_reso, fill_masked_pixels, split_forest, rebin_diff_noise
 from picca.data import delta
+from picca.Pk1D import (compute_cor_reso, compute_Pk_noise, compute_Pk_raw,
+                        fill_masked_pixels, rebin_diff_noise, split_forest)
+from picca.utils import print
 
-from array import array
 
 def make_tree(tree,nb_bin_max):
 
@@ -61,19 +64,19 @@ def make_tree(tree,nb_bin_max):
 
 def compute_mean_delta(ll,delta,iv,zqso):
 
-    for i in range (len(ll)):
-        ll_obs= sp.power(10.,ll[i])
+    for i, _ in enumerate (ll):
+        ll_obs = sp.power(10., ll[i])
         ll_rf = ll_obs/(1.+zqso)
-        hdelta.Fill(ll_obs,ll_rf,delta[i])
-        hdelta_RF.Fill(ll_rf,delta[i])
-        hdelta_OBS.Fill(ll_obs,delta[i])
+        hdelta.Fill(ll_obs, ll_rf, delta[i])
+        hdelta_RF.Fill(ll_rf, delta[i])
+        hdelta_OBS.Fill(ll_obs, delta[i])
         hivar.Fill(iv[i])
         snr_pixel = (delta[i]+1)*sp.sqrt(iv[i])
         hsnr.Fill(snr_pixel)
         hivar.Fill(iv[i])
-        if (iv[i]<1000) :
-            hdelta_RF_we.Fill(ll_rf,delta[i],iv[i])
-            hdelta_OBS_we.Fill(ll_obs,delta[i],iv[i])
+        if (iv[i] < 1000):
+            hdelta_RF_we.Fill(ll_rf, delta[i], iv[i])
+            hdelta_OBS_we.Fill(ll_obs, delta[i], iv[i])
 
     return
 
@@ -129,7 +132,7 @@ if __name__ == '__main__':
 
 #   Create root file
     if (args.out_format=='root') :
-        from ROOT import TCanvas, TH1D, TFile, TTree, TProfile2D, TProfile
+        from ROOT import TH1D, TFile, TTree, TProfile2D, TProfile
         storeFile = TFile(args.out_dir+"/Testpicca.root","RECREATE","PK 1D studies studies");
         nb_bin_max = 700
         tree = TTree("Pk1D","SDSS 1D Power spectrum Ly-a");
@@ -172,7 +175,7 @@ if __name__ == '__main__':
     # loop over input files
     for i,f in enumerate(fi):
         if i%1==0:
-            sys.stderr.write("\rread {} of {} {}".format(i,len(fi),ndata))
+            print("\rread {} of {} {}".format(i,len(fi),ndata),end="")
 
         # read fits or ascii file
         if (args.in_format=='fits') :
@@ -193,15 +196,15 @@ if __name__ == '__main__':
             if (d.mean_SNR<=args.SNR_min or d.mean_reso>=args.reso_max) : continue
 
             # first pixel in forest
-            for first_pixel in range(len(d.ll)) :
-                 if (sp.power(10.,d.ll[first_pixel])>args.lambda_obs_min) : break
+            for first_pixel,first_pixel_ll in enumerate(d.ll):
+                if 10.**first_pixel_ll>args.lambda_obs_min : break
 
             # minimum number of pixel in forest
             nb_pixel_min = args.nb_pixel_min
             if ((len(d.ll)-first_pixel)<nb_pixel_min) : continue
 
             # Split in n parts the forest
-            nb_part_max = (len(d.ll)-first_pixel)/nb_pixel_min
+            nb_part_max = (len(d.ll)-first_pixel)//nb_pixel_min
             nb_part = min(args.nb_part,nb_part_max)
             m_z_arr,ll_arr,de_arr,diff_arr,iv_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel)
             for f in range(nb_part):
@@ -243,9 +246,6 @@ if __name__ == '__main__':
                     Pk_mean_diff = sum(Pk_diff[selection])/float(len(Pk_diff[selection]))
                     Pk = (Pk_raw - Pk_mean_diff)/cor_reso
 
-                # Build Pk1D
-                Pk1D_final = Pk1D(d.ra,d.dec,d.zqso,d.mean_z,d.plate,d.mjd,d.fid,k,Pk_raw,Pk_noise,cor_reso,Pk)
-
                 # save in root format
                 if (args.out_format=='root'):
                     zqso[0] = d.zqso
@@ -274,26 +274,29 @@ if __name__ == '__main__':
                 # save in fits format
 
                 if (args.out_format=='fits'):
-                    hd={}
-                    hd["RA"]=d.ra
-                    hd["DEC"]=d.dec
-                    hd["Z"]=d.zqso
-                    hd["MEANZ"]=m_z_arr[f]
-                    hd["MEANRESO"]=d.mean_reso
-                    hd["MEANSNR"]=d.mean_SNR
-
-                    hd["PLATE"]=d.plate
-                    hd["MJD"]=d.mjd
-                    hd["FIBER"]=d.fid
+                    hd = [ {'name':'RA','value':d.ra,'comment':"QSO's Right Ascension [degrees]"},
+                        {'name':'DEC','value':d.dec,'comment':"QSO's Declination [degrees]"},
+                        {'name':'Z','value':d.zqso,'comment':"QSO's redshift"},
+                        {'name':'MEANZ','value':m_z_arr[f],'comment':"Absorbers mean redshift"},
+                        {'name':'MEANRESO','value':d.mean_reso,'comment':'Mean resolution [km/s]'},
+                        {'name':'MEANSNR','value':d.mean_SNR,'comment':'Mean signal to noise ratio'},
+                        {'name':'NBMASKPIX','value':nb_masked_pixel,'comment':'Number of masked pixels in the section'},
+                        {'name':'PLATE','value':d.plate,'comment':"Spectrum's plate id"},
+                        {'name':'MJD','value':d.mjd,'comment':'Modified Julian Date,date the spectrum was taken'},
+                        {'name':'FIBER','value':d.fid,'comment':"Spectrum's fiber number"}
+                    ]
 
                     cols=[k,Pk_raw,Pk_noise,Pk_diff,cor_reso,Pk]
                     names=['k','Pk_raw','Pk_noise','Pk_diff','cor_reso','Pk']
+                    comments=['Wavenumber', 'Raw power spectrum', "Noise's power spectrum", 'Noise coadd difference power spectrum',\
+                              'Correction resolution function', 'Corrected power spectrum (resolution and noise)']
+                    units=['(km/s)^-1', 'km/s', 'km/s', 'km/s', 'km/s', 'km/s']
 
                     try:
-                        out.write(cols,names=names,header=hd)
+                        out.write(cols,names=names,header=hd,comments=comments,units=units)
                     except AttributeError:
                         out = fitsio.FITS(args.out_dir+'/Pk1D-'+str(i)+'.fits.gz','rw',clobber=True)
-                        out.write(cols,names=names,header=hd)
+                        out.write(cols,names=names,header=hd,comment=comments,units=units)
         if (args.out_format=='fits' and out is not None):
             out.close()
 
@@ -303,5 +306,3 @@ if __name__ == '__main__':
 
 
     print ("all done ")
-
-

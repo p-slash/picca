@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import sys
+import os
 import fitsio
 import scipy as sp
 from scipy.interpolate import interp1d
@@ -10,6 +13,7 @@ import argparse
 
 from picca.data import forest, delta
 from picca import prep_del, io
+from picca.utils import print
 
 def cont_fit(data):
     for d in data:
@@ -82,8 +86,17 @@ if __name__ == '__main__':
     parser.add_argument('--dla-mask',type=float,default=0.8,required=False,
         help='Lower limit on the DLA transmission. Transmissions below this number are masked')
 
+    parser.add_argument('--absorber-vac',type=str,default=None,required=False,
+        help='Absorber catalog file')
+
+    parser.add_argument('--absorber-mask',type=float,default=2.5,required=False,
+        help='Mask width on each side of the absorber central observed wavelength in units of 1e4*dlog10(lambda)')
+
     parser.add_argument('--mask-file',type=str,default=None,required=False,
         help='Path to file to mask regions in lambda_OBS and lambda_RF. In file each line is: region_name region_min region_max (OBS or RF) [Angstrom]')
+
+    parser.add_argument('--dust-map', type=str, default=None, required=False,
+                help='Path to DRQ catalog of objects for dust map to apply the Schlegel correction')
 
     parser.add_argument('--flux-calib',type=str,default=None,required=False,
         help='Path to previously produced do_delta.py file to correct for multiplicative errors in the pipeline flux calibration')
@@ -125,6 +138,9 @@ if __name__ == '__main__':
         help='Maximum number of spectra to read')
 
 
+    parser.add_argument('--use-mock-continuum', action='store_true', default = False,
+            help='use the mock continuum for computing the deltas')
+
     args = parser.parse_args()
 
     ## init forest class
@@ -137,6 +153,7 @@ if __name__ == '__main__':
     forest.dll = args.rebin*1e-4
     ## minumum dla transmission
     forest.dla_mask = args.dla_mask
+    forest.absorber_mask = args.absorber_mask
 
     ### Find the redshift range
     if (args.zqso_min is None):
@@ -165,7 +182,7 @@ if __name__ == '__main__':
             st    = vac[1]['stack'][:]
             w     = (st!=0.)
             forest.correc_flux = interp1d(ll_st[w],st[w],fill_value="extrapolate",kind="nearest")
-
+            vac.close()
         except:
             print(" Error while reading flux_calib file {}".format(args.flux_calib))
             sys.exit(1)
@@ -177,16 +194,21 @@ if __name__ == '__main__':
             ll  = vac[2]['LOGLAM'][:]
             eta = vac[2]['ETA'][:]
             forest.correc_ivar = interp1d(ll,eta,fill_value="extrapolate",kind="nearest")
-
+            vac.close()
         except:
             print(" Error while reading ivar_calib file {}".format(args.ivar_calib))
             sys.exit(1)
 
+    ### Apply dust correction
+    if not args.dust_map is None:
+        print("applying dust correction")
+        forest.ebv_map = io.read_dust_map(args.dust_map)
+
     nit = args.nit
 
-    log = open(args.log,'w')
+    log = open(os.path.expandvars(args.log),'w')
 
-    data,ndata,healpy_nside,healpy_pix_ordering = io.read_data(args.in_dir, args.drq, args.mode,\
+    data,ndata,healpy_nside,healpy_pix_ordering = io.read_data(os.path.expandvars(args.in_dir), args.drq, args.mode,\
         zmin=args.zqso_min, zmax=args.zqso_max, nspec=args.nspec, log=log,\
         keep_bal=args.keep_bal, bi_max=args.bi_max, order=args.order,\
         best_obs=args.best_obs, single_exp=args.single_exp, pk1d=args.delta_format )
@@ -196,6 +218,7 @@ if __name__ == '__main__':
     usr_mask_RF     = None
     usr_mask_RF_DLA = None
     if (args.mask_file is not None):
+        args.mask_file = os.path.expandvars(args.mask_file)
         try:
             usr_mask_obs    = []
             usr_mask_RF     = []
@@ -230,6 +253,19 @@ if __name__ == '__main__':
                 for d in data[p]:
                     d.mask(mask_obs=usr_mask_obs , mask_RF=usr_mask_RF)
 
+    ### Veto absorbers
+    if not args.absorber_vac is None:
+        print("adding absorbers")
+        absorbers = io.read_absorbers(args.absorber_vac)
+        nb_absorbers_in_forest = 0
+        for p in data:
+            for d in data[p]:
+                if d.thid in absorbers:
+                    for lambda_absorber in absorbers[d.thid]:
+                        d.add_absorber(lambda_absorber)
+                        nb_absorbers_in_forest += 1
+        log.write("Found {} absorbers in forests\n".format(nb_absorbers_in_forest))
+
     ### Correct for DLAs
     if not args.dla_vac is None:
         print("adding dlas")
@@ -261,7 +297,8 @@ if __name__ == '__main__':
                 continue
 
             l.append(d)
-            log.write("{} accepted\n".format(d.thid))
+            log.write("{} {}-{}-{} accepted\n".format(d.thid,
+                d.plate,d.mjd,d.thid))
         data[p][:] = l
         if len(data[p])==0:
             del data[p]
@@ -317,7 +354,7 @@ if __name__ == '__main__':
                 err_fudge = sp.zeros(nlss)
                 chi2 = sp.zeros(nlss)
 
-                nb_pixels = sp.zeros((nlss, nlss))
+                nb_pixels = sp.zeros(nlss)
                 var = sp.zeros(nlss)
                 var_del = sp.zeros((nlss, nlss))
                 var2_del = sp.zeros((nlss, nlss))
@@ -337,11 +374,11 @@ if __name__ == '__main__':
     hd["NSIDE"] = healpy_nside
     hd["PIXORDER"] = healpy_pix_ordering
     hd["FITORDER"] = args.order
-    res.write([ll_st,st,wst],names=['loglam','stack','weight'],header=hd)
-    res.write([ll,eta,vlss,fudge,nb_pixels],names=['loglam','eta','var_lss','fudge','nb_pixels'])
-    res.write([ll_rest,forest.mean_cont(ll_rest),wmc],names=['loglam_rest','mean_cont','weight'])
+    res.write([ll_st,st,wst],names=['loglam','stack','weight'],header=hd,extname='STACK')
+    res.write([ll,eta,vlss,fudge,nb_pixels],names=['loglam','eta','var_lss','fudge','nb_pixels'],extname='WEIGHT')
+    res.write([ll_rest,forest.mean_cont(ll_rest),wmc],names=['loglam_rest','mean_cont','weight'],extname='CONT')
     var = sp.broadcast_to(var.reshape(1,-1),var_del.shape)
-    res.write([var,var_del,var2_del,count,nqsos,chi2],names=['var_pipe','var_del','var2_del','count','nqsos','chi2'])
+    res.write([var,var_del,var2_del,count,nqsos,chi2],names=['var_pipe','var_del','var2_del','count','nqsos','chi2'],extname='VAR')
     res.close()
 
     ### Save delta
@@ -349,7 +386,7 @@ if __name__ == '__main__':
     deltas = {}
     data_bad_cont = []
     for p in sorted(list(data.keys())):
-        deltas[p] = [delta.from_forest(d,st,forest.var_lss,forest.eta,forest.fudge) for d in data[p] if d.bad_cont is None]
+        deltas[p] = [delta.from_forest(d,st,forest.var_lss,forest.eta,forest.fudge, args.use_mock_continuum) for d in data[p] if d.bad_cont is None]
         data_bad_cont = data_bad_cont + [d for d in data[p] if d.bad_cont is not None]
 
     for d in data_bad_cont:

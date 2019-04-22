@@ -27,7 +27,12 @@ add to your bashrc
 export PICCA_BASE=<path to your picca>
 ```
 
-run
+then make sure you have all required modules by running
+```
+pip install -r requirements.txt --user
+```
+
+and finally run
 ```
 python setup.py install --user
 ```
@@ -64,13 +69,13 @@ python bin/do_dmat.py --in-dir deltas/ --out dmat.fits.gz --rej 0.95
 
 * `--rej` is 1-fraction of pairs used for the calculation
 
-### wick covariance (optional). 
+### wick covariance (optional).
 
-Only T123 implemented 
+Only T123 implemented
 
 ```
 # first calculate cf_1d from data
-python bin/do_cf1d.py --in-dir deltas/ --out cf1d.fits.gz 
+python bin/do_cf1d.py --in-dir deltas/ --out cf1d.fits.gz
 
 # then use it for wick
 python bin/do_wick.py --in-dir deltas/ --out t123.fits.gz --rej 0.999 --cf1d cf1d.fits.gz
@@ -79,3 +84,8 @@ python bin/do_wick.py --in-dir deltas/ --out t123.fits.gz --rej 0.999 --cf1d cf1
 ## use the export script to export to picca fitter format
 python bin/export --data cf.fits.gz --dmat dmat.fits.gz --out cf-exp.out.gz
 ```
+
+### Name of tags
+
+The tags name follow the names of the king of France:
+https://fr.wikipedia.org/wiki/Liste_des_monarques_de_France#Liste_des_monarques_de_France

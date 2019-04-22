@@ -4,9 +4,10 @@ import scipy as sp
 import iminuit
 import time
 import h5py
+import sys
 from scipy.linalg import cholesky
 
-from . import utils, priors
+from . import priors
 
 def _wrap_chi2(d, dic=None, k=None, pk=None, pksb=None):
     return d.chi2(k, pk, pksb, dic)
@@ -21,9 +22,14 @@ class chi2:
         self.k = dic_init['fiducial']['k']
         self.pk_lin = dic_init['fiducial']['pk']
         self.pksb_lin = dic_init['fiducial']['pksb']
+
         self.verbosity = 1
         if 'verbosity' in dic_init:
             self.verbosity = dic_init['verbosity']
+
+        self.hesse = False
+        if 'hesse' in dic_init:
+            self.hesse = dic_init['hesse']
 
         if 'fast mc' in dic_init:
             if 'seed' in dic_init['fast mc']:
@@ -94,18 +100,23 @@ class chi2:
 
     def minimize(self):
         self.best_fit = self._minimize()
+        if self.hesse:
+            self.best_fit.hesse()
 
-        self.best_fit.values['SB'] = False
+        values = dict(self.best_fit.values)
+        values['SB'] = False
         for d in self.data:
-            d.best_fit_model = self.best_fit.values['bao_amp']*d.xi_model(self.k, self.pk_lin-self.pksb_lin, self.best_fit.values)
+            d.best_fit_model = values['bao_amp']*d.xi_model(self.k, self.pk_lin-self.pksb_lin, values)
 
-            self.best_fit.values['SB'] = True
-            snl = self.best_fit.values['sigmaNL_per']
-            self.best_fit.values['sigmaNL_per'] = 0
-            d.best_fit_model += d.xi_model(self.k, self.pksb_lin, self.best_fit.values)
-            self.best_fit.values['SB'] = False
-            self.best_fit.values['sigmaNL_per'] = snl
-        del self.best_fit.values['SB']
+            values['SB'] = True
+            sigmaNL_par = values['sigmaNL_par']
+            sigmaNL_per = values['sigmaNL_per']
+            values['sigmaNL_par'] = 0.
+            values['sigmaNL_per'] = 0.
+            d.best_fit_model += d.xi_model(self.k, self.pksb_lin, values)
+            values['SB'] = False
+            values['sigmaNL_par'] = sigmaNL_par
+            values['sigmaNL_per'] = sigmaNL_per
 
     def chi2scan(self):
         if not hasattr(self, "dic_chi2scan"): return
@@ -153,22 +164,27 @@ class chi2:
         ###
         if dim==1:
             par = list(self.dic_chi2scan.keys())[0]
-            for step in self.dic_chi2scan[par]['grid']:
+            for it, step in enumerate(self.dic_chi2scan[par]['grid']):
                 for d in self.data:
                     if par in d.pars_init.keys():
                         d.pars_init[par] = step
                 result += [send_one_fit()]
+                sys.stderr.write("\nINFO: finished chi2scan iteration {} of {}\n".format(it+1,
+                    self.dic_chi2scan[par]['grid'].size))
         elif dim==2:
             par1  = list(self.dic_chi2scan.keys())[0]
             par2  = list(self.dic_chi2scan.keys())[1]
-            for step1 in self.dic_chi2scan[par1]['grid']:
-                for step2 in self.dic_chi2scan[par2]['grid']:
+            for it1, step1 in enumerate(self.dic_chi2scan[par1]['grid']):
+                for it2, step2 in enumerate(self.dic_chi2scan[par2]['grid']):
                     for d in self.data:
                         if par1 in d.pars_init.keys():
                             d.pars_init[par1] = step1
                         if par2 in d.pars_init.keys():
                             d.pars_init[par2] = step2
                     result += [send_one_fit()]
+                    sys.stderr.write("\nINFO: finished chi2scan iteration {} of {}\n".format(
+                        it1*self.dic_chi2scan[par2]['grid'].size+it2+1,
+                        self.dic_chi2scan[par1]['grid'].size*self.dic_chi2scan[par2]['grid'].size))
 
         self.dic_chi2scan_result = {}
         self.dic_chi2scan_result['params'] = sp.asarray(sp.append(sorted(self.best_fit.values),['fval']))
@@ -233,6 +249,7 @@ class chi2:
                     self.fast_mc[p] = []
                 self.fast_mc[p].append([v, best_fit.errors[p]])
             self.fast_mc['chi2'].append(best_fit.fval)
+            sys.stderr.write("\nINFO: finished fastMC iteration {} of {}\n".format(it+1,nfast_mc))
 
     def minos(self):
         if not hasattr(self,"minos_para"): return
@@ -284,18 +301,26 @@ class chi2:
             g.attrs['list of prior pars'] = [a.encode('utf8') for a in priors.prior_dic.keys()]
 
         ## write down all attributes of the minimum
-        dic_fmin = utils.convert_instance_to_dictionary(self.best_fit.get_fmin())
+        dic_fmin = self.best_fit.get_fmin()
         for item, value in dic_fmin.items():
             g.attrs[item] = value
 
-        self.best_fit.values['SB'] = False
+        values = dict(self.best_fit.values)
+        values['SB'] = False
         for d in self.data:
             g = f.create_group(d.name)
             g.attrs['ndata'] = d.mask.sum()
-            g.attrs['chi2'] = d.chi2(self.k, self.pk_lin, self.pksb_lin, self.best_fit.values)
+            g.attrs['chi2'] = d.chi2(self.k, self.pk_lin, self.pksb_lin, values)
             fit = g.create_dataset("fit", d.da.shape, dtype = "f")
             fit[...] = d.best_fit_model
-        del self.best_fit.values['SB']
+            if not d.bb is None:
+                gbb = g.create_group("broadband")
+                for bbs in d.bb.values():
+                    for bb in bbs:
+                        tbb = bb(d.r, d.mu, **values)
+                        bband = gbb.create_dataset(bb.name,
+                                tbb.shape, dtype = "f")
+                        bband[...] = tbb
 
         if hasattr(self, "fast_mc"):
             g = f.create_group("fast mc")
@@ -335,7 +360,7 @@ class chi2:
             minos_results = self.best_fit.get_merrors()
             for par in list(minos_results.keys()):
                 subgrp = g.create_group(par)
-                dic_minos = utils.convert_instance_to_dictionary(minos_results[par])
+                dic_minos = minos_results[par]
                 for item, value in dic_minos.items():
                     subgrp.attrs[item] = value
 
