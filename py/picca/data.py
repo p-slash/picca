@@ -114,6 +114,8 @@ class forest(qso):
             corr = unred(10**ll,self.ebv_map[thid])
             fl /= corr
             iv *= corr**2
+            if not diff is None:
+                diff /= corr
 
         ## cut to specified range
         bins = sp.floor((ll-forest.lmin)/forest.dll+0.5).astype(int)
@@ -186,20 +188,17 @@ class forest(qso):
             correction = self.correc_ivar(ll)
             iv /= correction
 
+        self.Fbar = None
         self.T_dla = None
         self.ll = ll
         self.fl = fl
         self.iv = iv
         self.mmef = mmef
         self.order = order
-        #if diff is not None :
         self.diff = diff
         self.reso = reso
         self.reso_matrix = reso_matrix
 
-#        else :
-#           self.diff = sp.zeros(len(ll))
-#           self.reso = sp.ones(len(ll))
 
         # compute means
         if reso is not None : 
@@ -271,25 +270,41 @@ class forest(qso):
         if not hasattr(self,'ll'):
             return
 
-        w = sp.ones(self.ll.size).astype(bool)
+        w = sp.ones(self.ll.size,dtype=bool)
         for l in mask_obs:
-            w = w & ( (self.ll<l[0]) | (self.ll>l[1]) )
+            w &= (self.ll<l[0]) | (self.ll>l[1])
         for l in mask_RF:
-            w = w & ( (self.ll-sp.log10(1.+self.zqso)<l[0]) | (self.ll-sp.log10(1.+self.zqso)>l[1]) )
+            w &= (self.ll-sp.log10(1.+self.zqso)<l[0]) | (self.ll-sp.log10(1.+self.zqso)>l[1])
 
-        self.ll = self.ll[w]
-        self.fl = self.fl[w]
-        self.iv = self.iv[w]
-        if self.mmef is not None:
-            self.mmef = self.mmef[w]
-        if self.diff is not None:
-             self.diff = self.diff[w]
-        if self.reso is not None:
-             self.reso = self.reso[w]
-             self.mean_reso = sp.mean(self.reso)
-        if self.reso_matrix is not None:
-            self.reso_matrix = self.reso_matrix[:,w]
-            self.mean_reso_matrix = sp.mean(self.reso_matrix,axis=1)
+        ps = ['iv','ll','fl','T_dla','Fbar','mmef','diff','reso','reso_matrix']
+        for p in ps:
+            if hasattr(self,p) and (getattr(self,p) is not None):
+                if 'matrix' not in p:
+                    setattr(self, p, getattr(self, p)[w])
+                else:
+                    setattr(self, p, getattr(self, p)[:, w])
+                if 'reso' in p:
+                    if 'matrix' not in p:
+                        setattr(self, mean_p, sp.mean(getattr(self, p)))
+                    else:
+                        setattr(self, mean_p, sp.mean(getattr(self, p),axis=1))
+
+        return
+
+    def add_optical_depth(self,tau,gamma,waveRF):
+        """Add mean optical depth
+        """
+        if not hasattr(self,'ll'):
+            return
+
+        if self.Fbar is None:
+            self.Fbar = sp.ones(self.ll.size)
+
+        w = 10.**self.ll/(1.+self.zqso)<=waveRF
+        z = 10.**self.ll/waveRF-1.
+        self.Fbar[w] *= sp.exp(-tau*(1.+z[w])**gamma)
+
+        return
 
     def add_dla(self,zabs,nhi,mask=None):
         if not hasattr(self,'ll'):
@@ -299,25 +314,25 @@ class forest(qso):
 
         self.T_dla *= dla(self,zabs,nhi).t
 
-        w = (self.T_dla>forest.dla_mask)
+        w = self.T_dla>forest.dla_mask
         if not mask is None:
             for l in mask:
-                w = w & ( (self.ll-sp.log10(1.+zabs)<l[0]) | (self.ll-sp.log10(1.+zabs)>l[1]) )
+                w &= (self.ll-sp.log10(1.+zabs)<l[0]) | (self.ll-sp.log10(1.+zabs)>l[1])
 
-        self.iv = self.iv[w]
-        self.ll = self.ll[w]
-        self.fl = self.fl[w]
-        if self.mmef is not None:
-            self.mmef = self.mmef[w]
-        self.T_dla = self.T_dla[w]
-        if self.diff is not None :
-            self.diff = self.diff[w]
-        if self.reso is not None:
-            self.reso = self.reso[w]
-            self.mean_reso = sp.mean(self.reso)
-        if self.reso_matrix is not None:
-            self.reso_matrix = self.reso_matrix[:,w]
-            self.mean_reso_matrix = sp.mean(self.reso_matrix, axis=1)
+        ps = ['iv','ll','fl','T_dla','Fbar','mmef','diff','reso']
+        for p in ps:
+            if hasattr(self,p) and (getattr(self,p) is not None):
+                if 'matrix' not in p:
+                    setattr(self, p, getattr(self, p)[w])
+                else:
+                    setattr(self, p, getattr(self, p)[:, w])
+                if 'reso' in p:
+                    if 'matrix' not in p:
+                        setattr(self, mean_p, sp.mean(getattr(self, p)))
+                    else:
+                        setattr(self, mean_p, sp.mean(getattr(self, p),axis=1))
+
+        return
 
     def add_absorber(self,lambda_absorber):
         if not hasattr(self,'ll'):
@@ -326,18 +341,20 @@ class forest(qso):
         w = sp.ones(self.ll.size, dtype=bool)
         w &= sp.fabs(1.e4*(self.ll-sp.log10(lambda_absorber)))>forest.absorber_mask
 
-        self.iv = self.iv[w]
-        self.ll = self.ll[w]
-        self.fl = self.fl[w]
-        if self.diff is not None :
-            self.diff = self.diff[w]
-        if self.reso is not None:
-            self.reso = self.reso[w]
-            self.mean_reso = sp.mean(self.reso)
-        if self.reso_matrix is not None:
-             self.reso_matrix = self.reso_matrix[:,w]
-             self.mean_reso_matrix = sp.mean(self.reso_matrix,axis=1)
+        ps = ['iv','ll','fl','T_dla','Fbar','mmef','diff','reso']
+        for p in ps:
+            if hasattr(self,p) and (getattr(self,p) is not None):
+                if 'matrix' not in p:
+                    setattr(self, p, getattr(self, p)[w])
+                else:
+                    setattr(self, p, getattr(self, p)[:, w])
+                if 'reso' in p:
+                    if 'matrix' not in p:
+                        setattr(self, mean_p, sp.mean(getattr(self, p)))
+                    else:
+                        setattr(self, mean_p, sp.mean(getattr(self, p),axis=1))
 
+        return
 
     def cont_fit(self):
         lmax = forest.lmax_rest+sp.log10(1+self.zqso)
@@ -347,6 +364,8 @@ class forest(qso):
         except ValueError:
             raise Exception
 
+        if not self.Fbar is None:
+            mc *= self.Fbar
         if not self.T_dla is None:
             mc*=self.T_dla
 
@@ -545,9 +564,9 @@ class delta(qso):
         de = h[0].read()
         iv = h[1].read()
         ll = h[2].read()
-        ra = h[3]["RA"][:]*sp.pi/180.
-        dec = h[3]["DEC"][:]*sp.pi/180.
-        z = h[3]["Z"][:]
+        ra = h[3]["RA"][:].astype(sp.float64)*sp.pi/180.
+        dec = h[3]["DEC"][:].astype(sp.float64)*sp.pi/180.
+        z = h[3]["Z"][:].astype(sp.float64)
         plate = h[3]["PLATE"][:]
         mjd = h[3]["MJD"][:]
         fid = h[3]["FIBER"]

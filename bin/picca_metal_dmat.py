@@ -65,7 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('--lambda-abs2', type=str, default=None, required=False,
         help='Name of the absorption in picca.constants defining the redshift of the 2nd delta')
 
-    parser.add_argument('--abs-igm', type=str,default=None, required=False,nargs='*',
+    parser.add_argument('--abs-igm', type=str,default=[], required=False,nargs='*',
         help='List of names of metal absorption in picca.constants present in forest')
 
     parser.add_argument('--abs-igm2', type=str,default=[], required=False,nargs='*',
@@ -85,6 +85,15 @@ if __name__ == '__main__':
 
     parser.add_argument('--fid-Om', type=float, default=0.315, required=False,
         help='Omega_matter(z=0) of fiducial LambdaCDM cosmology')
+
+    parser.add_argument('--fid-Or', type=float, default=0., required=False,
+        help='Omega_radiation(z=0) of fiducial LambdaCDM cosmology')
+
+    parser.add_argument('--fid-Ok', type=float, default=0., required=False,
+        help='Omega_k(z=0) of fiducial LambdaCDM cosmology')
+
+    parser.add_argument('--fid-wl', type=float, default=-1., required=False,
+        help='Equation of state of dark energy of fiducial LambdaCDM cosmology')
 
     parser.add_argument('--remove-same-half-plate-close-pairs', action='store_true', required=False,
         help='Reject pairs in the first bin in r-parallel from same half plate')
@@ -133,7 +142,7 @@ if __name__ == '__main__':
     for m in args.abs_igm:
         cf.alpha_abs[m] = args.metal_alpha
 
-    cf.cosmo = constants.cosmo(args.fid_Om)
+    cf.cosmo = constants.cosmo(Om=args.fid_Om,Or=args.fid_Or,Ok=args.fid_Ok,wl=args.fid_wl)
 
     ### Read data 1
     data, ndata, zmin_pix, zmax_pix = io.read_deltas(args.in_dir, cf.nside, cf.lambda_abs, cf.alpha, cf.zref, cf.cosmo, nspec=args.nspec)
