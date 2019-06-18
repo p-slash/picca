@@ -145,9 +145,11 @@ if __name__ == '__main__':
     parser.add_argument('--use-resolution-matrix', action='store_true', default = False,
         help='should the resolution matrix be stored with the deltas (only implemented for Pk1D)')
 
-
     parser.add_argument('--use-mock-continuum', action='store_true', default = False,
         help='use the mock continuum for computing the deltas')
+
+    parser.add_argument('--use-desi-P1d-changes', action='store_true', default = False,
+        help='use changes put into picca to allow resolution treatment for the P1d more properly with DESI mocks (e.g. different sampling)')
 
     args = parser.parse_args()
 
@@ -157,9 +159,15 @@ if __name__ == '__main__':
     forest.lmax = sp.log10(args.lambda_max)
     forest.lmin_rest = sp.log10(args.lambda_rest_min)
     forest.lmax_rest = sp.log10(args.lambda_rest_max)
-    forest.rebin = args.rebin
-#    forest.dll = args.rebin*1e-4
-    forest.dll = args.rebin*1/((constants.absorber_IGM['LYA'])*4.6)/sp.log(10)     #note that this hack will not make it into master!!! It's meant to ensure that the log-pixels are always at least the size of a DESI pixel for z>2
+    if args.use_desi_P1d_changes:
+        forest.rebin = args.rebin
+        desi_pixsize = 1
+        desi_maxz = 5.5
+        #this would be the smallest bin in log-L ever encountered in desi
+        forest.dll = args.rebin*desi_pixsize/((constants.absorber_IGM['LYA'])*(desi_maxz+1))/sp.log(10)
+    else:   
+        forest.dll = args.rebin*1e-4
+    
 
     ## minumum dla transmission
     forest.dla_mask = args.dla_mask
