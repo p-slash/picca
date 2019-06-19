@@ -507,6 +507,8 @@ class delta(qso):
             m_reso = None
             dll = None
             m_z = None
+            resomat = None
+            mean_resomat = None
             we = h['WEIGHT'][:]
             co = h['CONT'][:]
 
