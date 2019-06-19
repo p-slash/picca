@@ -285,9 +285,9 @@ class forest(qso):
                     setattr(self, p, getattr(self, p)[:, w])
                 if 'reso' in p:
                     if 'matrix' not in p:
-                        setattr(self, mean_p, sp.mean(getattr(self, p)))
+                        setattr(self, 'mean_'+p, sp.mean(getattr(self, p)))
                     else:
-                        setattr(self, mean_p, sp.mean(getattr(self, p),axis=1))
+                        setattr(self, 'mean_'+p, sp.mean(getattr(self, p),axis=1))
 
         return
 
