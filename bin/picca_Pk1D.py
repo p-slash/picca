@@ -235,6 +235,8 @@ if __name__ == '__main__':
             # Split in n parts the forest
             nb_part_max = (len(d.ll)-first_pixel)//nb_pixel_min
             nb_part = min(args.nb_part,nb_part_max)
+            if d.dll_resmat is None:
+                d.dll_resmat=d.dll
             if args.res_estimate == 'Gaussian':
                 m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,dll_reso=d.dll_resmat)
             elif args.res_estimate == 'matrix':
