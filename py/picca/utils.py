@@ -440,7 +440,7 @@ def desi_from_ztarget_to_drq(ztarget,drq,spectype='QSO',downsampling_z_cut=None,
     out.close()
 
     return
-def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None,lObs_min=3600.,lObs_max=5500.,lRF_min=1040.,lRF_max=1200.,dll=3.e-4,nspec=None):
+def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None,lObs_min=3600.,lObs_max=5500.,lRF_min=1040.,lRF_max=1200.,dll=3.e-4,nspec=None,bin_linear=False):
     from picca.data import delta
     """Convert desi transmission files to picca delta files
 
@@ -454,6 +454,7 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         lRF_max (float) = 1200.: max Rest Frame wavelength in Angstrom
         dll (float) = 3.e-4: size of the bins in log lambda
         nspec (int) = None: number of spectra, if 'None' use all
+        bin_linear (bool) = False: should dll be the size of pixels in AA instead of an actual dll
 
     Returns:
         None
@@ -519,10 +520,16 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         if trans.shape[0]!=nObj:
             trans = trans.transpose()
 
-        bins = sp.floor((ll-lmin)/dll+0.5).astype(int)
-        tll = lmin + bins*dll
-        lObs = (10**tll)*sp.ones(nObj)[:,None]
-        lRF = (10**tll)/(1.+z[:,None])
+        if not bin_linear:
+            bins = sp.floor((ll - lmin) / dll + 0.5).astype(int)
+            tll = lmin + bins * dll
+            lObs = (10**tll)*sp.ones(nObj)[:,np.newaxis]
+            lRF = (10**tll)/(1.+z[:,np.newaxis])
+        else:
+            bins = sp.floor((10 ** ll - 10 ** lmin) / dll + 0.5).astype(int)
+            tll = 10 ** lmin + bins * dll
+            lObs = (tll)*sp.ones(nObj)[:,np.newaxis]
+            lRF = (tll)/(1.+z[:,np.newaxis])
         w = sp.zeros_like(trans).astype(int)
         w[ (lObs>=lObs_min) & (lObs<lObs_max) & (lRF>lRF_min) & (lRF<lRF_max) ] = 1
         nbPixel = sp.sum(w,axis=1)
@@ -574,6 +581,8 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
             continue
         out = fitsio.FITS(outdir+'/delta-{}'.format(p)+'.fits.gz','rw',clobber=True)
         for d in deltas[p]:
+            if  bin_linear:
+                dll=sp.median(sp.diff(d.ll))  #for log-sampled delta this is the normal dll, else it is slightly different for each spectrum
             bins = sp.floor((d.ll-lmin)/dll+0.5).astype(int)
             d.de = d.de/T_stack[bins] - 1.
             d.we *= T_stack[bins]**2
