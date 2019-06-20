@@ -523,13 +523,13 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         if not bin_linear:
             bins = sp.floor((ll - lmin) / dll + 0.5).astype(int)
             tll = lmin + bins * dll
-            lObs = (10**tll)*sp.ones(nObj)[:,np.newaxis]
-            lRF = (10**tll)/(1.+z[:,np.newaxis])
+            lObs = (10**tll)*sp.ones(nObj)[:,sp.newaxis]
+            lRF = (10**tll)/(1.+z[:,sp.newaxis])
         else:
             bins = sp.floor((10 ** ll - 10 ** lmin) / dll + 0.5).astype(int)
             tll = 10 ** lmin + bins * dll
-            lObs = (tll)*sp.ones(nObj)[:,np.newaxis]
-            lRF = (tll)/(1.+z[:,np.newaxis])
+            lObs = (tll)*sp.ones(nObj)[:,sp.newaxis]
+            lRF = (tll)/(1.+z[:,sp.newaxis])
         w = sp.zeros_like(trans).astype(int)
         w[ (lObs>=lObs_min) & (lObs<lObs_max) & (lRF>lRF_min) & (lRF<lRF_max) ] = 1
         nbPixel = sp.sum(w,axis=1)
