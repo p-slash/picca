@@ -491,7 +491,7 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         nest = h['METADATA'].read_header()['HPXNEST']
         h.close()
         in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-zcat_dec, zcat_ra, nest=nest)
-        fi = sp.sort(sp.array(['{}/{}/{}/transmission-{}-{}{}}'.format(indir,int(f//100),f,in_nside,f,endstring) for f in sp.unique(in_pixs)]))
+        fi = sp.sort(sp.array(['{}/{}/{}/transmission-{}-{}{}'.format(indir,int(f//100),f,in_nside,f,endstring) for f in sp.unique(in_pixs)]))
     else:
         fi = sp.sort(sp.array(infiles))
     print('INFO: Found {} files'.format(fi.size))
