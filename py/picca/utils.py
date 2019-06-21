@@ -558,7 +558,10 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
             tll = ll[w[i,:]>0]
             ttrans = trans[i,:][w[i,:]>0]
 
-            bins = sp.floor((tll-lmin)/dll+0.5).astype(int)
+            if not bin_linear:
+                bins = sp.floor((tll - lmin) / dll + 0.5).astype(int)
+            else:
+                bins = sp.floor((10**tll - 10**lmin) / dll + 0.5).astype(int)
             cll = lmin + sp.arange(nstack)*dll
             cfl = sp.bincount(bins,weights=ttrans,minlength=nstack)
             civ = sp.bincount(bins,minlength=nstack).astype(float)
@@ -571,7 +574,6 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
             cfl = cfl[ww]/civ[ww]
             civ = civ[ww]
             deltas[pixnum].append(delta(thid[i], ra[i], dec[i], z[i], thid[i], thid[i], thid[i], cll, civ, None, cfl, 1, None, None, None, None, None, None))
-        raise Exception
 
         if not nspec is None and sp.sum([ len(deltas[p]) for p in deltas.keys()])>=nspec: break
 
