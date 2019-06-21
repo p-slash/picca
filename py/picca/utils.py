@@ -510,7 +510,6 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         print("\rread {} of {} {}".format(nf,fi.size,sp.sum([ len(deltas[p]) for p in deltas.keys()])), end="")
         h = fitsio.FITS(f)
         thid = h['METADATA']['MOCKID'][:]
-        raise Exception
         if sp.in1d(thid,zcat_thid).sum()==0:
             h.close()
             continue
@@ -539,7 +538,9 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         w[ (lObs>=lObs_min) & (lObs<lObs_max) & (lRF>lRF_min) & (lRF<lRF_max) ] = 1
         nbPixel = sp.sum(w,axis=1)
         cut = nbPixel>=50
-        cut &= sp.in1d(thid,zcat_thid)
+        cut &= sp.in1d(thid, zcat_thid)
+        raise Exception
+
         if cut.sum()==0:
             h.close()
             continue
