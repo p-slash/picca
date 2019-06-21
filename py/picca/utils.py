@@ -480,14 +480,18 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         print("ERROR: No transmisson input files or both 'indir' and 'infiles' given")
         sys.exit()
     elif indir is not None:
-        fi = glob.glob(indir+'/*/*/transmission*.fits*')
+        fi = glob.glob(indir + '/*/*/transmission*.fits*')
+        if fi[0].endswith('.gz'):
+            endstring = '.fits.gz'
+        else:
+            endstring = '.fits'
         fi = sp.sort(sp.array(fi))
         h = fitsio.FITS(fi[0])
         in_nside = h['METADATA'].read_header()['HPXNSIDE']
         nest = h['METADATA'].read_header()['HPXNEST']
         h.close()
         in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-zcat_dec, zcat_ra, nest=nest)
-        fi = sp.sort(sp.array(['{}/{}/{}/transmission-{}-{}.fits'.format(indir,int(f//100),f,in_nside,f) for f in sp.unique(in_pixs)]))
+        fi = sp.sort(sp.array(['{}/{}/{}/transmission-{}-{}{}}'.format(indir,int(f//100),f,in_nside,f,endstring) for f in sp.unique(in_pixs)]))
     else:
         fi = sp.sort(sp.array(infiles))
     print('INFO: Found {} files'.format(fi.size))
@@ -652,7 +656,7 @@ def shuffle_distrib_obj(obj,seed):
                 setattr(o,p,dic[p][idx[i]])
             i += 1
     return obj
-def shuffle_distrib_forests(obj,seed):
+def shuffle_distrib_forests(obj,seed):  
     '''Shuffle the distribution of forests by assiging the angular
         positions from another forest
 
