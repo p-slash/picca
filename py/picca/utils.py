@@ -539,7 +539,6 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         nbPixel = sp.sum(w,axis=1)
         cut = nbPixel>=50
         cut &= sp.in1d(thid, zcat_thid)
-        raise Exception
 
         if cut.sum()==0:
             h.close()
@@ -571,7 +570,9 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
             cll = cll[ww]
             cfl = cfl[ww]/civ[ww]
             civ = civ[ww]
-            deltas[pixnum].append(delta(thid[i],ra[i],dec[i],z[i],thid[i],thid[i],thid[i],cll,civ,None,cfl,1,None,None,None,None,None,None))
+            deltas[pixnum].append(delta(thid[i], ra[i], dec[i], z[i], thid[i], thid[i], thid[i], cll, civ, None, cfl, 1, None, None, None, None, None, None))
+        raise Exception
+
         if not nspec is None and sp.sum([ len(deltas[p]) for p in deltas.keys()])>=nspec: break
 
     print('\n')
