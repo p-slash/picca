@@ -499,7 +499,11 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
     ### Stack the transmission
     lmin = sp.log10(lObs_min)
     lmax = sp.log10(lObs_max)
-    nstack = int((lmax-lmin)/dll)+1
+    
+    if not bin_linear:
+        nstack = int((lmax - lmin) / dll) + 1
+    else:
+        nstack = int((10**lmax - 10**lmin) / dll) + 1
     T_stack = sp.zeros(nstack)
     n_stack = sp.zeros(nstack)
 
