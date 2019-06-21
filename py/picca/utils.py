@@ -593,9 +593,10 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
             continue
         out = fitsio.FITS(outdir+'/delta-{}'.format(p)+'.fits.gz','rw',clobber=True)
         for d in deltas[p]:
-            if  bin_linear:
-                dll=sp.median(sp.diff(d.ll))  #for log-sampled delta this is the normal dll, else it is slightly different for each spectrum
-            bins = sp.floor((d.ll-lmin)/dll+0.5).astype(int)
+            if bin_linear:
+                bins = sp.floor((10**d.ll-lObs_min)/dll+0.5).astype(int)
+            else:
+                bins = sp.floor((d.ll-lmin)/dll+0.5).astype(int)
             d.de = d.de/T_stack[bins] - 1.
             d.we *= T_stack[bins]**2
 
