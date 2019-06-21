@@ -503,7 +503,7 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
     if not bin_linear:
         nstack = int((lmax - lmin) / dll) + 1
     else:
-        nstack = int((10**lmax - 10**lmin) / dll) + 1
+        nstack = int((lObs_max - lObs_min) / dll) + 1
     T_stack = sp.zeros(nstack)
     n_stack = sp.zeros(nstack)
 
@@ -534,8 +534,8 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
             lObs = (10**tll)*sp.ones(nObj)[:,sp.newaxis]
             lRF = (10**tll)/(1.+z[:,sp.newaxis])
         else:
-            bins = sp.floor((10 ** ll - 10 ** lmin) / dll + 0.5).astype(int)
-            tll = sp.log10(10 ** lmin + bins * dll)
+            bins = sp.floor((10 ** ll - lObs_min) / dll + 0.5).astype(int)
+            tll = sp.log10(lObs_min + bins * dll)
             lObs = (10**tll)*sp.ones(nObj)[:,sp.newaxis]
             lRF = (10**tll)/(1.+z[:,sp.newaxis])
         w = sp.zeros_like(trans).astype(int)
