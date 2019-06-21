@@ -510,6 +510,7 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         print("\rread {} of {} {}".format(nf,fi.size,sp.sum([ len(deltas[p]) for p in deltas.keys()])), end="")
         h = fitsio.FITS(f)
         thid = h['METADATA']['MOCKID'][:]
+        raise Exception
         if sp.in1d(thid,zcat_thid).sum()==0:
             h.close()
             continue
