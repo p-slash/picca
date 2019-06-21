@@ -531,13 +531,11 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         if not bin_linear:
             bins = sp.floor((ll - lmin) / dll + 0.5).astype(int)
             tll = lmin + bins * dll
-            lObs = (10**tll)*sp.ones(nObj)[:,sp.newaxis]
-            lRF = (10**tll)/(1.+z[:,sp.newaxis])
         else:
             bins = sp.floor((10 ** ll - lObs_min) / dll + 0.5).astype(int)
             tll = sp.log10(lObs_min + bins * dll)
-            lObs = (10**tll)*sp.ones(nObj)[:,sp.newaxis]
-            lRF = (10**tll)/(1.+z[:,sp.newaxis])
+        lObs = (10**tll)*sp.ones(nObj)[:,sp.newaxis]
+        lRF = (10**tll)/(1.+z[:,sp.newaxis])
         w = sp.zeros_like(trans).astype(int)
         w[ (lObs>=lObs_min) & (lObs<lObs_max) & (lRF>lRF_min) & (lRF<lRF_max) ] = 1
         nbPixel = sp.sum(w,axis=1)
@@ -564,9 +562,10 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
 
             if not bin_linear:
                 bins = sp.floor((tll - lmin) / dll + 0.5).astype(int)
+                cll = lmin + sp.arange(nstack)*dll
             else:
-                bins = sp.floor((10**tll - 10**lmin) / dll + 0.5).astype(int)
-            cll = lmin + sp.arange(nstack)*dll
+                bins = sp.floor((10 ** tll - 10 ** lmin) / dll + 0.5).astype(int)
+                cll = sp.log10(lObs_min + sp.arange(nstack)*dll)
             cfl = sp.bincount(bins,weights=ttrans,minlength=nstack)
             civ = sp.bincount(bins,minlength=nstack).astype(float)
 
