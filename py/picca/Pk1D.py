@@ -173,7 +173,7 @@ def compute_Pk_noise(dll,iv,diff,ll,run_noise):
 
     return Pk,Pk_diff
 
-def compute_cor_reso(delta_pixel, mean_reso, k, delta_pixel2, pixel_correction=None):
+def compute_cor_reso(delta_pixel, mean_reso, k, delta_pixel2=None, pixel_correction=None,infres=False):
 
     nb_bin_FFT = len(k)
     cor = sp.ones(nb_bin_FFT)
@@ -192,8 +192,8 @@ def compute_cor_reso(delta_pixel, mean_reso, k, delta_pixel2, pixel_correction=N
         sinc2[k > 0.] = (sp.sin(k[k > 0.] *delta_pixel2 /2.0) /(k[k > 0.] *delta_pixel2 /2.0))**2
         cor /= sinc2
 
-
-    cor *= sp.exp(-(k*mean_reso)**2)
+    if not infres:
+        cor *= sp.exp(-(k*mean_reso)**2)
     return cor
 
 def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel2, ll, pixel_correction=None):

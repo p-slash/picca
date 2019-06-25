@@ -207,8 +207,6 @@ if __name__ == '__main__':
                     d.mean_reso=1e-3
                     d.diff=0*d.de
                     d.dll=sp.mean(sp.diff(d.ll)) #(d.ll[-1]-d.ll[0])/(len(d.ll)-1) #both of those should give the same result, but the first is more explicite, second one should be faster, but this shouldn't be a dominant effect
-
-
                 noiseless_fullres=True
         elif (args.in_format=='ascii') :
             ascii_file = open(f,'r')
@@ -280,7 +278,8 @@ if __name__ == '__main__':
                 elif  args.res_estimate == 'matrix':
                     cor_reso = compute_cor_reso_matrix(dll_reso, reso_mat_new, k, delta_pixel, delta_pixel2, ll_new, pixel_correction=args.pixel_correction)
                 else:
-                    cor_reso = 1
+                    #this is for computing a pixelization correction only
+                    cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction,infres=True)
 
 
                 # Compute 1D Pk
