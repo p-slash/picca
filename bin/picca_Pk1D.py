@@ -137,6 +137,9 @@ if __name__ == '__main__':
         help='Number of processors')
     parser.add_argument('--res-estimate', default='Gaussian', required=False,
         help='Resolution correction estimated by: Gaussian, matrix, noresolution')
+    parser.add_argument('--linear-binning', action='store_true', default = False,
+            help='should the deltas be computed on linearly sampled wavelength bins')
+
 
     args = parser.parse_args()
 
@@ -234,14 +237,17 @@ if __name__ == '__main__':
             nb_part_max = (len(d.ll)-first_pixel)//nb_pixel_min
             nb_part = min(args.nb_part,nb_part_max)
             if d.dll_resmat is None:
-                d.dll_resmat=sp.median(10**-d.ll)*1/sp.log(10.)
+                if not args.linear_binning:
+                    d.dll_resmat=sp.median(10**-d.ll)/sp.log(10.)  #???
+                else:
+                    d.dll_resmat=sp.median(np.diff(10**d.ll))
             if args.res_estimate == 'Gaussian':
                 m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,dll_reso=d.dll_resmat)
             elif args.res_estimate == 'matrix':
                 m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, reso_mat_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,reso_matrix=d.reso_matrix,dll_reso=d.dll_resmat)
             for f in range(nb_part):
 
-                # rebin diff spectrum
+                # rebin diff spectrum (note that this has not been adapted to linear binning yet and might need changes)
                 if (args.noise_estimate=='rebin_diff' or args.noise_estimate=='mean_rebin_diff'):
                     diff_arr[f]=rebin_diff_noise(d.dll,ll_arr[f],diff_arr[f])
 
@@ -263,20 +269,25 @@ if __name__ == '__main__':
                 mean_z_new = sum(z_abs)/float(len(z_abs))
 
                 # Compute Pk_raw
-                k,Pk_raw = compute_Pk_raw(d.dll,delta_new,ll_new)
+                k,Pk_raw = compute_Pk_raw(d.dll,delta_new,ll_new,linear_binning=args.linear_binning)
 
                 # Compute Pk_noise
                 run_noise = False
                 if (args.noise_estimate=='pipeline'): run_noise=True
-                Pk_noise,Pk_diff = compute_Pk_noise(d.dll,iv_new,diff_new,ll_new,run_noise)
+                Pk_noise,Pk_diff = compute_Pk_noise(d.dll,iv_new,diff_new,ll_new,run_noise,linear_binning=args.linear_binning)
 
                 # Compute resolution correction
-                delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
-                delta_pixel2 = dll_reso*sp.log(10.)*constants.speed_light/1000. #this should be changed to d.dll_res
-                if args.res_estimate == 'Gaussian':
+                
+                if not args.linear_binning:
+                    delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
+                    delta_pixel2 = dll_reso*sp.log(10.)*constants.speed_light/1000. #this should be changed to d.dll_res
+                else:
+                    delta_pixel = sp.median(sp.diff(10**ll_new))
+                    delta_pixel2 = dll_reso   #those two should be the same or very close
+                if args.res_estimate == 'Gaussian' and not noiseless_fullres:
                     cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction)
-                elif  args.res_estimate == 'matrix':
-                    cor_reso = compute_cor_reso_matrix(dll_reso, reso_mat_new, k, delta_pixel, delta_pixel2, ll_new, pixel_correction=args.pixel_correction)
+                elif  args.res_estimate == 'matrix' and not noiseless_fullres:
+                    cor_reso = compute_cor_reso_matrix(dll_reso, reso_mat_new, k, delta_pixel, delta_pixel2, ll_new, pixel_correction=args.pixel_correction,linear_binning=args.linear_binning)
                 else:
                     #this is for computing a pixelization correction only
                     cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction,infres=True)
@@ -293,6 +304,12 @@ if __name__ == '__main__':
                         selection = (k>0.003) & (k<0.02)
                     Pk_mean_diff = sum(Pk_diff[selection])/float(len(Pk_diff[selection]))
                     Pk = (Pk_raw - Pk_mean_diff)/cor_reso
+                elif noiseless_fullres:
+                    Pk = Pk_raw / cor_reso
+#to convert linearly binned data back to velocity space
+                # if args.linear_binning:
+                #     Pk*=constants.speed_light/1000/sp.mean(ll_new)
+                #     k/=constants.speed_light/1000/sp.mean(ll_new)
 
                 # save in root format
                 if (args.out_format=='root'):

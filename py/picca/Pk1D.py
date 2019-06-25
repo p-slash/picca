@@ -131,11 +131,13 @@ def fill_masked_pixels(dll,ll,delta,diff,iv,no_apply_filling):
 
     return ll_new,delta_new,diff_new,iv_new,nb_masked_pixel
 
-def compute_Pk_raw(dll,delta,ll):   #MW: why does this function depend on ll at all? Every computation is based on dll only, so the explicit dependence on dll is not necessary
+def compute_Pk_raw(dll,delta,ll,linear_binning=False):   #MW: why does this function depend on ll at all? Every computation is based on dll only, so the explicit dependence on dll is not necessary
 
     #   Length in km/s
-    length_lambda = dll*constants.speed_light/1000.*sp.log(10.)*len(delta)
-
+    if not linear_binning:
+        length_lambda = dll*constants.speed_light/1000.*sp.log(10.)*len(delta)
+    else:
+        length_lambda = dll*len(delta)
     # make 1D FFT
     nb_pixels = len(delta)
     nb_bin_FFT = nb_pixels//2 + 1
@@ -149,7 +151,7 @@ def compute_Pk_raw(dll,delta,ll):   #MW: why does this function depend on ll at 
     return k,Pk
 
 
-def compute_Pk_noise(dll,iv,diff,ll,run_noise):
+def compute_Pk_noise(dll,iv,diff,ll,run_noise,linear_binning=False):
 
     nb_pixels = len(iv)
     nb_bin_FFT = nb_pixels//2 + 1
@@ -164,12 +166,12 @@ def compute_Pk_noise(dll,iv,diff,ll,run_noise):
         for _ in range(nb_noise_exp): #iexp unused, but needed
             delta_exp= sp.zeros(nb_pixels)
             delta_exp[w] = sp.random.normal(0.,err[w])
-            _,Pk_exp = compute_Pk_raw(dll,delta_exp,ll) #k_exp unused, but needed
+            _,Pk_exp = compute_Pk_raw(dll,delta_exp,ll,linear_binning) #k_exp unused, but needed
             Pk += Pk_exp
 
         Pk /= float(nb_noise_exp)
 
-    _,Pk_diff = compute_Pk_raw(dll,diff,ll) #k_diff unused, but needed
+    _,Pk_diff = compute_Pk_raw(dll,diff,ll,linear_binning) #k_diff unused, but needed
 
     return Pk,Pk_diff
 
@@ -196,7 +198,7 @@ def compute_cor_reso(delta_pixel, mean_reso, k, delta_pixel2=None, pixel_correct
         cor *= sp.exp(-(k*mean_reso)**2)
     return cor
 
-def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel2, ll, pixel_correction=None):
+def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel2, ll, pixel_correction=None,linear_binning=False):
     """
     Perform the resolution + pixelization correction assuming general resolution kernel
      as e.g. DESI resolution matrix
@@ -208,7 +210,7 @@ def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel
     W2arr=[]
     for resmat in reso_matrix:
         r=sp.append(resmat, sp.zeros(ll.size-resmat.size))
-        k_resmat,W2=compute_Pk_raw(dll_resmat, r, ll) #this assumes a pixel scale of 1 Angstrom inside the reso matrix
+        k_resmat,W2=compute_Pk_raw(dll_resmat, r, ll, linear_binning=linear_binning) #this assumes a pixel scale of 1 Angstrom inside the reso matrix
         W2/=W2[0]
         #this interpolates to the final k_binning if different
         W2int=spint.interp1d(k_resmat,W2,bounds_error=False)
