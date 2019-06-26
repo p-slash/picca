@@ -210,7 +210,7 @@ if __name__ == '__main__':
                     d.iv=0*d.de+1e10
                     d.mean_SNR=1e5
                     d.mean_reso=1e-3
-                    d.diff=0*d.de
+                    d.diff = 0 * d.de
                     d.dll=sp.mean(sp.diff(d.ll)) #(d.ll[-1]-d.ll[0])/(len(d.ll)-1) #both of those should give the same result, but the first is more explicite, second one should be faster, but this shouldn't be a dominant effect
                 noiseless_fullres=True
         elif (args.in_format=='ascii') :
@@ -242,7 +242,8 @@ if __name__ == '__main__':
                 if not args.linear_binning:
                     d.dll_resmat=1*sp.median(10**-d.ll)/sp.log(10.)  #converts 1 angstrom to whatever the relevant log lambda is at current lambda
                 else:
-                    d.dll_resmat=sp.median(sp.diff(10**d.ll))
+                    d.dll_resmat = sp.median(sp.diff(10 ** d.ll))
+                    d.dll=d.dll_resmat       #overwrite the d.dll entries whatever they are with the true pixelization
             if args.res_estimate == 'Gaussian':
                 m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,dll_reso=d.dll_resmat)
             elif args.res_estimate == 'matrix':
