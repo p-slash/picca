@@ -238,7 +238,7 @@ if __name__ == '__main__':
             nb_part = min(args.nb_part,nb_part_max)
             if d.dll_resmat is None:
                 if not args.linear_binning:
-                    d.dll_resmat=sp.median(10**-d.ll)/sp.log(10.)  #???
+                    d.dll_resmat=1*sp.median(10**-d.ll)/sp.log(10.)  #converts 1 angstrom to whatever the relevant log lambda is at current lambda
                 else:
                     d.dll_resmat=sp.median(sp.diff(10**d.ll))
             if args.res_estimate == 'Gaussian':
