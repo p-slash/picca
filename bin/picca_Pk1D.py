@@ -256,7 +256,7 @@ if __name__ == '__main__':
 
                 # Fill masked pixels with 0.
                 if args.res_estimate == 'Gaussian':
-                    ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_mfill_masked_pixels(d.dll,ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling,linear_binning=args.linear_binning)
+                    ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll,ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling,linear_binning=args.linear_binning)
                 elif args.res_estimate == 'matrix':
                     #for resolution matrix the filling is not yet fully implemented, so far just the mean is taken here
                     ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll,ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling,linear_binning=args.linear_binning)
