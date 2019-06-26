@@ -240,7 +240,7 @@ if __name__ == '__main__':
                 if not args.linear_binning:
                     d.dll_resmat=sp.median(10**-d.ll)/sp.log(10.)  #???
                 else:
-                    d.dll_resmat=sp.median(np.diff(10**d.ll))
+                    d.dll_resmat=sp.median(sp.diff(10**d.ll))
             if args.res_estimate == 'Gaussian':
                 m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,dll_reso=d.dll_resmat)
             elif args.res_estimate == 'matrix':
