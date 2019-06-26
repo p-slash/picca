@@ -99,26 +99,37 @@ def rebin_diff_noise(dll,ll,diff):
     return diffout
 
 
-def fill_masked_pixels(dll,ll,delta,diff,iv,no_apply_filling):
+def fill_masked_pixels(dll,ll,delta,diff,iv,no_apply_filling,linear_binning=False):
 
 
     if no_apply_filling : return ll,delta,diff,iv,0
 
 
     ll_idx = ll.copy()
-    ll_idx -= ll[0]
-    ll_idx /= dll
-    ll_idx += 0.5
+    if not linear_binning:
+        ll_idx -= ll[0]
+        ll_idx /= dll
+        ll_idx += 0.5
+    else:
+        ll_idx = 10**ll_idx
+        ll_idx -= 10**ll[0]
+        ll_idx /= dll            #dll for linear binning needs to be a delta-lambda
+        ll_idx += 0.5
     index =sp.array(ll_idx,dtype=int)
     index_all = range(index[-1]+1)
     index_ok = sp.in1d(index_all, index)
 
     delta_new = sp.zeros(len(index_all))
     delta_new[index_ok]=delta
-
-    ll_new = sp.array(index_all,dtype=float)
-    ll_new *= dll
-    ll_new += ll[0]
+    if not linear_binning:
+        ll_new = sp.array(index_all,dtype=float)
+        ll_new *= dll
+        ll_new += ll[0]
+    else:
+        ll_new = sp.array(index_all,dtype=float)
+        ll_new *= dll
+        ll_new += 10 ** ll[0]
+        ll_new = np.log10(ll_new)
 
     diff_new = sp.zeros(len(index_all))
     diff_new[index_ok]=diff
