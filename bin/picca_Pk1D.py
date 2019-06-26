@@ -359,7 +359,8 @@ if __name__ == '__main__':
                     comments=['Wavenumber', 'Raw power spectrum', "Noise's power spectrum", 'Noise coadd difference power spectrum',\
                               'Correction resolution function', 'Corrected power spectrum (resolution and noise)']
                     baseunit='km/s' if (args.linear_binning and args.output_in_angstrom) else 'AA'
-                    units=['({})^-1'.format(baseunit)]+[baseunit]*3+['']+[baseunit]]
+                    units = ['({})^-1'.format(baseunit)]
+                    units.extend([baseunit]*3+['']+[baseunit])
 
                     try:
                         out.write(cols,names=names,header=hd,comments=comments,units=units)
