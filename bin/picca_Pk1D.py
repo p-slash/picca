@@ -139,6 +139,8 @@ if __name__ == '__main__':
         help='Resolution correction estimated by: Gaussian, matrix, noresolution')
     parser.add_argument('--linear-binning', action='store_true', default = False,
             help='should the deltas be computed on linearly sampled wavelength bins')
+    parser.add_argument('--output-in-angstrom', action='store_true', default = False,
+            help='does not convert the power to velocity units when computed from linear binning')
 
 
     args = parser.parse_args()
@@ -307,9 +309,9 @@ if __name__ == '__main__':
                 elif noiseless_fullres:
                     Pk = Pk_raw / cor_reso
 #to convert linearly binned data back to velocity space
-                # if args.linear_binning:
-                #     Pk*=constants.speed_light/1000/sp.mean(ll_new)
-                #     k/=constants.speed_light/1000/sp.mean(ll_new)
+                if args.linear_binning and not args.output_in_angstrom:
+                     Pk*=constants.speed_light/1000/sp.mean(ll_new)
+                     k/=constants.speed_light/1000/sp.mean(ll_new)
 
                 # save in root format
                 if (args.out_format=='root'):
@@ -355,7 +357,7 @@ if __name__ == '__main__':
                     names=['k','Pk_raw','Pk_noise','Pk_diff','cor_reso','Pk']
                     comments=['Wavenumber', 'Raw power spectrum', "Noise's power spectrum", 'Noise coadd difference power spectrum',\
                               'Correction resolution function', 'Corrected power spectrum (resolution and noise)']
-                    baseunit='km/s' if not args.linear_binning else 'AA'
+                    baseunit='km/s' if (args.linear_binning and args.output_in_angstrom) else 'AA'
                     units=['({})^-1'.format(baseunit)]+[baseunit]*3+['']+[baseunit]]
 
                     try:
