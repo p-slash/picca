@@ -207,10 +207,10 @@ if __name__ == '__main__':
                 print("\nPk1d_type=True didn't work on read in, maybe perfect model? Trying without!")
                 dels = [delta.from_fitsio(h,Pk1D_type=False) for h in hdus[1:]]
                 for d in dels:
-                    d.iv=0*d.de+1e10
+                    d.iv=np.ones(d.de.shape)*1e10
                     d.mean_SNR=1e5
                     d.mean_reso=1e-3
-                    d.diff = 0 * d.de
+                    d.diff = np.zeros(d.de.shape)
                     d.dll=sp.mean(sp.diff(d.ll)) #(d.ll[-1]-d.ll[0])/(len(d.ll)-1) #both of those should give the same result, but the first is more explicite, second one should be faster, but this shouldn't be a dominant effect
                 noiseless_fullres=True
         elif (args.in_format=='ascii') :
@@ -311,8 +311,8 @@ if __name__ == '__main__':
                     Pk = Pk_raw / cor_reso
                 #to convert linearly binned data back to velocity space
                 if args.linear_binning and not args.output_in_angstrom:
-                     Pk*=constants.speed_light/1000/sp.mean(ll_new)
-                     k/=constants.speed_light/1000/sp.mean(ll_new)
+                     Pk*=constants.speed_light/1000/sp.mean(10**ll_new)
+                     k/=constants.speed_light/1000/sp.mean(10**ll_new)
 
                 # save in root format
                 # if (args.out_format=='root'):

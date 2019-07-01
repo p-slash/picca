@@ -40,8 +40,10 @@ if __name__ == '__main__':
             help="Number of spectra to fit, if None then run on all files")
 
     parser.add_argument('--bin-linear', action='store_true',default=False,required=False,
-            help="First, bin the spectra in lambda instead of log-lambda")
+            help="Bin the spectra in lambda instead of log-lambda")
+    parser.add_argument('--emulate-qq', action='store_true',default=False,required=False,
+            help="Bin the spectra using the same approach as in quickquasars, needs desisim installed")
 
     args = parser.parse_args()
 
-    utils.desi_convert_transmission_to_delta_files(args.object_cat, args.out_dir, indir=args.in_dir, infiles=args.in_files, lObs_min=args.lambda_min, lObs_max=args.lambda_max, lRF_min=args.lambda_rest_min, lRF_max=args.lambda_rest_max, dll=args.dll, nspec=args.nspec, bin_linear=args.bin_linear)
+    utils.desi_convert_transmission_to_delta_files(args.object_cat, args.out_dir, indir=args.in_dir, infiles=args.in_files, lObs_min=args.lambda_min, lObs_max=args.lambda_max, lRF_min=args.lambda_rest_min, lRF_max=args.lambda_rest_max, dll=args.dll, nspec=args.nspec, bin_linear=args.bin_linear,emulate_qq=args.emulate_qq)

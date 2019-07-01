@@ -440,7 +440,7 @@ def desi_from_ztarget_to_drq(ztarget,drq,spectype='QSO',downsampling_z_cut=None,
     out.close()
 
     return
-def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None,lObs_min=3600.,lObs_max=5500.,lRF_min=1040.,lRF_max=1200.,dll=3.e-4,nspec=None,bin_linear=False):
+def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None,lObs_min=3600.,lObs_max=5500.,lRF_min=1040.,lRF_max=1200.,dll=3.e-4,nspec=None,bin_linear=False, emulate_qq=False):
     from picca.data import delta
     """Convert desi transmission files to picca delta files
 
@@ -455,6 +455,7 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         dll (float) = 3.e-4: size of the bins in log lambda
         nspec (int) = None: number of spectra, if 'None' use all
         bin_linear (bool) = False: should dll be the size of pixels in AA instead of an actual dll
+        emulate_qq (bool) = False: should some steps be modified to be more similar to what quickquasar does, thus allowing direct comparison
 
     Returns:
         None
@@ -565,9 +566,18 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
                 cll = lmin + sp.arange(nstack)*dll
             else:
                 bins = sp.floor((10 ** tll - 10 ** lmin) / dll + 0.5).astype(int)
-                cll = sp.log10(lObs_min + sp.arange(nstack)*dll)
-            cfl = sp.bincount(bins,weights=ttrans,minlength=nstack)
-            civ = sp.bincount(bins,minlength=nstack).astype(float)
+                cll = sp.log10(lObs_min + sp.arange(nstack) * dll)
+            
+            if not emulate_qq: 
+                cfl = sp.bincount(bins,weights=ttrans,minlength=nstack)
+                civ = sp.bincount(bins, minlength=nstack).astype(float)
+            else:
+                #this is what desisim.lya_spectra.apply_lya_transmission does
+                #which is piecewise trapeze integration for the spectrum and then summing integrals belonging to each bin
+                #the default would be similar, but doing rectangular instead of trapeze integrals
+                import desispec.interpolation as dsint
+                cfl = dsint.resample_flux(cll, tll, ttrans, left=0, right=1)
+                civ = np.ones(len(cfl))
 
             ww = civ>0.
             if ww.sum()<50: continue
