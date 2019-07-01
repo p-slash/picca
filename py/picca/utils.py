@@ -576,7 +576,10 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
                 #which is piecewise trapeze integration for the spectrum and then summing integrals belonging to each bin
                 #the default would be similar, but doing rectangular instead of trapeze integrals
                 import desispec.interpolation as dsint
-                cfl = dsint.resample_flux(cll, tll, ttrans, left=0, right=1)
+                if not bin_linear:
+                    cfl = dsint.resample_flux(cll, tll, ttrans, left=0, right=1)
+                else:
+                    cfl = dsint.resample_flux(10**cll, 10**tll, ttrans, left=0, right=1)
                 civ = np.ones(len(cfl))
 
             ww = civ>0.
