@@ -577,9 +577,9 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
                 #the default would be similar, but doing rectangular instead of trapeze integrals
                 import desispec.interpolation as dsint
                 if not bin_linear:
-                    cfl = dsint.resample_flux(cll, tll, ttrans, left=0, right=1)
+                    cfl = dsint.resample_flux(cll, tll, ttrans)
                 else:
-                    cfl = dsint.resample_flux(10**cll, 10**tll, ttrans, left=0, right=1)
+                    cfl = dsint.resample_flux(10**cll, 10**tll, ttrans)
                 civ = np.ones(len(cfl))
 
             ww = civ>0.
