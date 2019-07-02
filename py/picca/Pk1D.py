@@ -129,7 +129,7 @@ def fill_masked_pixels(dll,ll,delta,diff,iv,no_apply_filling,linear_binning=Fals
         ll_new = sp.array(index_all,dtype=float)
         ll_new *= dll
         ll_new += 10 ** ll[0]
-        ll_new = np.log10(ll_new)
+        ll_new = sp.log10(ll_new)
 
     diff_new = sp.zeros(len(index_all))
     diff_new[index_ok]=diff

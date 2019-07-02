@@ -580,7 +580,7 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
                     cfl = dsint.resample_flux(cll, tll, ttrans)
                 else:
                     cfl = dsint.resample_flux(10**cll, 10**tll, ttrans)
-                civ = sp.ones(len(cfl))
+                civ = sp.bincount(bins, minlength=nstack).astype(float)>0. #cfl!=-1         #this is dangerous if the spectrum could actually become ==-1 and not just very close to -1
 
             ww = civ>0.
             if ww.sum()<50: continue
