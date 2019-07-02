@@ -579,8 +579,9 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
                 if not bin_linear:
                     cfl = dsint.resample_flux(cll, tll, ttrans)
                 else:
-                    cfl = dsint.resample_flux(10**cll, 10**tll, ttrans)
-                civ = (sp.bincount(bins, minlength=nstack)>0).astype(int) #cfl!=-1         #this is dangerous if the spectrum could actually become ==-1 and not just very close to -1
+                    cfl = dsint.resample_flux(10 ** cll, 10 ** tll, ttrans)
+                #alternatively the check below could be for cfl==-1, but that's probably more dangerous
+                civ = (sp.bincount(bins, minlength=nstack)>0).astype(float)  #type conversion needed for += commands later
 
             ww = civ>0.
             if ww.sum()<50: continue
