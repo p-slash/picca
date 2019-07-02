@@ -190,7 +190,7 @@ if __name__ == '__main__':
 
     # define per file function
     def process_file(i):
-        global ndata, data
+        global ndata, data, noiseless_fullres
         f=fi[i]
         if os.path.exists(args.out_dir+'/Pk1D-'+str(i)+'.fits.gz'):
             return 1#skip existing files
