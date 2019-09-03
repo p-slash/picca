@@ -247,7 +247,10 @@ def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel
         sinc2 = sp.ones(nb_bin_FFT)
         sinc2[k > 0.] = (sp.sin(k[k > 0.] *delta_pixel2 /2.0) /(k[k > 0.] *delta_pixel2 /2.0))**2
         cor /= sinc2
-
+    elif pixel_correction == 'inverse':  #this is assuming that the reso_matrix is regridded by averaging square blocks of the initial matrix which would add a sinc**4 (i.e. the FFT of a triangular function [or rect convolved with rect])
+        sinc = sp.ones(nb_bin_FFT)
+        sinc[k > 0.] =  (sp.sin(k[k > 0.]*delta_pixel/2.0)/(k[k > 0.]*delta_pixel/2.0))**2
+        cor /= sinc
 
     return cor
 

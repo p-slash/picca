@@ -564,7 +564,7 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
             if not bin_linear:
                 bins = sp.floor((tll - lmin) / dll + 0.5).astype(int)
                 cll = lmin + sp.arange(nstack)*dll
-            else:
+            else:             #this type of linear rebinning is overestimating the power
                 bins = sp.floor((10 ** tll - 10 ** lmin) / dll + 0.5).astype(int)
                 cll = sp.log10(lObs_min + sp.arange(nstack) * dll)
             
