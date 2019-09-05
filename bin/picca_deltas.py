@@ -162,7 +162,7 @@ if __name__ == '__main__':
     forest.lmax = sp.log10(args.lambda_max)
     forest.lmin_rest = sp.log10(args.lambda_rest_min)
     forest.lmax_rest = sp.log10(args.lambda_rest_max)
-    if args.use_linear_binning:
+    if args.linear_binning:
         forest.dll = 1
     else:
         if args.use_desi_P1d_changes:
