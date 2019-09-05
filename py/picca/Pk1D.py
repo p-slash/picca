@@ -158,7 +158,7 @@ def compute_Pk_raw(dll,delta,ll,linear_binning=False):   #MW: why does this func
     fft_a = fft_a[:nb_bin_FFT]
     Pk = (fft_a.real ** 2 + fft_a.imag ** 2) * length_lambda / nb_pixels ** 2
     k = 2 * sp.pi * fftfreq(nb_pixels, length_lambda / nb_pixels)
-    k = sp.abs(k[:nb_bin_FFT])
+    k = abs(k[:nb_bin_FFT])
     #k = sp.arange(nb_bin_FFT,dtype=float)*2*sp.pi/length_lambda
 
     return k,Pk
