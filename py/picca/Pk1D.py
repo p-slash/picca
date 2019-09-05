@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import scipy as sp
-from scipy.fftpack import fft
+from scipy.fftpack import fft, fftfreq
 import scipy.interpolate as spint
 
 from picca import constants
@@ -156,8 +156,10 @@ def compute_Pk_raw(dll,delta,ll,linear_binning=False):   #MW: why does this func
 
     # compute power spectrum
     fft_a = fft_a[:nb_bin_FFT]
-    Pk = (fft_a.real**2+fft_a.imag**2)*length_lambda/nb_pixels**2
-    k = sp.arange(nb_bin_FFT,dtype=float)*2*sp.pi/length_lambda
+    Pk = (fft_a.real ** 2 + fft_a.imag ** 2) * length_lambda / nb_pixels ** 2
+    k = 2 * sp.pi * fftfreq(nb_pixels, length_lambda / nb_pixels)
+    k=k[:nb_bin_FFT]
+    #k = sp.arange(nb_bin_FFT,dtype=float)*2*sp.pi/length_lambda
 
     return k,Pk
 
@@ -192,18 +194,11 @@ def compute_cor_reso(delta_pixel, mean_reso, k, delta_pixel2=None, pixel_correct
     cor = sp.ones(nb_bin_FFT)
 
     if pixel_correction == 'default':  # default correction
-        sinc = sp.ones(nb_bin_FFT)
-        sinc[k > 0.] = (sp.sin(k[k > 0.] * delta_pixel / 2.0) /
-                        (k[k > 0.] * delta_pixel / 2.0))**2
-        cor *= sinc
-    # the following is to undo the pixelization correction that is part of the resolution matrix and then redo the correction using the current pixelization (values are hardcoded for the moment)
-    elif pixel_correction == 'undo_resmat_conv':
-        sinc = sp.ones(nb_bin_FFT)
-        sinc[k > 0.] =  (sp.sin(k[k > 0.]*delta_pixel/2.0)/(k[k > 0.]*delta_pixel/2.0))**2
-        cor *= sinc
-        sinc2 = sp.ones(nb_bin_FFT)
-        sinc2[k > 0.] = (sp.sin(k[k > 0.] *delta_pixel2 /2.0) /(k[k > 0.] *delta_pixel2 /2.0))**2
-        cor /= sinc2
+        cor *= sp.sinc(k * delta_pixel / (2 * sp.pi))**2 #use numpy function directly
+        #sp.ones(nb_bin_FFT)
+        #sinc[k > 0.] = (sp.sin(k[k > 0.] * delta_pixel / 2.0) /
+        #                (k[k > 0.] * delta_pixel / 2.0))**2
+        #cor *= sinc
 
     if not infres:
         cor *= sp.exp(-(k*mean_reso)**2)
@@ -235,23 +230,9 @@ def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel
     cor *= Wres2
     nb_bin_FFT = len(k)
     if pixel_correction == 'default':  # default correction
-        sinc = sp.ones(nb_bin_FFT)
-        sinc[k > 0.] = (sp.sin(k[k > 0.] * delta_pixel / 2.0) /
-                        (k[k > 0.] * delta_pixel / 2.0))**2
-        cor *= sinc
-    # the following is to undo the pixelization correction that is part of the resolution matrix and then redo the correction using the current pixelization (values are hardcoded for the moment)
-    elif pixel_correction == 'undo_resmat_conv':
-        sinc = sp.ones(nb_bin_FFT)
-        sinc[k > 0.] =  (sp.sin(k[k > 0.]*delta_pixel/2.0)/(k[k > 0.]*delta_pixel/2.0))**2
-        cor *= sinc
-        sinc2 = sp.ones(nb_bin_FFT)
-        sinc2[k > 0.] = (sp.sin(k[k > 0.] *delta_pixel2 /2.0) /(k[k > 0.] *delta_pixel2 /2.0))**2
-        cor /= sinc2
+        cor *= sp.sinc(k * delta_pixel / (2 * sp.pi))**2 #use numpy function directly
     elif pixel_correction == 'inverse':  #this is assuming that the reso_matrix is regridded by averaging square blocks of the initial matrix which would add a sinc**4 (i.e. the FFT of a triangular function [or rect convolved with rect])
-        sinc = sp.ones(nb_bin_FFT)
-        sinc[k > 0.] =  (sp.sin(k[k > 0.]*delta_pixel/2.0)/(k[k > 0.]*delta_pixel/2.0))**2
-        cor /= sinc
-
+        cor /= sp.sinc(k * delta_pixel / (2 * sp.pi))**2 #use numpy function directly
     return cor
 
 class Pk1D :

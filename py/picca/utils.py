@@ -440,6 +440,8 @@ def desi_from_ztarget_to_drq(ztarget,drq,spectype='QSO',downsampling_z_cut=None,
     out.close()
 
     return
+
+    #maybe add a low-pass filter to this before rebinning to avoid aliasing
 def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None,lObs_min=3600.,lObs_max=5500.,lRF_min=1040.,lRF_max=1200.,dll=3.e-4,nspec=None,bin_linear=False, emulate_qq=False):
     from picca.data import delta
     """Convert desi transmission files to picca delta files

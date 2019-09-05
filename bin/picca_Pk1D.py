@@ -142,8 +142,15 @@ if __name__ == '__main__':
     parser.add_argument('--output-in-angstrom', action='store_true', default = False,
             help='does not convert the power to velocity units when computed from linear binning')
 
+    parser.add_argument('--use-desi-P1d-changes', action='store_true', default = False,
+        help='use changes put into picca to allow resolution treatment for the P1d more properly with DESI mocks (e.g. different sampling)')
+
 
     args = parser.parse_args()
+    if args.use_desi_P1d_changes:
+        args.linear_binning = True
+        args.output_in_angstrom = True
+        
 
 #   Create root file
     # if (args.out_format=='root') :
@@ -268,7 +275,7 @@ if __name__ == '__main__':
                 # if (args.out_format=='root' and  args.debug): compute_mean_delta(ll_new,delta_new,iv_new,d.zqso)
 
                 lam_lya = constants.absorber_IGM["LYA"]
-                z_abs =  sp.power(10.,ll_new)/lam_lya - 1.0
+                z_abs =  10.**ll_new/lam_lya - 1.0
                 mean_z_new = sum(z_abs)/float(len(z_abs))
 
                 # Compute Pk_raw
