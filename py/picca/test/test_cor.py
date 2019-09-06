@@ -58,7 +58,11 @@ class TestCor(unittest.TestCase):
         self.produce_forests()
         self.produce_cat(nObj=1000,name="random",thidoffset=1000)
 
+        
         self.send_delta()
+        
+        self.send_delta_Pk1D()
+        self.send_Pk1D()
 
         self.send_cf1d()
         self.send_cf1d_cross()
@@ -89,9 +93,6 @@ class TestCor(unittest.TestCase):
         self.send_export_co()
 
         self.send_fitter2()
-
-        self.send_delta_Pk1D()
-        self.send_Pk1D()
 
         if self._test:
             self.remove_folder()
