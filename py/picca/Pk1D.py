@@ -199,6 +199,12 @@ def compute_cor_reso(delta_pixel, mean_reso, k, delta_pixel2=None, pixel_correct
         #sinc[k > 0.] = (sp.sin(k[k > 0.] * delta_pixel / 2.0) /
         #                (k[k > 0.] * delta_pixel / 2.0))**2
         #cor *= sinc
+    elif pixel_correction == 'inverse':  #this is assuming that the reso_matrix is regridded by averaging square blocks of the initial matrix which would add a sinc**4 (i.e. the FFT of a triangular function [or rect convolved with rect])
+        cor /= sp.sinc(k * delta_pixel / (2 * sp.pi))** 2  #use numpy function directly
+    elif pixel_correction == 'none':
+        pass
+    else:
+        raise Exception("Tried to use an undefined pixel correction")
 
     if not infres:
         cor *= sp.exp(-(k*mean_reso)**2)
@@ -232,7 +238,11 @@ def compute_cor_reso_matrix(dll_resmat, reso_matrix, k, delta_pixel, delta_pixel
     if pixel_correction == 'default':  # default correction
         cor *= sp.sinc(k * delta_pixel / (2 * sp.pi))**2 #use numpy function directly
     elif pixel_correction == 'inverse':  #this is assuming that the reso_matrix is regridded by averaging square blocks of the initial matrix which would add a sinc**4 (i.e. the FFT of a triangular function [or rect convolved with rect])
-        cor /= sp.sinc(k * delta_pixel / (2 * sp.pi))**2 #use numpy function directly
+        cor /= sp.sinc(k * delta_pixel / (2 * sp.pi))** 2  #use numpy function directly
+    elif pixel_correction == 'none':
+        pass
+    else:
+        raise Exception("Tried to use an undefined pixel correction")
     return cor
 
 class Pk1D :
