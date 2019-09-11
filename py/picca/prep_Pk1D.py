@@ -71,7 +71,7 @@ def spectral_resolution(wdisp,with_correction=None,fiber=None,ll=None) :
 
 def spectral_resolution_desi(reso_matrix, ll) :
 
-    reso= sp.clip(reso_matrix,1.0e-6,1.0e6)
+    reso= sp.clip(reso_matrix,1.0e-6,1.0e6)   #note that the following is not strictly speaking right, as the resolution matrix has been convolved with a rectangle along both rows and cols
     rms_in_pixel = (sp.sqrt(1.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2-1][:]))
                     + sp.sqrt(4.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2-2][:]))
                     + sp.sqrt(1.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2+1][:]))

@@ -441,7 +441,6 @@ def desi_from_ztarget_to_drq(ztarget,drq,spectype='QSO',downsampling_z_cut=None,
 
     return
 
-    #maybe add a low-pass filter to this before rebinning to avoid aliasing
 def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None,lObs_min=3600.,lObs_max=5500.,lRF_min=1040.,lRF_max=1200.,dll=3.e-4,nspec=None,bin_linear=False, emulate_qq=False):
     from picca.data import delta
     """Convert desi transmission files to picca delta files
@@ -566,6 +565,8 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         for i in range(nObj):
             tll = ll[w[i,:]>0]
             ttrans = trans[i,:][w[i,:]>0]
+
+            #note that it might be a good idea to lowpass (i.e. apply a finite resolution) filter the data before regridding to avoid aliasing, at least in case of large factors of regridding
 
             if not bin_linear:
                 bins = sp.floor((tll - lmin) / dll + 0.5).astype(int)

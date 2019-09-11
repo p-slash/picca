@@ -165,6 +165,7 @@ if __name__ == '__main__':
     if args.linear_binning:
         forest.dlambda = 1
         forest.dll = None
+        forest.linear_binning = True
     else:
         if args.use_desi_P1d_changes:
             forest.rebin = args.rebin

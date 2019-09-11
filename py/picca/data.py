@@ -106,9 +106,10 @@ class forest(qso):
     ## resolution matrix for desi forests
     reso_matrix = None
     mean_reso_matrix = None
+    linear_binning = None
 
 
-    def __init__(self,ll,fl,iv,thid,ra,dec,zqso,plate,mjd,fid,order, diff=None,reso=None, mmef = None, reso_matrix=None):
+    def __init__(self, ll, fl, iv, thid, ra, dec, zqso, plate, mjd, fid, order, diff=None, reso=None, mmef = None, reso_matrix=None):
         qso.__init__(self,thid,ra,dec,zqso,plate,mjd,fid)
 
         if not self.ebv_map is None:
@@ -119,8 +120,14 @@ class forest(qso):
                 diff /= corr
 
         ## cut to specified range
-        bins = sp.floor((ll-forest.lmin)/forest.dll+0.5).astype(int)
-        ll = forest.lmin + bins*forest.dll
+        if forest.linear_binning:
+            bins = sp.floor((10**ll-10**forest.lmin)/forest.dlambda+0.5).astype(int)
+            ll = sp.log10(10**lmin + bins*forest.dlambda)
+
+        else:
+            bins = sp.floor((ll-forest.lmin)/forest.dll+0.5).astype(int)
+            ll = forest.lmin + bins*forest.dll
+
         w = (ll>=forest.lmin)
         w = w & (ll<forest.lmax)
         w = w & (ll-sp.log10(1.+self.zqso)>forest.lmin_rest)
@@ -143,7 +150,10 @@ class forest(qso):
             reso_matrix = reso_matrix[:, w]
 
         ## rebin
-        cll = forest.lmin + sp.arange(bins.max()+1)*forest.dll
+        if forest.linear_binning:
+            cll = sp.log10(10**forest.lmin + sp.arange(bins.max()+1)*forest.dllambda)
+        else:
+            cll = forest.lmin + sp.arange(bins.max()+1)*forest.dll
         cfl = sp.zeros(bins.max()+1)
         civ = sp.zeros(bins.max()+1)
         if mmef is not None:
@@ -208,9 +218,9 @@ class forest(qso):
             self.mean_reso_matrix = sp.mean(reso_matrix,axis=1)
         err = 1.0/sp.sqrt(iv)
         SNR = fl/err
-        self.mean_SNR = sum(SNR)/float(len(SNR))
+        self.mean_SNR = sp.mean(SNR)
         lam_lya = constants.absorber_IGM["LYA"]
-        self.mean_z = sp.mean([10.**ll[-1], 10.**ll[0]])/lam_lya -1.0
+        self.mean_z = sp.mean(10.**ll)/lam_lya -1.0  #this works for both binnings while assuming the linear relation from before is different for both, but faster (don't think this would be a bottleneck)
 
 
     def __add__(self,d):
@@ -232,8 +242,12 @@ class forest(qso):
             dic['reso'] = sp.append(self.reso, d.reso)
         if self.reso_matrix is not None:
             dic['reso_matrix'] = sp.append(self.reso_matrix, d.reso_matrix,axis=1)
-        bins = sp.floor((ll-forest.lmin)/forest.dll+0.5).astype(int)
-        cll = forest.lmin + sp.arange(bins.max()+1)*forest.dll
+        if forest.linear_binning:
+            bins = sp.floor((ll-10**forest.lmin)/forest.dlambda+0.5).astype(int)
+            cll = np.log10(10**forest.lmin + sp.arange(bins.max()+1)*forest.dllambda)
+        else:
+            bins = sp.floor((ll-forest.lmin)/forest.dll+0.5).astype(int)
+            cll = forest.lmin + sp.arange(bins.max()+1)*forest.dll
         civ = sp.zeros(bins.max()+1)
         cciv = sp.bincount(bins,weights=iv)
         civ[:len(cciv)] += cciv
@@ -263,7 +277,7 @@ class forest(qso):
         SNR = self.fl/err
         self.mean_SNR = SNR.mean()
         lam_lya = constants.absorber_IGM["LYA"]
-        self.mean_z = sp.mean([10.**ll[-1], 10.**ll[0]])/lam_lya -1.0
+        self.mean_z = sp.mean(10.**ll)/lam_lya -1.0  #this works for both binnings while assuming the linear relation from before is different for both, but faster (don't think this would be a bottleneck)
 
         return self
 
@@ -341,7 +355,7 @@ class forest(qso):
 
         w = sp.ones(self.ll.size, dtype=bool)
         w &= sp.fabs(1.e4*(self.ll-sp.log10(lambda_absorber)))>forest.absorber_mask
-
+        
         ps = ['iv','ll','fl','T_dla','Fbar','mmef','diff','reso']
         for p in ps:
             if hasattr(self,p) and (getattr(self,p) is not None):
@@ -422,7 +436,7 @@ class forest(qso):
 
 class delta(qso):
 
-    def __init__(self,thid,ra,dec,zqso,plate,mjd,fid,ll,we,co,de,order,iv,diff,m_SNR,m_reso,m_z,dll,m_reso_matrix=None,reso_matrix=None,dll_resmat=None):
+    def __init__(self,thid,ra,dec,zqso,plate,mjd,fid,ll,we,co,de,order,iv,diff,m_SNR,m_reso,m_z,dll,m_reso_matrix=None,reso_matrix=None,dll_resmat=None,linear_binning=False):
 
         qso.__init__(self,thid,ra,dec,zqso,plate,mjd,fid)
         self.ll = ll
@@ -439,6 +453,8 @@ class delta(qso):
         self.mean_reso_matrix = m_reso_matrix
         self.reso_matrix = reso_matrix
         self.dll_resmat = dll_resmat
+        self.linear_binning = linear_binning
+
 
 
     @classmethod
@@ -463,7 +479,7 @@ class delta(qso):
 
         return cls(f.thid,f.ra,f.dec,f.zqso,f.plate,f.mjd,f.fid,ll,we,f.co,de,f.order,
                    iv,diff,f.mean_SNR,f.mean_reso,f.mean_z,f.dll,m_reso_matrix=f.mean_reso_matrix,
-                   reso_matrix=f.reso_matrix)
+                   reso_matrix=f.reso_matrix,linear_binning=f.linear_binning)
 
 
     @classmethod

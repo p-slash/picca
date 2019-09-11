@@ -6,10 +6,14 @@ from picca.utils import print
 
 ## mean continuum
 def mc(data):
-    nmc = int((forest.lmax_rest-forest.lmin_rest)/forest.dll)+1
+    if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
+        nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/(forest.dlambda*(1+2.1)))+1   #just took the pixel size at z=2.1 here, this needs to be changed to something reasonable       
+        ll = sp.log10(10**forest.lmin_rest + (sp.arange(nmc)+.5)*(10**forest.lmax_rest-10**forest.lmin_rest)/nmc)
+    else:
+        nmc = int((forest.lmax_rest-forest.lmin_rest)/forest.dll)+1  
+        ll = forest.lmin_rest + (sp.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc
     mcont = sp.zeros(nmc)
-    wcont = sp.zeros(nmc)
-    ll = forest.lmin_rest + (sp.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc
+    wcont = sp.zeros(nmc)   
     for p in sorted(list(data.keys())):
         for d in data[p]:
             bins=((d.ll-forest.lmin_rest-sp.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
