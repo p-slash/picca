@@ -78,6 +78,7 @@ class forest(qso):
     lmax_rest = None
     rebin = None
     dll = None
+    dlambda = None    #will take delta_lambda for linearly binned spectra, None for log-binned spectra, 
 
     ### Correction function for multiplicative errors in pipeline flux calibration
     correc_flux = None
