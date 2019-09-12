@@ -224,8 +224,8 @@ if __name__ == '__main__':
         elif (args.in_format=='ascii') :
             ascii_file = open(f,'r')
             dels = [delta.from_ascii(line) for line in ascii_file]
-        if (args.linear_binning) ^ (not dels[0].linear_binning):
-            raise Exception("either linear_binning needs to be set and we have linearly binned data or we need to not set the flag for log-binned data")
+        if args.linear_binning != dels[0].linear_binning:
+            raise Exception("inconsistent settings for linear wavelength binning and delta files")
 
         ndata+=len(dels)
         print ("\n ndata =  ",ndata)
