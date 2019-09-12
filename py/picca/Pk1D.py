@@ -10,23 +10,23 @@ from picca.utils import print
 
 
 def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso=None):
-"""
-split forest into subforests
+    """
+    split forest into subforests
 
-Args:
-    nb_part ([type]): number of forests to split into
-    dll (float): delta lambda or delta log lambda
-    ll (array): lambda or log(lambda) [needs to be given according to dll, decisions to be done in routine calling this]
-    de (array): delta
-    diff (array): difference between exposures
-    iv (array): ivar
-    first_pixel (int): index of first pixel considered for the analysis
-    reso_matrix (array of matrices, optional): resolution matrix. Defaults to None.
-    dll_reso (float, optional): Pixel size of the resolution matrix. Defaults to None.
+    Args:
+        nb_part ([type]): number of forests to split into
+        dll (float): delta lambda or delta log lambda
+        ll (array): lambda or log(lambda) [needs to be given according to dll, decisions to be done in routine calling this]
+        de (array): delta
+        diff (array): difference between exposures
+        iv (array): ivar
+        first_pixel (int): index of first pixel considered for the analysis
+        reso_matrix (array of matrices, optional): resolution matrix. Defaults to None.
+        dll_reso (float, optional): Pixel size of the resolution matrix. Defaults to None.
 
-Returns:
-    split or modified versions of the inputs
-"""
+    Returns:
+        split or modified versions of the inputs
+    """
     ll_limit=[ll[first_pixel]]
     nb_bin= (len(ll)-first_pixel)//nb_part
     lam_lya = constants.absorber_IGM["LYA"]
@@ -116,15 +116,15 @@ def rebin_diff_noise(dll,ll,diff):
 
 
 def fill_masked_pixels(dll,ll,delta,diff,iv,no_apply_filling):
-"""
-fills masked pixels with delta=0, iv=0
+    """
+    fills masked pixels with delta=0, iv=0
 
-Args:
-    dll (float): delta lambda or delta log lambda
-    ll (array): lambda or log(lambda) [needs to be given according to dll, decisions to be done in routine calling this]
-    no_apply_filling (bool): skip this routine
-    
-"""
+    Args:
+        dll (float): delta lambda or delta log lambda
+        ll (array): lambda or log(lambda) [needs to be given according to dll, decisions to be done in routine calling this]
+        no_apply_filling (bool): skip this routine
+        
+    """
 
     if no_apply_filling : return ll,delta,diff,iv,0
 
@@ -156,18 +156,18 @@ Args:
     return ll_new,delta_new,diff_new,iv_new,nb_masked_pixel
 
 def compute_Pk_raw(dll,delta,linear_binning=False):   #MW: why does this function depend on ll at all? Every computation is based on dll only, so the explicit dependence on dll is not necessary
-"""
-compute the power without corrections
+    """
+    compute the power without corrections
 
 
-Args:
-    dll (float): delta lambda or delta log lambda (for determining k)
-    delta (array): delta field to compute power from
-    linear_binning (bool, optional): assume linear wavelength binning (default is False)
-Returns:
-    k (array): wavenumber in units of [s/km] or [1/Ang] depending on wavelength binning
-    Pk (array): power spectrum in units of [km/s] or [Ang]
-"""
+    Args:
+        dll (float): delta lambda or delta log lambda (for determining k)
+        delta (array): delta field to compute power from
+        linear_binning (bool, optional): assume linear wavelength binning (default is False)
+    Returns:
+        k (array): wavenumber in units of [s/km] or [1/Ang] depending on wavelength binning
+        Pk (array): power spectrum in units of [km/s] or [Ang]
+    """
     #could alternatively do this by checking the size of dll (assuming that dll would always be smaller than 1e-2 and dlambda always be bigger than that)
     if not linear_binning:
         length_lambda = dll*constants.speed_light/1000.*sp.log(10.)*len(delta)
@@ -194,17 +194,17 @@ Returns:
 
 
 def compute_Pk_noise(dll,iv,diff,ll,run_noise,linear_binning=False):
-"""
-compute noise power
+    """
+    compute noise power
 
-Args:
-    run_noise (bool): compute noise power by creating spectra of pure noise
-    Other args are forwarded to compute_Pk_raw (see there)
+    Args:
+        run_noise (bool): compute noise power by creating spectra of pure noise
+        Other args are forwarded to compute_Pk_raw (see there)
 
-Returns:
-    Pk: noise power based on noise spectra
-    Pk_diff: noise power based on difference spectra between exposures
-"""
+    Returns:
+        Pk: noise power based on noise spectra
+        Pk_diff: noise power based on difference spectra between exposures
+    """
 
     nb_pixels = len(iv)
     nb_bin_FFT = nb_pixels//2 + 1
@@ -229,21 +229,21 @@ Returns:
     return Pk,Pk_diff
 
 def compute_cor_reso(delta_pixel, mean_reso, k, pixel_correction='default',infres=False):
-"""
-Compute correction for resolution and pixelization based on a single resolution value
+    """
+    Compute correction for resolution and pixelization based on a single resolution value
 
-Args:
-    delta_pixel (float): pixel size in [km/s] (for log lambda binning) or [Ang] (for lambda binning)
-    mean_reso (float): resolution in [km/s] or [Ang]
-    k (array): wavenumbers of the to-be-corrected power spectrum
-    pixel_correction (string, optional): 'default' (default value): correction includes sinc**2-factor
-                                         'none': no correction for pixelization
-                                         'inverse': correction includes 1/sinc**2-factor
-    infres (bool, optional): Assume infinite resolution, don't compute a correction for it. Defaults to False.
+    Args:
+        delta_pixel (float): pixel size in [km/s] (for log lambda binning) or [Ang] (for lambda binning)
+        mean_reso (float): resolution in [km/s] or [Ang]
+        k (array): wavenumbers of the to-be-corrected power spectrum
+        pixel_correction (string, optional): 'default' (default value): correction includes sinc**2-factor
+                                            'none': no correction for pixelization
+                                            'inverse': correction includes 1/sinc**2-factor
+        infres (bool, optional): Assume infinite resolution, don't compute a correction for it. Defaults to False.
 
-Returns:
-    cor: resolution correction factor (divide P(k) by this)
-"""
+    Returns:
+        cor: resolution correction factor (divide P(k) by this)
+    """
     nb_bin_FFT = len(k)
     cor = sp.ones(nb_bin_FFT)
 
@@ -262,21 +262,21 @@ Returns:
 
 #check data type in docstring
 def compute_cor_reso_matrix(reso_matrix, k, delta_pixel,  pixel_correction='inverse',linear_binning=False, dll_resmat=None):
-"""
-Compute correction for resolution and pixelization based on a single resolution value
+    """
+    Compute correction for resolution and pixelization based on a single resolution value
 
-Args:
-    reso_matrix (array of matrices): the full resolution matrix or an average of the resolution matrix over the wavelength direction
-    delta_pixel (float): pixel size in [km/s] (for log lambda binning) or [Ang] (for lambda binning)
-    k (array): wavenumbers of the to-be-corrected power spectrum
-    pixel_correction (string, optional): 'default': correction includes sinc**2-factor
-                                         'none': no correction for pixelization
-                                         'inverse' (default value): correction includes 1/sinc**2-factor (this is needed as regridded resolution matrices have an intrinsic sinc**4 factor)
-    dll_resmat (float, optional): pixelization of the resolution matrix (allows to have different pixelization for it compared to the spectrum, but not recommended), defaults to delta_pixel
-    linear_binning: is the power spectrum to correct and the resolution matrix computed from a linear or log-wavelength binning
-Returns:
-    cor: resolution correction factor (divide P(k) by this)
-"""
+    Args:
+        reso_matrix (array of matrices): the full resolution matrix or an average of the resolution matrix over the wavelength direction
+        delta_pixel (float): pixel size in [km/s] (for log lambda binning) or [Ang] (for lambda binning)
+        k (array): wavenumbers of the to-be-corrected power spectrum
+        pixel_correction (string, optional): 'default': correction includes sinc**2-factor
+                                            'none': no correction for pixelization
+                                            'inverse' (default value): correction includes 1/sinc**2-factor (this is needed as regridded resolution matrices have an intrinsic sinc**4 factor)
+        dll_resmat (float, optional): pixelization of the resolution matrix (allows to have different pixelization for it compared to the spectrum, but not recommended), defaults to delta_pixel
+        linear_binning: is the power spectrum to correct and the resolution matrix computed from a linear or log-wavelength binning
+    Returns:
+        cor: resolution correction factor (divide P(k) by this)
+    """
     if dll_resmat is None:
         dll_resmat=delta_pixel
 
