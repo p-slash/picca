@@ -436,7 +436,9 @@ class forest(qso):
 
 class delta(qso):
 
-    def __init__(self,thid,ra,dec,zqso,plate,mjd,fid,ll,we,co,de,order,iv,diff,m_SNR,m_reso,m_z,dll,m_reso_matrix=None,reso_matrix=None,dll_resmat=None,linear_binning=False):
+    def __init__(self,thid,ra,dec,zqso,plate,mjd,fid,ll,we,co,de,
+                 order,iv,diff,m_SNR,m_reso,m_z,dll,m_reso_matrix=None,
+                 reso_matrix=None,dll_resmat=None,linear_binning=False):
 
         qso.__init__(self,thid,ra,dec,zqso,plate,mjd,fid)
         self.ll = ll
@@ -453,7 +455,7 @@ class delta(qso):
         self.mean_reso_matrix = m_reso_matrix
         self.reso_matrix = reso_matrix
         self.dll_resmat = dll_resmat
-        self.linear_binning = linear_binning
+        self.linear_binning = linear_binning #not really needed, but might as well put it here to prevent accidentally using the wrong kind of binning
 
 
 
@@ -493,6 +495,10 @@ class delta(qso):
 
         de=de.astype(float)   #to ensure the endianess is right for the fft
         ll=ll.astype(float)
+        try:
+            linear_binning = head['LIN_BIN']
+        except (KeyError, ValueError):
+            linear_binning = None
         if  Pk1D_type :
             iv = h['IVAR'][:]
             diff = h['DIFF'][:]
@@ -511,6 +517,7 @@ class delta(qso):
                 dll_resmat = head['DLL_RES']
             except (KeyError, ValueError):
                 dll_resmat = None
+            
             we = None
             co = None
             iv=iv.astype(float)   #to ensure the endianess is right for the fft
@@ -545,7 +552,8 @@ class delta(qso):
             order = 1
         return cls(thid,ra,dec,zqso,plate,mjd,fid,ll,we,co,de,order,
                    iv,diff,m_SNR,m_reso,m_z,dll,m_reso_matrix=mean_resomat,
-                   reso_matrix=resomat,dll_resmat=dll_resmat)
+                   reso_matrix=resomat,dll_resmat=dll_resmat,
+                   linear_binning=linear_binning)
 
 
     @classmethod

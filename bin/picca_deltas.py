@@ -203,6 +203,7 @@ if __name__ == '__main__':
             print("ERROR : invalid value for order, must be eqal to 0 or 1. Here order = %i"%(order))
             sys.exit(12)
 
+### todo: make sure the following is fine with linearly binned pixels
     ### Correct multiplicative pipeline flux calibration
     if (args.flux_calib is not None):
         try:

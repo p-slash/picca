@@ -63,6 +63,8 @@ class TestCor(unittest.TestCase):
         
         self.send_delta_Pk1D()
         self.send_Pk1D()
+        #todo: add test for analysis with linear wavelength grid
+        #todo: add/modify test for/with resolution matrix correction
 
         self.send_cf1d()
         self.send_cf1d_cross()
