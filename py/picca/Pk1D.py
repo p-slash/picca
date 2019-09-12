@@ -193,7 +193,7 @@ def compute_Pk_raw(dll,delta,linear_binning=False):   #MW: why does this functio
     return k,Pk
 
 
-def compute_Pk_noise(dll,iv,diff,ll,run_noise,linear_binning=False):
+def compute_Pk_noise(dll,iv,diff,run_noise,linear_binning=False):
     """
     compute noise power
 

@@ -150,7 +150,6 @@ if __name__ == '__main__':
     if args.use_desi_P1d_changes:
         args.linear_binning = True
         args.output_in_angstrom = True
-        
 
 #   Create root file
     # if (args.out_format=='root') :
@@ -182,6 +181,8 @@ if __name__ == '__main__':
     #     hdelta_OBS_we.Sumw2()
 
     noiseless_fullres=False #stores if the read in spectra didn't contain ivar and reso info (if this is True everything will be treated as noiseless, infinite resolution)
+
+    ###note that after some point all ll variables can be either in loglambda or lambda
 
     # Read deltas
     if (args.in_format=='fits') :
@@ -223,6 +224,8 @@ if __name__ == '__main__':
         elif (args.in_format=='ascii') :
             ascii_file = open(f,'r')
             dels = [delta.from_ascii(line) for line in ascii_file]
+        if (args.linear_binning) ^ (not dels[0].linear_binning):
+            raise Exception("either linear_binning needs to be set and we have linearly binned data or we need to not set the flag for log-binned data")
 
         ndata+=len(dels)
         print ("\n ndata =  ",ndata)
@@ -247,16 +250,19 @@ if __name__ == '__main__':
             nb_part = min(args.nb_part,nb_part_max)
             if d.dll_resmat is None:
                 if not args.linear_binning:
-                    d.dll_resmat=1*sp.median(10**-d.ll)/sp.log(10.)  #converts 1 angstrom to whatever the relevant log lambda is at current lambda
+                    d.dll_resmat = 1 * sp.median(10 ** -d.ll) / sp.log(10.)  #converts 1 angstrom to whatever the relevant log lambda is at current lambda
                 else:
-                    d.dll_resmat = sp.median(sp.diff(10 ** d.ll))
-                    d.dll=d.dll_resmat       #overwrite the d.dll entries whatever they are with the true pixelization
+                    d.ll=10**d.ll
+                    d.dll_resmat = sp.median(d.ll)
+                    d.dll = d.dll_resmat  #overwrite the d.dll entries whatever they are with the true pixelization
+            
+            ###note that beginning here, all ll arrays will be either lambda or log lambda binned depending on input and dll will be the corresponding pixel size
+
             if args.res_estimate == 'Gaussian':
                 m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,dll_reso=d.dll_resmat)
             elif args.res_estimate == 'matrix':
                 m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, reso_mat_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,reso_matrix=d.reso_matrix,dll_reso=d.dll_resmat)
             for f in range(nb_part):
-
                 # rebin diff spectrum (note that this has not been adapted to linear binning yet and might need changes)
                 if (args.noise_estimate=='rebin_diff' or args.noise_estimate=='mean_rebin_diff'):
                     diff_arr[f]=rebin_diff_noise(d.dll,ll_arr[f],diff_arr[f])
@@ -275,32 +281,36 @@ if __name__ == '__main__':
                 # if (args.out_format=='root' and  args.debug): compute_mean_delta(ll_new,delta_new,iv_new,d.zqso)
 
                 lam_lya = constants.absorber_IGM["LYA"]
-                z_abs =  10.**ll_new/lam_lya - 1.0
-                mean_z_new = sum(z_abs)/float(len(z_abs))
+                if linear_binning:
+                    z_abs = ll_new/lam_lya -1.0
+                else:
+                    z_abs = 10.**ll_new/lam_lya - 1.0
+
+                mean_z_new = sp.mean(z_abs)
 
                 # Compute Pk_raw
-                k,Pk_raw = compute_Pk_raw(d.dll,delta_new,ll_new,linear_binning=args.linear_binning)
+                k,Pk_raw = compute_Pk_raw(d.dll,delta_new,linear_binning=args.linear_binning)
 
                 # Compute Pk_noise
                 run_noise = False
                 if (args.noise_estimate=='pipeline'): run_noise=True
-                Pk_noise,Pk_diff = compute_Pk_noise(d.dll,iv_new,diff_new,ll_new,run_noise,linear_binning=args.linear_binning)
+                Pk_noise,Pk_diff = compute_Pk_noise(d.dll,iv_new,diff_new,run_noise,linear_binning=args.linear_binning)
 
                 # Compute resolution correction
                 
-                if not args.linear_binning:
+                if not args.linear_binning:   #it's weird to compute this here manually, could be cleaned up
                     delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
-                    delta_pixel2 = dll_reso*sp.log(10.)*constants.speed_light/1000. #this should be changed to d.dll_res
                 else:
-                    delta_pixel = sp.median(sp.diff(10**ll_new))
-                    delta_pixel2 = dll_reso   #those two should be the same or very close
+                    delta_pixel = d.dll
+                
                 if args.res_estimate == 'Gaussian' and not noiseless_fullres:
-                    cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction)
+                    cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, pixel_correction=args.pixel_correction)
                 elif  args.res_estimate == 'matrix' and not noiseless_fullres:
-                    cor_reso = compute_cor_reso_matrix(dll_reso, reso_mat_new, k, delta_pixel, delta_pixel2, ll_new, pixel_correction=args.pixel_correction,linear_binning=args.linear_binning)
+                    #this assumes pixelization of resolution matrix and spectrum to be the same (which it is for real data and the new linearly gridded mocks)
+                    cor_reso = compute_cor_reso_matrix(reso_mat_new, k, delta_pixel, pixel_correction=args.pixel_correction,linear_binning=args.linear_binning)
                 else:
                     #this is for computing a pixelization correction only
-                    cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, delta_pixel2=delta_pixel2, pixel_correction=args.pixel_correction,infres=True)
+                    cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, pixel_correction=args.pixel_correction,infres=True)
 
 
                 # Compute 1D Pk
@@ -358,8 +368,13 @@ if __name__ == '__main__':
                         {'name':'NBMASKPIX','value':nb_masked_pixel,'comment':'Number of masked pixels in the section'},
                         {'name':'PLATE','value':d.plate,'comment':"Spectrum's plate id"},
                         {'name':'MJD','value':d.mjd,'comment':'Modified Julian Date,date the spectrum was taken'},
-                        {'name':'FIBER','value':d.fid,'comment':"Spectrum's fiber number"}
+                        {'name': 'FIBER', 'value': d.fid, 'comment': "Spectrum's fiber number"}
                     ]
+                    #to allow delta files without the new header info
+                    try:
+                        hd.append({'name': 'LIN_BIN', 'value': d.linear_binning, 'comment': "Spectrum's fiber number"})
+                    except:
+                        pass
 
                     cols=[k,Pk_raw,Pk_noise,Pk_diff,cor_reso,Pk]
                     names=['k','Pk_raw','Pk_noise','Pk_diff','cor_reso','Pk']
