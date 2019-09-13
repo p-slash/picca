@@ -183,6 +183,8 @@ def compute_Pk_raw(dll,delta,linear_binning=False):   #MW: why does this functio
     Pk = (fft_a.real ** 2 + fft_a.imag ** 2) * length_lambda / nb_pixels ** 2
     #computing with sp.fftpack.rfft would work like (possibly need some check for last element and add first element back in for the mean)
     #Pk = fft_a[1:nb_bin_fft*2-1:2]**2 + fft_a[2:nb_bin_fft*2:2]**2 * length_lambda / nb_pixels ** 2
+    
+    #might be useful to compute k*Pk instead as this would be independent of length lambda and thus only k would depend on it allowing to remove dependencies and the linear_binning keyword in noise_power and potentially also reso matrix correction routines
 
     k = 2 * sp.pi * fftfreq(nb_pixels, length_lambda / nb_pixels)
     k = abs(k[:nb_bin_FFT])

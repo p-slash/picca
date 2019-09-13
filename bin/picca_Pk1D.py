@@ -281,7 +281,7 @@ if __name__ == '__main__':
                 # if (args.out_format=='root' and  args.debug): compute_mean_delta(ll_new,delta_new,iv_new,d.zqso)
 
                 lam_lya = constants.absorber_IGM["LYA"]
-                if linear_binning:
+                if args.linear_binning:
                     z_abs = ll_new/lam_lya -1.0
                 else:
                     z_abs = 10.**ll_new/lam_lya - 1.0
