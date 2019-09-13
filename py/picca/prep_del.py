@@ -127,9 +127,13 @@ def var_lss(data,eta_lim=(0.5,1.5),vlss_lim=(0.,0.3)):
     return ll,eta,vlss,fudge,nb_pixels,var,var_del.reshape(nlss,-1),var2_del.reshape(nlss,-1),count.reshape(nlss,-1),nqso.reshape(nlss,-1),bin_chi2,err_eta,err_vlss,err_fudge
 
 
-def stack(data,delta=False):
-    nstack = int((forest.lmax-forest.lmin)/forest.dll)+1
-    ll = forest.lmin + sp.arange(nstack)*forest.dll
+def stack(data, delta=False):
+    if forest.linear_binning:
+        nstack = int((10 ** forest.lmax - 10 ** forest.lmin) / forest.dlambda) + 1
+        ll = np.log10(10**forest.lmin + sp.arange(nstack)*forest.dlambda)
+    else:
+        nstack = int((forest.lmax-forest.lmin)/forest.dll)+1
+        ll = forest.lmin + sp.arange(nstack)*forest.dll
     st = sp.zeros(nstack)
     wst = sp.zeros(nstack)
     for p in sorted(list(data.keys())):
@@ -138,6 +142,7 @@ def stack(data,delta=False):
                 de = d.de
                 we = d.we
             else:
+                #todo: double check if those are ok
                 de = d.fl/d.co
                 var_lss = forest.var_lss(d.ll)
                 eta = forest.eta(d.ll)
