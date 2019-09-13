@@ -170,7 +170,6 @@ if __name__ == '__main__':
         forest.dlambda = 1
         forest.dll = None
         forest.linear_binning = True
-        forest.dlambda = None
     elif args.linear_binning:
         forest.dlambda = 1
         forest.dll = None
