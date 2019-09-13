@@ -142,12 +142,13 @@ if __name__ == '__main__':
     parser.add_argument('--output-in-angstrom', action='store_true', default = False,
             help='does not convert the power to velocity units when computed from linear binning')
 
-    parser.add_argument('--use-desi-P1d-changes', action='store_true', default = False,
+    parser.add_argument('--use-desi-new-defaults', action='store_true', default = False,
         help='use changes put into picca to allow resolution treatment for the P1d more properly with DESI mocks (e.g. different sampling)')
 
 
     args = parser.parse_args()
-    if args.use_desi_P1d_changes:
+    if args.use - desi - new - defaults:
+        #add whatever we want the default for desi to be here
         args.linear_binning = True
         args.output_in_angstrom = True
 
@@ -253,7 +254,7 @@ if __name__ == '__main__':
                     d.dll_resmat = 1 * sp.median(10 ** -d.ll) / sp.log(10.)  #converts 1 angstrom to whatever the relevant log lambda is at current lambda
                 else:
                     d.ll=10**d.ll
-                    d.dll_resmat = sp.median(d.ll)
+                    d.dll_resmat = sp.median(sp.diff(d.ll))
                     d.dll = d.dll_resmat  #overwrite the d.dll entries whatever they are with the true pixelization
             
             ###note that beginning here, all ll arrays will be either lambda or log lambda binned depending on input and dll will be the corresponding pixel size
@@ -298,10 +299,10 @@ if __name__ == '__main__':
 
                 # Compute resolution correction
                 
-                if not args.linear_binning:   #it's weird to compute this here manually, could be cleaned up
-                    delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
-                else:
+                if args.linear_binning:  #it's weird to compute this here manually, could be cleaned up
                     delta_pixel = d.dll
+                else:
+                    delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
                 
                 if args.res_estimate == 'Gaussian' and not noiseless_fullres:
                     cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, pixel_correction=args.pixel_correction)
@@ -326,6 +327,7 @@ if __name__ == '__main__':
                     Pk = (Pk_raw - Pk_mean_diff)/cor_reso
                 elif noiseless_fullres:
                     Pk = Pk_raw / cor_reso
+
                 #to convert linearly binned data back to velocity space
                 if args.linear_binning and not args.output_in_angstrom:
                      Pk*=constants.speed_light/1000/sp.mean(10**ll_new)
@@ -368,19 +370,15 @@ if __name__ == '__main__':
                         {'name':'NBMASKPIX','value':nb_masked_pixel,'comment':'Number of masked pixels in the section'},
                         {'name':'PLATE','value':d.plate,'comment':"Spectrum's plate id"},
                         {'name':'MJD','value':d.mjd,'comment':'Modified Julian Date,date the spectrum was taken'},
-                        {'name': 'FIBER', 'value': d.fid, 'comment': "Spectrum's fiber number"}
+                        {'name': 'FIBER', 'value': d.fid, 'comment': "Spectrum's fiber number"},
+                        {'name': 'LIN_BIN', 'value': args.linear_binning, 'comment': "Spectrum's fiber number"}
                     ]
-                    #to allow delta files without the new header info
-                    try:
-                        hd.append({'name': 'LIN_BIN', 'value': d.linear_binning, 'comment': "Spectrum's fiber number"})
-                    except:
-                        pass
 
                     cols=[k,Pk_raw,Pk_noise,Pk_diff,cor_reso,Pk]
                     names=['k','Pk_raw','Pk_noise','Pk_diff','cor_reso','Pk']
                     comments=['Wavenumber', 'Raw power spectrum', "Noise's power spectrum", 'Noise coadd difference power spectrum',\
                               'Correction resolution function', 'Corrected power spectrum (resolution and noise)']
-                    baseunit='km/s' if (args.linear_binning and args.output_in_angstrom) else 'AA'
+                    baseunit='AA' if (args.linear_binning and args.output_in_angstrom) else 'km/s'
                     units = ['({})^-1'.format(baseunit)]
                     units.extend([baseunit]*3+['']+[baseunit])
 
