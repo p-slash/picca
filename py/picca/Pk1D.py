@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import scipy as sp
-from scipy.fftpack import fft, fftfreq, rfft, rfftfreq
+from numpy.fft import fft, fftfreq, rfft, rfftfreq
 import scipy.interpolate as spint
 
 from picca import constants
@@ -176,26 +176,22 @@ def compute_Pk_raw(dll,delta,linear_binning=False):   #MW: why does this functio
     # make 1D FFT
     nb_pixels = len(delta)
     nb_bin_FFT = nb_pixels // 2 + 1
-    #fft_a = rfft(delta)
-    fft_a = fft(delta)
+    fft_a = rfft(delta)
+    #fft_a = fft(delta)
 
     # compute power spectrum
-    fft_a = fft_a[:nb_bin_FFT]
+    #fft_a = fft_a[:nb_bin_FFT]
     Pk = (fft_a.real ** 2 + fft_a.imag ** 2) * length_lambda / nb_pixels ** 2
     #computing with sp.fftpack.rfft would work like (possibly need some check for last element and add first element back in for the mean)
-    #Pk=sp.zeros(nb_bin_FFT)
-    #Pk[0]=fft_a[0]**2* length_lambda / nb_pixels ** 2
-    #Pk[1:nb_bin_FFT] = fft_a[1:1+nb_bin_FFT*2:2]** 2 + fft_a[2:nb_pixels // 2 * 2:2]** 2 * length_lambda / nb_pixels ** 2
-    #if nb_pixels % 2 == 0:
-    #    Pk[-1]=fft_a[-1]**2* length_lambda / nb_pixels ** 2
+    
     
     #might be useful to compute k*Pk instead as this would be independent of length lambda and thus only k would depend on it allowing to remove dependencies and the linear_binning keyword in noise_power and potentially also reso matrix correction routines
 
-    k = 2 * sp.pi * fftfreq(nb_pixels, length_lambda / nb_pixels)
+    #k = 2 * sp.pi * fftfreq(nb_pixels, length_lambda / nb_pixels)
     #for sp.fftpack.rfft
-    #k = 2 * sp.pi * rfftfreq(nb_pixels, length_lambda / nb_pixels)[0:nb_bin_FFT*2+1:2]
+    k = 2 * sp.pi * rfftfreq(nb_pixels, length_lambda / nb_pixels)
     #k = sp.arange(nb_bin_FFT,dtype=float)*2*sp.pi/length_lambda
-    k = abs(k[:nb_bin_FFT])
+    #k = abs(k[:nb_bin_FFT])
 
     return k,Pk
 
