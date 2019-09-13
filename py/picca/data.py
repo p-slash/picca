@@ -122,7 +122,7 @@ class forest(qso):
         ## cut to specified range
         if forest.linear_binning:
             bins = sp.floor((10**ll-10**forest.lmin)/forest.dlambda+0.5).astype(int)
-            ll = sp.log10(10**lmin + bins*forest.dlambda)
+            ll = sp.log10(10**forest.lmin + bins*forest.dlambda)
 
         else:
             bins = sp.floor((ll-forest.lmin)/forest.dll+0.5).astype(int)
