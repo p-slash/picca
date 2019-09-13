@@ -162,21 +162,22 @@ if __name__ == '__main__':
     forest.lmax = sp.log10(args.lambda_max)
     forest.lmin_rest = sp.log10(args.lambda_rest_min)
     forest.lmax_rest = sp.log10(args.lambda_rest_max)
-    if args.linear_binning:
+        
+    if args.use_desi_P1d_changes:
+        args.linear_binning=True
+        desi_pixsize = 1
+        desi_maxz = 5.5
         forest.dlambda = 1
         forest.dll = None
         forest.linear_binning = True
-    else:
-        if args.use_desi_P1d_changes:
-            forest.rebin = args.rebin
-            desi_pixsize = 1
-            desi_maxz = 5.5
-            #this would be the smallest bin in log-L ever encountered in desi, but in the end we'd want to change this to properly binning in lambda...
-            forest.dll = args.rebin * desi_pixsize / ((constants.absorber_IGM['LYA']) * (desi_maxz + 1)) / sp.log(10)
-            forest.dlambda = None
-        else:   
-            forest.dll = args.rebin * 1e-4
-            forest.dlambda = None
+        forest.dlambda = None
+    elif args.linear_binning:
+        forest.dlambda = 1
+        forest.dll = None
+        forest.linear_binning = True
+    else:   
+        forest.dll = args.rebin * 1e-4
+        forest.dlambda = None
 
         
 
