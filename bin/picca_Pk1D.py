@@ -147,7 +147,7 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    if args.use - desi - new - defaults:
+    if args.use_desi_new_defaults:
         #add whatever we want the default for desi to be here
         args.linear_binning = True
         args.output_in_angstrom = True
@@ -323,7 +323,7 @@ if __name__ == '__main__':
                     selection = (k>0) & (k<0.02)
                     if (args.noise_estimate=='mean_rebin_diff'):
                         selection = (k>0.003) & (k<0.02)
-                    Pk_mean_diff = sum(Pk_diff[selection])/float(len(Pk_diff[selection]))
+                    Pk_mean_diff = sp.mean(Pk_diff[selection])
                     Pk = (Pk_raw - Pk_mean_diff)/cor_reso
                 elif noiseless_fullres:
                     Pk = Pk_raw / cor_reso
@@ -371,7 +371,7 @@ if __name__ == '__main__':
                         {'name':'PLATE','value':d.plate,'comment':"Spectrum's plate id"},
                         {'name':'MJD','value':d.mjd,'comment':'Modified Julian Date,date the spectrum was taken'},
                         {'name': 'FIBER', 'value': d.fid, 'comment': "Spectrum's fiber number"},
-                        {'name': 'LIN_BIN', 'value': args.linear_binning, 'comment': "Spectrum's fiber number"}
+                        {'name': 'LIN_BIN', 'value': args.linear_binning, 'comment': "analysis was performed on delta with linear binned lambda"}
                     ]
 
                     cols=[k,Pk_raw,Pk_noise,Pk_diff,cor_reso,Pk]

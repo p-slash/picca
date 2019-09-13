@@ -169,28 +169,31 @@ def compute_Pk_raw(dll,delta,linear_binning=False):   #MW: why does this functio
         Pk (array): power spectrum in units of [km/s] or [Ang]
     """
     #could alternatively do this by checking the size of dll (assuming that dll would always be smaller than 1e-2 and dlambda always be bigger than that)
-    if not linear_binning:
-        length_lambda = dll*constants.speed_light/1000.*sp.log(10.)*len(delta)
-    else:
+    if linear_binning:
         length_lambda = dll*len(delta)
+    else:
+        length_lambda = dll*constants.speed_light/1000.*sp.log(10.)*len(delta)
     # make 1D FFT
     nb_pixels = len(delta)
-    nb_bin_FFT = nb_pixels//2 + 1
-    fft_a = rfft(delta)
+    nb_bin_FFT = nb_pixels // 2 + 1
+    #fft_a = rfft(delta)
+    fft_a = fft(delta)
 
     # compute power spectrum
     fft_a = fft_a[:nb_bin_FFT]
     Pk = (fft_a.real ** 2 + fft_a.imag ** 2) * length_lambda / nb_pixels ** 2
     #computing with sp.fftpack.rfft would work like (possibly need some check for last element and add first element back in for the mean)
-    #Pk = fft_a[1:nb_bin_fft*2-1:2]**2 + fft_a[2:nb_bin_fft*2:2]**2 * length_lambda / nb_pixels ** 2
+    #Pk=sp.zeros(nb_bin_fft)
+    #Pk[0]=fft_a[0]
+    #Pk[1:] = fft_a[1:nb_bin_fft*2-1:2]**2 + fft_a[2:nb_bin_fft*2:2]**2 * length_lambda / nb_pixels ** 2
     
     #might be useful to compute k*Pk instead as this would be independent of length lambda and thus only k would depend on it allowing to remove dependencies and the linear_binning keyword in noise_power and potentially also reso matrix correction routines
 
     k = 2 * sp.pi * fftfreq(nb_pixels, length_lambda / nb_pixels)
-    k = abs(k[:nb_bin_FFT])
     #for sp.fftpack.rfft
-    #k = 2 * sp.pi * rfftfreq(nb_pixels, length_lambda / nb_pixels)[1:nb_bin_fft*2-1:2]
+    #k = 2 * sp.pi * rfftfreq(nb_pixels, length_lambda / nb_pixels)[0:nb_bin_fft*2:2]
     #k = sp.arange(nb_bin_FFT,dtype=float)*2*sp.pi/length_lambda
+    k = abs(k[:nb_bin_FFT])
 
     return k,Pk
 
