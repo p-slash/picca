@@ -196,12 +196,16 @@ if __name__ == '__main__':
 
     # initialize randoms
     sp.random.seed(4)
-
+    skipmsgprinted=False
     # define per file function
+    # need to check if this is fine with the randoms
     def process_file(i):
-        global ndata, data, noiseless_fullres
+        global ndata, data, noiseless_fullres,skipmsgprinted
         f=fi[i]
-        if os.path.exists(args.out_dir+'/Pk1D-'+str(i)+'.fits.gz'):
+        if os.path.exists(args.out_dir + '/Pk1D-' + str(i) + '.fits.gz'):
+            if not skipmsgprinted:
+                print("skipped analysis for existing outputs")
+                skipmsgprinted=True
             return 1#skip existing files
         
         if i%1==0:
