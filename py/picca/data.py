@@ -438,7 +438,7 @@ class delta(qso):
 
     def __init__(self,thid,ra,dec,zqso,plate,mjd,fid,ll,we,co,de,
                  order,iv,diff,m_SNR,m_reso,m_z,dll,m_reso_matrix=None,
-                 reso_matrix=None,dll_resmat=None,linear_binning=False):
+                 reso_matrix=None,dll_resmat=None,linear_binning=False, dlambda=None):
 
         qso.__init__(self,thid,ra,dec,zqso,plate,mjd,fid)
         self.ll = ll
@@ -455,7 +455,8 @@ class delta(qso):
         self.mean_reso_matrix = m_reso_matrix
         self.reso_matrix = reso_matrix
         self.dll_resmat = dll_resmat
-        self.linear_binning = linear_binning #not really needed, but might as well put it here to prevent accidentally using the wrong kind of binning
+        self.linear_binning = linear_binning  #not really needed, but might as well put it here to prevent accidentally using the wrong kind of binning
+        self.dlambda = dlambda
 
 
 
@@ -481,7 +482,7 @@ class delta(qso):
 
         return cls(f.thid,f.ra,f.dec,f.zqso,f.plate,f.mjd,f.fid,ll,we,f.co,de,f.order,
                    iv,diff,f.mean_SNR,f.mean_reso,f.mean_z,f.dll,m_reso_matrix=f.mean_reso_matrix,
-                   reso_matrix=f.reso_matrix,linear_binning=f.linear_binning)
+                   reso_matrix=f.reso_matrix,linear_binning=f.linear_binning,dlambda=f.dlambda)
 
 
     @classmethod
