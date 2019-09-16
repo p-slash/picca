@@ -509,7 +509,7 @@ if __name__ == '__main__':
                     hd += [{'name':'DLL','value':dll,'comment':'Loglam bin size [log Angstrom]'}]
                     if args.use_resolution_matrix:
                         hd += [{'name':'DLL_RES', 'value':dll_resmat, 'comment':'Loglam bin size for resolution matrix'}]
-                    if linear_binning:
+                    if d.linear_binning:
                         hd += [{'name':'DLAMBDA', 'value':dlambda, 'comment':'Lambda bin size'}]
                             
                     diff = d.diff
