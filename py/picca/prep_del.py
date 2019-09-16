@@ -130,7 +130,7 @@ def var_lss(data,eta_lim=(0.5,1.5),vlss_lim=(0.,0.3)):
 def stack(data, delta=False):
     if forest.linear_binning:
         nstack = int((10 ** forest.lmax - 10 ** forest.lmin) / forest.dlambda) + 1
-        ll = np.log10(10**forest.lmin + sp.arange(nstack)*forest.dlambda)
+        ll = sp.log10(10**forest.lmin + sp.arange(nstack)*forest.dlambda)
     else:
         nstack = int((forest.lmax-forest.lmin)/forest.dll)+1
         ll = forest.lmin + sp.arange(nstack)*forest.dll
