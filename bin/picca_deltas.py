@@ -486,7 +486,8 @@ if __name__ == '__main__':
                        {'name':'PLATE','value':d.plate},
                        {'name':'MJD','value':d.mjd,'comment':'Modified Julian date'},
                        {'name':'FIBERID','value':d.fid},
-                       {'name':'ORDER','value':d.order,'comment':'Order of the continuum fit'},
+                       {'name': 'ORDER', 'value': d.order, 'comment': 'Order of the continuum fit'},
+                       {'name':'LIN_BIN','value':d.linear_binning,'comment':'Used linear wavelength binning'},
                 ]
 
                 if (args.delta_format=='Pk1D'):
@@ -494,7 +495,7 @@ if __name__ == '__main__':
                     desi_pixsize=1 #set desi pixel size to one angstrom, generalize later
                     if (args.mode=='desi') :
                         #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
-                        dll=sp.mean(sp.diff(d.ll)) #this is better as masking is ignored [e.g. due to masking]
+                        dll = sp.mean(sp.diff(d.ll))  #this is better as masking is ignored [e.g. due to masking]
                         dll_resmat=sp.median(10**-d.ll)*desi_pixsize/sp.log(10.) #this is 1 angstrom pixel size * mean(1/lambda) or median(1/lambda)
                         if args.use_resolution_matrix:
                             d.dll_resmat=dll_resmat 
@@ -507,7 +508,10 @@ if __name__ == '__main__':
                     ]
                     hd += [{'name':'DLL','value':dll,'comment':'Loglam bin size [log Angstrom]'}]
                     if args.use_resolution_matrix:
-                        hd += [{'name':'DLL_RES','value':dll_resmat,'comment':'Loglam bin size for resolution matrix'}]
+                        hd += [{'name':'DLL_RES', 'value':dll_resmat, 'comment':'Loglam bin size for resolution matrix'}]
+                    if linear_binning:
+                        hd += [{'name':'DLAMBDA', 'value':dlambda, 'comment':'Lambda bin size'}]
+                            
                     diff = d.diff
                     if diff is None:
                         diff = d.ll*0

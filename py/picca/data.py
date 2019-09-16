@@ -505,7 +505,9 @@ class delta(qso):
             m_SNR = head['MEANSNR']
             m_reso = head['MEANRESO']
             m_z = head['MEANZ']
-            dll =  head['DLL']
+            dll = head['DLL']
+            if linear_binning:
+                dlambda = head['DLAMBDA']
             try:
                 resomat=h['RESOMAT'][:].T
                 mean_resomat = sp.mean(resomat,axis=1)
