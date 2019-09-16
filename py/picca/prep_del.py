@@ -149,8 +149,10 @@ def stack(data, delta=False):
                 fudge = forest.fudge(d.ll)
                 var = 1./d.iv/d.co**2
                 we = 1./variance(var,eta,var_lss,fudge)
-
-            bins=((d.ll-forest.lmin)/forest.dll+0.5).astype(int)
+            if forest.linear_binning:
+                bins=((10**d.ll-10**forest.lmin)/forest.dlambda+0.5).astype(int)
+            else:
+                bins=((d.ll-forest.lmin)/forest.dll+0.5).astype(int)
             c = sp.bincount(bins,weights=de*we)
             st[:len(c)]+=c
             c = sp.bincount(bins,weights=we)
