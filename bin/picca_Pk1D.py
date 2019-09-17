@@ -151,6 +151,7 @@ if __name__ == '__main__':
         #add whatever we want the default for desi to be here
         args.linear_binning = True
         args.output_in_angstrom = True
+        args.res_estimate = 'matrix'
 
 #   Create root file
     # if (args.out_format=='root') :
