@@ -164,7 +164,9 @@ if __name__ == '__main__':
     forest.lmax_rest = sp.log10(args.lambda_rest_max)
         
     if args.use_desi_P1d_changes:
-        args.linear_binning=True
+        args.linear_binning = True
+        if args.delta_format == 'Pk1D':
+            args.use_resolution_matrix=True
         desi_pixsize = 1
         desi_maxz = 5.5
         forest.dlambda = 1
