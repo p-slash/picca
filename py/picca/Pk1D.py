@@ -47,11 +47,9 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso
         reso_matrix_c=reso_matrix.copy()
     for p in range(1,nb_part) :
         ll_limit.append(ll[nb_bin*p+first_pixel])
-    if linear_binning:
-        ll_limit.append(10**ll[len(10**ll)-1]+0.1*dll)
-    else:
-        ll_limit.append(ll[len(ll)-1]+0.1*dll)
-    m_z_init = sp.mean([10**ll_c[-1],10**ll_c[0]])/lam_lya -1.0
+
+    ll_limit.append(ll[len(ll)-1]+0.1*dll)
+    m_z_init = sp.mean(ll_c if linear_binning else 10**ll_c)/lam_lya -1.0
 
     for p in range(nb_part) :
 
@@ -64,8 +62,7 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso
         if reso_matrix is not None:
             reso_matrix_part = reso_matrix_c[:, selection]        #double check this, I think this will just cut the resolution matrix at the edges, but keeping values that would now correspond to pixels outside the spectrum
 
-        m_z = sp.mean([10**ll_part[-1],10**ll_part[0]])/lam_lya -1.0
-
+        m_z = sp.mean(ll_part if linear_binning else 10**ll_part)/lam_lya -1.0
         m_z_arr.append(m_z)
         ll_arr.append(ll_part)
         de_arr.append(de_part)

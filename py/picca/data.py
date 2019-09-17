@@ -556,7 +556,7 @@ class delta(qso):
         return cls(thid,ra,dec,zqso,plate,mjd,fid,ll,we,co,de,order,
                    iv,diff,m_SNR,m_reso,m_z,dll,m_reso_matrix=mean_resomat,
                    reso_matrix=resomat,dll_resmat=dll_resmat,
-                   linear_binning=linear_binning)
+                   linear_binning=linear_binning,dlambda=dlambda)
 
 
     @classmethod
