@@ -316,7 +316,7 @@ if __name__ == '__main__':
                     cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, pixel_correction=args.pixel_correction)
                 elif  args.res_estimate == 'matrix' and not noiseless_fullres:
                     #this assumes pixelization of resolution matrix and spectrum to be the same (which it is for real data and the new linearly gridded mocks)
-                    cor_reso = compute_cor_reso_matrix(reso_mat_new, k, delta_pixel, pixel_correction=args.pixel_correction,linear_binning=args.linear_binning)
+                    cor_reso = compute_cor_reso_matrix(reso_mat_new, k, len(ll_new), delta_pixel, pixel_correction=args.pixel_correction,linear_binning=args.linear_binning)
                 else:
                     #this is for computing a pixelization correction only
                     cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, pixel_correction=args.pixel_correction,infres=True)

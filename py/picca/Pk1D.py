@@ -263,7 +263,7 @@ def compute_cor_reso(delta_pixel, mean_reso, k, pixel_correction='default',infre
     return cor
 
 #check data type in docstring
-def compute_cor_reso_matrix(reso_matrix, k, delta_pixel,  pixel_correction='inverse',linear_binning=False, dll_resmat=None):
+def compute_cor_reso_matrix(reso_matrix, k, npix, delta_pixel,  pixel_correction='inverse',linear_binning=False, dll_resmat=None):
     """
     Compute correction for resolution and pixelization based on a single resolution value
 
@@ -289,7 +289,7 @@ def compute_cor_reso_matrix(reso_matrix, k, delta_pixel,  pixel_correction='inve
     W2arr=[]
     #first compute the power in the resmat for each pixel, then average
     for resmat in reso_matrix:
-        r=sp.append(resmat, sp.zeros(ll.size-resmat.size))
+        r=sp.append(resmat, sp.zeros(npix-resmat.size))
         k_resmat,W2=compute_Pk_raw(dll_resmat, r, linear_binning=linear_binning) #this assumes a pixel scale of 1 Angstrom inside the reso matrix
         #this interpolates to the final k_binning if different (i.e. if dll_resmat is chosen differently)
         W2int=spint.interp1d(k_resmat,W2,bounds_error=False)
