@@ -268,9 +268,9 @@ if __name__ == '__main__':
             ###note that beginning here, all ll arrays will be either lambda or log lambda binned depending on input and dll will be the corresponding pixel size
 
             if args.res_estimate == 'Gaussian':
-                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, dll_res_arr = split_forest(nb_part,d.dll if not args.linear_binning else d.dlambda,d.ll,d.de,d.diff,d.iv,first_pixel,dll_reso=d.dll_resmat,linear_binning=args.linear_binning)
+                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,dll_reso=d.dll_resmat,linear_binning=args.linear_binning)
             elif args.res_estimate == 'matrix':
-                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, reso_mat_arr, dll_res_arr = split_forest(nb_part,d.dll if not args.linear_binning else d.dlambda,d.ll,d.de,d.diff,d.iv,first_pixel,reso_matrix=d.reso_matrix,dll_reso=d.dll_resmat,linear_binning=args.linear_binning)
+                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, reso_mat_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,reso_matrix=d.reso_matrix,dll_reso=d.dll_resmat,linear_binning=args.linear_binning)
             for f in range(nb_part):
                 # rebin diff spectrum (note that this has not been adapted to linear binning yet and might need changes)
                 if (args.noise_estimate=='rebin_diff' or args.noise_estimate=='mean_rebin_diff'):
@@ -278,10 +278,10 @@ if __name__ == '__main__':
 
                 # Fill masked pixels with 0.
                 if args.res_estimate == 'Gaussian':
-                    ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll if not args.linear_binning else d.dlambda,ll_arr[f] if not args.linear_binning else 10**ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling)
+                    ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll,ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling)
                 elif args.res_estimate == 'matrix':
                     #for resolution matrix the filling is not yet fully implemented, so far just the mean is taken here
-                    ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll if not args.linear_binning else d.dlambda,ll_arr[f] if not args.linear_binning else 10**ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling)
+                    ll_new,delta_new,diff_new,iv_new,nb_masked_pixel = fill_masked_pixels(d.dll,ll_arr[f],de_arr[f],diff_arr[f],iv_arr[f],args.no_apply_filling)
                     reso_mat_new=sp.mean(reso_mat_arr[f],axis=1)
                 dll_reso=dll_res_arr[f]
 
