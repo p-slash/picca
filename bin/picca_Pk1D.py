@@ -308,7 +308,7 @@ if __name__ == '__main__':
                 # Compute resolution correction
                 
                 if args.linear_binning:  #it's weird to compute this here manually, could be cleaned up
-                    delta_pixel = d.deltal
+                    delta_pixel = d.dlambda
                 else:
                     delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
                 
