@@ -262,7 +262,7 @@ if __name__ == '__main__':
                     d.dll_resmat = sp.median(sp.diff(d.ll))
                     d.dll = d.dll_resmat  #overwrite the d.dll entries whatever they are with the true pixelization
             else:
-                if linear_binning:
+                if args.linear_binning:
                     d.dll = d.dlambda
             
             ###note that beginning here, all ll arrays will be either lambda or log lambda binned depending on input and dll will be the corresponding pixel size
