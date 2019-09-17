@@ -9,7 +9,7 @@ from picca.utils import print
 
 
 
-def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso=None):
+def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso=None, linear_binning=False):
     """
     split forest into subforests
 
@@ -47,8 +47,10 @@ def split_forest(nb_part,dll,ll,de,diff,iv,first_pixel,reso_matrix=None,dll_reso
         reso_matrix_c=reso_matrix.copy()
     for p in range(1,nb_part) :
         ll_limit.append(ll[nb_bin*p+first_pixel])
-
-    ll_limit.append(ll[len(ll)-1]+0.1*dll)
+    if linear_binning:
+        ll_limit.append(10**ll[len(10**ll)-1]+0.1*dll)
+    else:
+        ll_limit.append(ll[len(ll)-1]+0.1*dll)
     m_z_init = sp.mean([10**ll_c[-1],10**ll_c[0]])/lam_lya -1.0
 
     for p in range(nb_part) :
