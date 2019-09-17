@@ -500,6 +500,10 @@ class delta(qso):
             linear_binning = head['LIN_BIN']
         except (KeyError, ValueError):
             linear_binning = None
+        try:
+            dlambda = head['DLAMBDA']
+        except (KeyError, ValueError):
+            dlambda = None
         if  Pk1D_type :
             iv = h['IVAR'][:]
             diff = h['DIFF'][:]
@@ -507,10 +511,6 @@ class delta(qso):
             m_reso = head['MEANRESO']
             m_z = head['MEANZ']
             dll = head['DLL']
-            if linear_binning:
-                dlambda = head['DLAMBDA']
-            else:
-                dlambda = None
             try:
                 resomat=h['RESOMAT'][:].T
                 mean_resomat = sp.mean(resomat,axis=1)
