@@ -509,6 +509,8 @@ class delta(qso):
             dll = head['DLL']
             if linear_binning:
                 dlambda = head['DLAMBDA']
+            else:
+                dlambda = None
             try:
                 resomat=h['RESOMAT'][:].T
                 mean_resomat = sp.mean(resomat,axis=1)
