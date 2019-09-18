@@ -255,15 +255,16 @@ if __name__ == '__main__':
             nb_part_max = (len(d.ll)-first_pixel)//nb_pixel_min
             nb_part = min(args.nb_part,nb_part_max)
             if d.dll_resmat is None:
-                if not args.linear_binning:
-                    d.dll_resmat = 1 * sp.median(10 ** -d.ll) / sp.log(10.)  #converts 1 angstrom to whatever the relevant log lambda is at current lambda
-                else:
+                if args.linear_binning:
                     d.ll=10**d.ll
                     d.dll_resmat = sp.median(sp.diff(d.ll))
                     d.dll = d.dll_resmat  #overwrite the d.dll entries whatever they are with the true pixelization
+                else:
+                    d.dll_resmat = 1 * sp.median(10 ** -d.ll) / sp.log(10.)  #converts 1 angstrom to whatever the relevant log lambda is at current lambda
             else:
                 if args.linear_binning:
                     d.dll = d.dlambda
+                    d.ll=10**d.ll
             
             ###note that beginning here, all ll arrays will be either lambda or log lambda binned depending on input and dll will be the corresponding pixel size
 
