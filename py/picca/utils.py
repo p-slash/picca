@@ -534,12 +534,12 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
         if trans.shape[0]!=nObj:
             trans = trans.transpose()
 
-        if not bin_linear:
-            bins = sp.floor((ll - lmin) / dll + 0.5).astype(int)
-            tll = lmin + bins * dll
-        else:
+        if bin_linear:
             bins = sp.floor((10 ** ll - lObs_min) / dll + 0.5).astype(int)
             tll = sp.log10(lObs_min + bins * dll)
+        else:
+            bins = sp.floor((ll - lmin) / dll + 0.5).astype(int)
+            tll = lmin + bins * dll
         lObs = (10**tll)*sp.ones(nObj)[:,sp.newaxis]
         lRF = (10**tll)/(1.+z[:,sp.newaxis])
         w = sp.zeros_like(trans).astype(int)
@@ -568,12 +568,12 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
 
             #note that it might be a good idea to lowpass (i.e. apply a finite resolution) filter the data before regridding to avoid aliasing, at least in case of large factors of regridding
 
-            if not bin_linear:
-                bins = sp.floor((tll - lmin) / dll + 0.5).astype(int)
-                cll = lmin + sp.arange(nstack)*dll
-            else:             #this type of linear rebinning is overestimating the power
+            if bin_linear:#this type of linear rebinning might be overestimating the power
                 bins = sp.floor((10 ** tll - 10 ** lmin) / dll + 0.5).astype(int)
                 cll = sp.log10(lObs_min + sp.arange(nstack) * dll)
+            else:             
+                bins = sp.floor((tll - lmin) / dll + 0.5).astype(int)
+                cll = lmin + sp.arange(nstack)*dll
             
             if not emulate_qq: 
                 cfl = sp.bincount(bins,weights=ttrans,minlength=nstack)
@@ -583,10 +583,10 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
                 #which is piecewise trapeze integration for the spectrum and then summing integrals belonging to each bin
                 #the default would be similar, but doing rectangular instead of trapeze integrals
                 import desispec.interpolation as dsint
-                if not bin_linear:
-                    cfl = dsint.resample_flux(cll, tll, ttrans)
-                else:
+                if bin_linear:
                     cfl = dsint.resample_flux(10 ** cll, 10 ** tll, ttrans)
+                else:
+                    cfl = dsint.resample_flux(cll, tll, ttrans)
                 #alternatively the check below could be for cfl==-1, but that's probably more dangerous
                 civ = (sp.bincount(bins, minlength=nstack)>0).astype(float)  #type conversion needed for += commands later
 
@@ -631,6 +631,7 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
             hd['MJD'] = d.mjd
             hd['FIBERID'] = d.fid
             hd['ORDER'] = d.order
+            hd['LIN_BIN'] = linear_binning
 
             cols = [d.ll,d.de,d.we,sp.ones(d.ll.size)]
             names = ['LOGLAM','DELTA','WEIGHT','CONT']
