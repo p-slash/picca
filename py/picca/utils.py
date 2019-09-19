@@ -631,7 +631,7 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
             hd['MJD'] = d.mjd
             hd['FIBERID'] = d.fid
             hd['ORDER'] = d.order
-            hd['LIN_BIN'] = linear_binning
+            hd['LIN_BIN'] = bin_linear
 
             cols = [d.ll,d.de,d.we,sp.ones(d.ll.size)]
             names = ['LOGLAM','DELTA','WEIGHT','CONT']

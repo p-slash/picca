@@ -41,6 +41,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--bin-linear', action='store_true',default=False,required=False,
             help="Bin the spectra in lambda instead of log-lambda")
+            
     parser.add_argument('--emulate-qq', action='store_true',default=False,required=False,
             help="Bin the spectra using the same approach as in quickquasars, needs desisim installed")
 
