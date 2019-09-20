@@ -136,7 +136,7 @@ if __name__ == '__main__':
     parser.add_argument('--nproc', type=int, default=1, required=False,
         help='Number of processors')
     parser.add_argument('--res-estimate', default='Gaussian', required=False,
-        help='Resolution correction estimated by: Gaussian, matrix, noresolution')
+        help='Resolution correction estimated by: Gaussian, matrix (leave at default for perfect models)')
     parser.add_argument('--linear-binning', action='store_true', default = False,
             help='should the deltas be computed on linearly sampled wavelength bins')
     parser.add_argument('--output-in-angstrom', action='store_true', default = False,
@@ -275,7 +275,7 @@ if __name__ == '__main__':
             if args.res_estimate == 'Gaussian':
                 m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,dll_reso=d.dll_resmat,linear_binning=args.linear_binning)
             elif args.res_estimate == 'matrix':
-                m_z_arr,ll_arr,de_arr,diff_arr,iv_arr, reso_mat_arr, dll_res_arr = split_forest(nb_part,d.dll,d.ll,d.de,d.diff,d.iv,first_pixel,reso_matrix=d.reso_matrix,dll_reso=d.dll_resmat,linear_binning=args.linear_binning)
+                m_z_arr, ll_arr, de_arr, diff_arr, iv_arr, reso_mat_arr, dll_res_arr = split_forest(nb_part, d.dll, d.ll, d.de, d.diff, d.iv, first_pixel, reso_matrix=d.reso_matrix, dll_reso=d.dll_resmat, linear_binning=args.linear_binning)
             for f in range(nb_part):
                 # rebin diff spectrum (note that this has not been adapted to linear binning yet and might need changes)
                 if (args.noise_estimate=='rebin_diff' or args.noise_estimate=='mean_rebin_diff'):
