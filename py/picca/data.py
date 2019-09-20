@@ -244,7 +244,7 @@ class forest(qso):
             dic['reso_matrix'] = sp.append(self.reso_matrix, d.reso_matrix,axis=1)
         if forest.linear_binning:
             bins = sp.floor((ll-10**forest.lmin)/forest.dlambda+0.5).astype(int)
-            cll = np.log10(10**forest.lmin + sp.arange(bins.max()+1)*forest.dlambda)
+            cll = sp.log10(10**forest.lmin + sp.arange(bins.max()+1)*forest.dlambda)
         else:
             bins = sp.floor((ll-forest.lmin)/forest.dll+0.5).astype(int)
             cll = forest.lmin + sp.arange(bins.max()+1)*forest.dll
