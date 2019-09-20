@@ -229,7 +229,7 @@ if __name__ == '__main__':
                         d.dlambda = sp.median(sp.diff(10**d.ll))  #(d.ll[-1]-d.ll[0])/(len(d.ll)-1) #both of those should give the same result, but the first is more explicite, second one should be faster, but this shouldn't be a dominant effect
                     else:
                         d.dll = sp.mean(sp.diff(d.ll))  #(d.ll[-1]-d.ll[0])/(len(d.ll)-1) #both of those should give the same result, but the first is more explicite, second one should be faster, but this shouldn't be a dominant effect
-                    
+                    d.dll_resmat=d.dll
                 noiseless_fullres=True
         elif (args.in_format=='ascii') :
             ascii_file = open(f,'r')
