@@ -582,6 +582,8 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
                 #this is what desisim.lya_spectra.apply_lya_transmission does
                 #which is piecewise trapeze integration for the spectrum and then summing integrals belonging to each bin
                 #the default would be similar, but doing rectangular instead of trapeze integrals
+                #generally this should lead to better results when regridding non-uniformly
+                #e.g. by going from linear grids in unit kpc (approx. log-lambda) to linear in lambda)
                 import desispec.interpolation as dsint
                 if bin_linear:
                     cfl = dsint.resample_flux(10 ** cll, 10 ** tll, ttrans)

@@ -343,8 +343,8 @@ if __name__ == '__main__':
 
                 #to convert linearly binned data back to velocity space
                 if args.linear_binning and not args.output_in_angstrom:
-                     Pk*=constants.speed_light/1000/sp.mean(10**ll_new)
-                     k/=constants.speed_light/1000/sp.mean(10**ll_new)
+                     Pk*=constants.speed_light/1000/sp.mean(ll_new)  #note again that ll_new is actually lambda here
+                     k/=constants.speed_light/1000/sp.mean(ll_new)
 
                 # save in root format
                 # if (args.out_format=='root'):
