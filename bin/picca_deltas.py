@@ -167,9 +167,7 @@ if __name__ == '__main__':
         args.linear_binning = True
         if args.delta_format == 'Pk1D':
             args.use_resolution_matrix=True
-        desi_pixsize = 1
-        desi_maxz = 5.5
-        forest.dlambda = 1
+        forest.dlambda = 1     #note: desi observations will be half of this in the end...
         forest.dll = None
         forest.linear_binning = True
     elif args.linear_binning:
