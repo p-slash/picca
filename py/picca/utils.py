@@ -521,7 +521,11 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
             continue
         ra = h['METADATA']['RA'][:].astype(sp.float64)*sp.pi/180.
         dec = h['METADATA']['DEC'][:].astype(sp.float64)*sp.pi/180.
-        z = h['METADATA']['Z'][:]
+        try:
+            z = h['METADATA']['Z'][:]
+        except:
+            print("probably just using master file, using z with rsd")
+            z = h['METADATA']['Z_QSO_RSD'][:]
         ll = sp.log10(h['WAVELENGTH'].read())
         if 'F_LYA' in h :
             trans = h['F_LYA'].read()
