@@ -1,5 +1,6 @@
 import fitsio
 from functools import partial
+import numpy as np
 import scipy as sp
 from scipy import linalg
 from scipy.sparse import csr_matrix
@@ -63,13 +64,13 @@ class data:
         mu_max = dic_init['cuts']['mu-max']
 
         bin_size_rp = (head['RPMAX']-head['RPMIN'])/head['NP']
-        bin_center_rp = sp.zeros(rp.size)
+        bin_center_rp = np.zeros(rp.size)
         for i,trp in enumerate(rp):
             idx = ( (trp-head['RPMIN'])/bin_size_rp ).astype(int)
             bin_center_rp[i] = head['RPMIN']+(idx+0.5)*bin_size_rp
 
         bin_size_rt = head['RTMAX']/head['NT']
-        bin_center_rt = sp.zeros(rt.size)
+        bin_center_rt = np.zeros(rt.size)
         for i,trt in enumerate(rt):
             idx = ( trt/bin_size_rt ).astype(int)
             bin_center_rt[i] = (idx+0.5)*bin_size_rt
@@ -85,7 +86,7 @@ class data:
 
         self.mask = mask
         self.da = da
-        self.da_cut = sp.zeros(mask.sum())
+        self.da_cut = np.zeros(mask.sum())
         self.da_cut[:] = da[mask]
         self.co = co
         ico = co[:,mask]
@@ -100,11 +101,17 @@ class data:
             print('LOG: Reduced matrix is positive definite')
         except sp.linalg.LinAlgError:
             print('WARNING: Reduced matrix is not positive definite')
+
+        # We need the determinant of the cov matrix for the likelihood norm
+        # log |C| = sum log diag D, where C = L D L*
+        _, d, __ = linalg.ldl(ico)
+        self.log_co_det = np.log(d.diagonal()).sum()
+
         self.ico = linalg.inv(ico)
         self.dm = dm
 
         self.rsquare = sp.sqrt(rp**2+rt**2)
-        self.musquare = sp.zeros(self.rsquare.size)
+        self.musquare = np.zeros(self.rsquare.size)
         w = self.rsquare>0.
         self.musquare[w] = rp[w]/self.rsquare[w]
 
@@ -112,7 +119,7 @@ class data:
         self.rt = dmrt
         self.z = dmz
         self.r = sp.sqrt(self.rp**2+self.rt**2)
-        self.mu = sp.zeros(self.r.size)
+        self.mu = np.zeros(self.r.size)
         w = self.r>0.
         self.mu[w] = self.rp[w]/self.r[w]
 
@@ -385,3 +392,14 @@ class data:
         dxi = self.da_cut-xi_full[self.mask]
 
         return dxi.T.dot(self.ico.dot(dxi))
+
+    def log_lik(self, k, pk_lin, pksb_lin, full_shape, pars):
+        ''' Function computes the normalized log likelihood
+        Uses the chi2 function and computes the normalization
+        '''
+
+        chi2 = self.chi2(k, pk_lin, pksb_lin, full_shape, pars)
+        log_lik = - 0.5 * len(self.da_cut) * np.log(2 * np.pi) - 0.5 * self.log_co_det
+        log_lik -= 0.5 * chi2
+
+        return log_lik
