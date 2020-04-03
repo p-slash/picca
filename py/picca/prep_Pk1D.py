@@ -1,4 +1,5 @@
 from __future__ import print_function
+import numpy as np
 import scipy as sp
 
 from picca import constants
@@ -8,10 +9,10 @@ from picca.utils import print
 def exp_diff(file,ll) :
 
     nexp_per_col = file[0].read_header()['NEXP']//2
-    fltotodd  = sp.zeros(ll.size)
-    ivtotodd  = sp.zeros(ll.size)
-    fltoteven = sp.zeros(ll.size)
-    ivtoteven = sp.zeros(ll.size)
+    fltotodd  = np.zeros(ll.size)
+    ivtotodd  = np.zeros(ll.size)
+    fltoteven = np.zeros(ll.size)
+    ivtoteven = np.zeros(ll.size)
 
     if (nexp_per_col)<2 :
         print("DBG : not enough exposures for diff")
@@ -55,7 +56,7 @@ def spectral_resolution(wdisp,with_correction=None,fiber=None,ll=None) :
     reso = wdisp*constants.speed_light/1000.*1.0e-4*sp.log(10.)
 
     if (with_correction):
-        wave = sp.power(10.,ll)
+        wave = np.power(10.,ll)
         corrPlateau = 1.267 - 0.000142716*wave + 1.9068e-08*wave*wave;
         corrPlateau[wave>6000.0] = 1.097
 
@@ -71,11 +72,11 @@ def spectral_resolution(wdisp,with_correction=None,fiber=None,ll=None) :
 
 def spectral_resolution_desi(reso_matrix, ll) :
 
-    reso= sp.clip(reso_matrix,1.0e-6,1.0e6)   #note that the following is not strictly speaking right, as the resolution matrix has been convolved with a rectangle along both rows and cols
-    rms_in_pixel = (sp.sqrt(1.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2-1][:]))
-                    + sp.sqrt(4.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2-2][:]))
-                    + sp.sqrt(1.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2+1][:]))
-                    + sp.sqrt(4.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2+2][:]))
+    reso= np.clip(reso_matrix,1.0e-6,1.0e6)   #note that the following is not strictly speaking right, as the resolution matrix has been convolved with a rectangle along both rows and cols
+    rms_in_pixel = (np.sqrt(1.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2-1][:]))
+                    + np.sqrt(4.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2-2][:]))
+                    + np.sqrt(1.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2+1][:]))
+                    + np.sqrt(4.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2+2][:]))
                     )/4.0
 
     return rms_in_pixel#reso_in_km_per_s

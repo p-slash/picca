@@ -1,4 +1,10 @@
 **/*.pyc
 *~
-.vscode/settings.json
-**/*.egg-info/*
+
+\.vscode/
+
+\dist/
+
+\build/
+
+py/picca\.egg-info/
