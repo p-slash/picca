@@ -696,7 +696,7 @@ def read_from_spplate(in_dir, thid, ra, dec, zqso, plate, mjd, fid, order, log=N
 def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False):
 
     if not minisv:
-	in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
+        in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
         nest = True
         in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra,nest=nest)
         fi = sp.unique(in_pixs)
@@ -720,11 +720,11 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
         try:
             h = fitsio.FITS(path)
-	    if not minisv:
-	    	tid_qsos = thid[(in_pixs==f)]
-            	plate_qsos = plate[(in_pixs==f)]
-            	mjd_qsos = mjd[(in_pixs==f)]
-            	fid_qsos = fid[(in_pixs==f)]
+        if not minisv:
+            tid_qsos = thid[(in_pixs==f)]
+            plate_qsos = plate[(in_pixs==f)]
+            mjd_qsos = mjd[(in_pixs==f)]
+            fid_qsos = fid[(in_pixs==f)]
         except IOError:
             print("Error reading pix {}\n".format(f))
             continue      
@@ -748,7 +748,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         if not minisv:
             bandnames=['B','R','Z']
         else:
-            bandnames=['BRZ']	
+            bandnames=['BRZ']
         for spec in bandnames:
             dic = {}
             try:
