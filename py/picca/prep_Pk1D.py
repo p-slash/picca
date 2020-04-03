@@ -56,7 +56,7 @@ def spectral_resolution(wdisp,with_correction=None,fiber=None,ll=None) :
     reso = wdisp*constants.speed_light/1000.*1.0e-4*sp.log(10.)
 
     if (with_correction):
-        wave = sp.power(10.,ll)
+        wave = np.power(10.,ll)
         corrPlateau = 1.267 - 0.000142716*wave + 1.9068e-08*wave*wave;
         corrPlateau[wave>6000.0] = 1.097
 
@@ -72,11 +72,11 @@ def spectral_resolution(wdisp,with_correction=None,fiber=None,ll=None) :
 
 def spectral_resolution_desi(reso_matrix, ll) :
 
-    reso= sp.clip(reso_matrix,1.0e-6,1.0e6)   #note that the following is not strictly speaking right, as the resolution matrix has been convolved with a rectangle along both rows and cols
-    rms_in_pixel = (sp.sqrt(1.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2-1][:]))
-                    + sp.sqrt(4.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2-2][:]))
-                    + sp.sqrt(1.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2+1][:]))
-                    + sp.sqrt(4.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2+2][:]))
+    reso= np.clip(reso_matrix,1.0e-6,1.0e6)   #note that the following is not strictly speaking right, as the resolution matrix has been convolved with a rectangle along both rows and cols
+    rms_in_pixel = (np.sqrt(1.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2-1][:]))
+                    + np.sqrt(4.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2-2][:]))
+                    + np.sqrt(1.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2+1][:]))
+                    + np.sqrt(4.0/2.0/sp.log(reso[len(reso)//2][:]/reso[len(reso)//2+2][:]))
                     )/4.0
 
     return rms_in_pixel#reso_in_km_per_s
