@@ -720,11 +720,11 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
         try:
             h = fitsio.FITS(path)
-        if not minisv:
-            tid_qsos = thid[(in_pixs==f)]
-            plate_qsos = plate[(in_pixs==f)]
-            mjd_qsos = mjd[(in_pixs==f)]
-            fid_qsos = fid[(in_pixs==f)]
+            if not minisv:
+                tid_qsos = thid[(in_pixs==f)]
+                plate_qsos = plate[(in_pixs==f)]
+                mjd_qsos = mjd[(in_pixs==f)]
+                fid_qsos = fid[(in_pixs==f)]
         except IOError:
             print("Error reading pix {}\n".format(f))
             continue      
