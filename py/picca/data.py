@@ -335,7 +335,7 @@ class forest(qso):
             for l in mask:
                 w &= (self.ll-sp.log10(1.+zabs)<l[0]) | (self.ll-sp.log10(1.+zabs)>l[1])
 
-        ps = ['iv','ll','fl','T_dla','Fbar','mmef','diff','reso']
+        ps = ['iv','ll','fl','T_dla','Fbar','mmef','diff','reso','reso_matrix']
         for p in ps:
             if hasattr(self,p) and (getattr(self,p) is not None):
                 if 'matrix' not in p:
