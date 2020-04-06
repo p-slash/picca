@@ -154,6 +154,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--use-desi-P1d-changes', action='store_true', default = False,
         help='use changes put into picca to allow resolution treatment for the P1d more properly with DESI mocks (e.g. different sampling)')
+    
+    parser.add_argument('--min-SNR', type=float, default = 1,
+        help='only use data with at least this SNR, note that MiniSV analyses ran at 0.2, else 1 was default')
 
     args = parser.parse_args()
 
@@ -338,7 +341,7 @@ if __name__ == '__main__':
                 log.write("INFO: Rejected {} due to nan found\n".format(d.thid))
                 continue
 
-            if(args.use_constant_weight and (d.fl.mean()<=0.0 or d.mean_SNR<=1.0 )):
+            if(args.use_constant_weight and (d.fl.mean()<=0.0 or d.mean_SNR<=args.min_SNR )):
                 log.write("INFO: Rejected {} due to negative mean or too low SNR found\n".format(d.thid))
                 continue
 
