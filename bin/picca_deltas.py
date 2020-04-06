@@ -496,7 +496,7 @@ if __name__ == '__main__':
                 if (args.delta_format=='Pk1D'):
                     dll = d.dll
                     desi_pixsize=1 #set desi pixel size to one angstrom, generalize later
-                    if (args.mode=='desi') :
+                    if (args.mode is not None and 'desi' in args.mode):
                         #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
                         dll = sp.mean(sp.diff(d.ll))  #this is better as masking is ignored 
                         dll_resmat=sp.median(10**-d.ll)*desi_pixsize/sp.log(10.) #this is 1 angstrom pixel size * mean(1/lambda) or median(1/lambda)
