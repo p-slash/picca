@@ -457,7 +457,7 @@ if __name__ == '__main__':
             for d in deltas[p]:
                 nbpixel = len(d.de)
                 dll = d.dll
-                if (if args.mode is not None and 'desi' in args.mode) :
+                if (args.mode is not None and 'desi' in args.mode) :
                     desi_pixsize=1 #set desi pixel size to one angstrom, generalize later
                     #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
                     dll=sp.median(sp.diff(d.ll)) #this is better as masking is ignored 
