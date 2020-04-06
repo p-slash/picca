@@ -521,14 +521,14 @@ if __name__ == '__main__':
                     diff = d.diff
                     if diff is None:
                         diff = d.ll*0
-                    if args.use_resolution_matrix and args.mode=='desi':
+                    if args.use_resolution_matrix and (args.mode is not None and 'desi' in args.mode) :
                         resomat=d.reso_matrix.T
 
                     cols=[d.ll,d.de,d.iv,diff]
                     names=['LOGLAM','DELTA','IVAR','DIFF']
                     units=['log Angstrom','','','']
                     comments = ['Log lambda','Delta field','Inverse variance','Difference']
-                    if args.use_resolution_matrix and args.mode=='desi':
+                    if args.use_resolution_matrix and (args.mode is not None and 'desi' in args.mode) :
                         cols.extend([resomat])
                         names.extend(['RESOMAT'])
                         units.extend(['(pixel)'])
