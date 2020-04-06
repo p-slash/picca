@@ -196,7 +196,7 @@ def compute_Pk_raw(dll,delta,linear_binning=False):   #MW: why does this functio
     return k,Pk
 
 
-def compute_Pk_noise(dll,iv,diff,run_noise,linear_binning=False):
+def compute_Pk_noise(dll,iv,diff,run_noise,linear_binning=False,nb_noise_exp=10):
     """
     compute noise power
 
@@ -212,7 +212,6 @@ def compute_Pk_noise(dll,iv,diff,run_noise,linear_binning=False):
     nb_pixels = len(iv)
     nb_bin_FFT = nb_pixels//2 + 1
 
-    nb_noise_exp = 10
     Pk = np.zeros(nb_bin_FFT)
     err = np.zeros(nb_pixels)
     w = iv>0

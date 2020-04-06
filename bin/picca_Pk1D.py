@@ -308,7 +308,7 @@ if __name__ == '__main__':
                 # Compute Pk_noise
                 run_noise = False
                 if (args.noise_estimate=='pipeline'): run_noise=True
-                Pk_noise,Pk_diff = compute_Pk_noise(d.dll,iv_new,diff_new,run_noise,linear_binning=args.linear_binning)
+                Pk_noise,Pk_diff = compute_Pk_noise(d.dll,iv_new,diff_new,run_noise,linear_binning=args.linear_binning,nb_noise_exp=100)
 
                 # Compute resolution correction
                 
