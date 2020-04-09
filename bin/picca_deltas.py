@@ -171,7 +171,8 @@ if __name__ == '__main__':
         args.linear_binning = True
         if args.delta_format == 'Pk1D':
             args.use_resolution_matrix=True
-        forest.dlambda = 1     #note: desi observations will be half of this in the end...
+        forest.dlambda = 0.8     #note: desi observations will be half of this in the end...
+        #forest.dlambda = 1. #was used for mocks
         forest.dll = None
         forest.linear_binning = True
     elif args.linear_binning:
