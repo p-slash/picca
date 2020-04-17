@@ -778,34 +778,30 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 print("plate_spec : {}".format(plate_spec))
                 continue
 
-            for t,p,m,f in zip(tid_qsos,plate_qsos,mjd_qsos,fid_qsos):
-                wt = in_tids == t
-                if wt.sum()==0:
-                    print("\nError reading thingid {}\n".format(t))
-                    continue
-
-                d = None
-                for tspecData in specData.values():
-                    iv = tspecData['IV'][wt]
-                    fl = (iv*tspecData['FL'][wt]).sum(axis=0)
-                    iv = iv.sum(axis=0)
-                    w = iv>0.
-                    fl[w] /= iv[w]
-                    if pk1d is not None:
-                        reso_sum = tspecData['RESO'][wt].sum(axis=0)
-                        reso_in_pixel = spectral_resolution_desi(reso_sum,tspecData['LL'])
-                        diff = sp.zeros(tspecData['LL'].shape)
-                    else:
-                        reso_in_km_per_s = None
-                        diff = None
-                    td = forest(tspecData['LL'],fl,iv,t,ra[wt][0],de[wt][0],ztable[t],
-                        p,m,f,order,diff,reso_in_pixel,reso_matrix=reso_sum)
-                    if d is None:
-                        d = copy.deepcopy(td)
-                    else:
-                        d += td
-
-            pix = pixs[wt][0]
+            d = None
+            for tspecData in specData.values():
+                iv = tspecData['IV'][wt]
+                fl = (iv*tspecData['FL'][wt]).sum(axis=0)
+                iv = iv.sum(axis=0)
+                w = iv>0.
+                fl[w] /= iv[w]
+                if pk1d is not None:
+                    reso_sum = tspecData['RESO'][wt].sum(axis=0)
+                    reso_in_pixel = spectral_resolution_desi(reso_sum,tspecData['LL'])
+                    diff = sp.zeros(tspecData['LL'].shape)
+                else:
+                    reso_in_km_per_s = None
+                    diff = None
+                td = forest(tspecData['LL'],fl,iv,t,ra[wt][0],de[wt][0],ztable[t],
+                    p,m,f,order,diff,reso_in_pixel,reso_matrix=reso_sum)
+                if d is None:
+                    d = copy.deepcopy(td)
+                else:
+                    d += td
+            if not minisv:
+                pix = pixs[wt][0]
+            else:
+                pix = plate_spec
             if pix not in data:
                 data[pix]=[]
             data[pix].append(d)

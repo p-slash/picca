@@ -194,7 +194,8 @@ if __name__ == '__main__':
 
     data = {}
     ndata = 0
-
+    print(args.in_dir)
+    print(fi)
     # initialize randoms
     sp.random.seed(4)
     skipmsgprinted=False
