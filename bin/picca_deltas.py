@@ -525,7 +525,7 @@ if __name__ == '__main__':
                     if args.use_resolution_matrix and (args.mode is not None and 'desi' in args.mode) :
                         resomat=d.reso_matrix.T
 
-                    cols=[d.ll,d.de,d.iv,diff]
+                    cols=[d.ll,d.de,d.iv,diff,d.co]
                     names=['LOGLAM','DELTA','IVAR','DIFF','CONT']
                     units=['log Angstrom','','','']
                     comments = ['Log lambda','Delta field','Inverse variance','Difference','Continuum']
