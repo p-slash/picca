@@ -526,9 +526,9 @@ if __name__ == '__main__':
                         resomat=d.reso_matrix.T
 
                     cols=[d.ll,d.de,d.iv,diff]
-                    names=['LOGLAM','DELTA','IVAR','DIFF']
+                    names=['LOGLAM','DELTA','IVAR','DIFF','CONT']
                     units=['log Angstrom','','','']
-                    comments = ['Log lambda','Delta field','Inverse variance','Difference']
+                    comments = ['Log lambda','Delta field','Inverse variance','Difference','Continuum']
                     if args.use_resolution_matrix and (args.mode is not None and 'desi' in args.mode) :
                         cols.extend([resomat])
                         names.extend(['RESOMAT'])
