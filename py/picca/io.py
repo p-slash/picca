@@ -750,7 +750,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         else:
             if 'BRZ_WAVELENGTH' in h.hdu_map.keys():
                 bandnames=['BRZ']
-            elif 'B' in h.keys():
+            elif 'B' in h.hdu_map.keys():
                 bandnames=['B','R','Z']
             else:
                 raise ValueError('data format not understood, neither blue spectrograph, nor BRZ coadd are part of the file (or the way they are in is not implemented)')
