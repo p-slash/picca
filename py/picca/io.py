@@ -748,7 +748,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         if not minisv:
             bandnames=['B','R','Z']
         else:
-            if 'BRZ_WAVELENGTH' in h.keys():
+            if 'BRZ_WAVELENGTH' in h.hdu_map.keys():
                 bandnames=['BRZ']
             elif 'B' in h.keys():
                 bandnames=['B','R','Z']
