@@ -748,20 +748,26 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         if not minisv:
             bandnames=['B','R','Z']
         else:
-            bandnames=['BRZ']
+            if 'BRZ_WAVELENGTH' in h.keys():
+                bandnames=['BRZ']
+            elif 'B' in h.keys():
+                bandnames=['B','R','Z']
+            else:
+                raise ValueError('data format not understood, neither blue spectrograph, nor BRZ coadd are part of the file (or the way they are in is not implemented)')
         for spec in bandnames:
             dic = {}
             try:
                 dic['LL'] = sp.log10(h['{}_WAVELENGTH'.format(spec)].read())
                 dic['FL'] = h['{}_FLUX'.format(spec)].read()
                 dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
+                list_to_mask = ['FL','IV']
+
                 if ('{}_DIFF_FLUX'.format(spec) in h): 
                     dic['DIFF'] = h['{}_DIFF_FLUX'.format(spec)].read()
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV']) | sp.isnan(dic['DIFF'])
-                    list_to_mask = ['FL','IV','DIFF']
-                else :
+                    list_to_mask.append('DIFF')
+                else:
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
-                    list_to_mask = ['FL','IV']
                 for k in list_to_mask:
                     dic[k][w] = 0.
                 dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
