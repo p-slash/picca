@@ -755,8 +755,14 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 dic['LL'] = sp.log10(h['{}_WAVELENGTH'.format(spec)].read())
                 dic['FL'] = h['{}_FLUX'.format(spec)].read()
                 dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
-                w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
-                for k in ['FL','IV']:
+                if ('{}_DIFF_FLUX'.format(spec) in h): 
+                    dic['DIFF'] = h['{}_DIFF_FLUX'.format(spec)].read()
+                    w = sp.isnan(dic['FL']) | sp.isnan(dic['IV']) | sp.isnan(dic['DIFF'])
+                    list_to_mask = ['FL','IV','DIFF']
+                else :
+                    w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
+                    list_to_mask = ['FL','IV']
+                for k in list_to_mask:
                     dic[k][w] = 0.
                 dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
                 specData[spec] = dic
@@ -782,16 +788,21 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             for tspecData in specData.values():
                 iv = tspecData['IV'][wt]
                 fl = (iv*tspecData['FL'][wt]).sum(axis=0)
+                if("DIFF" in tspecData): diff_sp = (iv*tspecData['DIFF'][wt]).sum(axis=0)
+                else : diff_sp = None
                 iv = iv.sum(axis=0)
                 w = iv>0.
                 fl[w] /= iv[w]
+                if diff_sp is not None : diff_sp[w] /= iv[w]
                 if pk1d is not None:
                     reso_sum = tspecData['RESO'][wt].sum(axis=0)
                     reso_in_pixel = spectral_resolution_desi(reso_sum,tspecData['LL'])
-                    diff = sp.zeros(tspecData['LL'].shape)
+                    if(diff_sp is not None): diff = diff_sp
+                    else : diff = sp.zeros(tspecData['LL'].shape)
                 else:
-                    reso_in_km_per_s = None
+                    reso_in_pixel = None
                     diff = None
+                    reso_sum = None
                 td = forest(tspecData['LL'],fl,iv,t,ra[wt][0],de[wt][0],ztable[t],
                     p,m,f,order,diff,reso_in_pixel,reso_matrix=reso_sum)
                 if d is None:
