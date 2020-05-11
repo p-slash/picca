@@ -357,7 +357,7 @@ class forest(qso):
         w = sp.ones(self.ll.size, dtype=bool)
         w &= sp.fabs(1.e4*(self.ll-sp.log10(lambda_absorber)))>forest.absorber_mask
         
-        ps = ['iv','ll','fl','T_dla','Fbar','mmef','diff','reso']
+        ps = ['iv','ll','fl','T_dla','Fbar','mmef','diff','reso','reso_matrix']
         for p in ps:
             if hasattr(self,p) and (getattr(self,p) is not None):
                 if 'matrix' not in p:
