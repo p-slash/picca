@@ -283,7 +283,7 @@ if __name__ == '__main__':
 
     ### Veto lines
     if not usr_mask_obs is None:
-        if ( usr_mask_obs.size+usr_mask_RF.size!=0):
+        if ( usr_mask_obs.size+usr_mask_RF.size!=0):              
             for p in data:
                 for d in data[p]:
                     d.mask(mask_obs=usr_mask_obs , mask_RF=usr_mask_RF)
@@ -320,6 +320,7 @@ if __name__ == '__main__':
         sp.random.seed(0)
         dlas = io.read_dlas(args.dla_vac)
         nb_dla_in_forest = 0
+        breakpoint()
         for p in data:
             for d in data[p]:
                 if d.thid in dlas:
@@ -349,6 +350,7 @@ if __name__ == '__main__':
             l.append(d)
             log.write("{} {}-{}-{} accepted\n".format(d.thid,
                 d.plate,d.mjd,d.fid))
+
         data[p][:] = l
         if len(data[p])==0:
             lstKeysToDel += [p]
@@ -361,12 +363,13 @@ if __name__ == '__main__':
     for p in data:
         for d in data[p]:
             assert hasattr(d,'ll')
-
+    breakpoint()            
     for it in range(nit):
         pool = Pool(processes=args.nproc)
         print("iteration: ", it)
         nfit = 0
         sort = sp.array(list(data.keys())).argsort()
+        breakpoint()
         data_fit_cont = pool.map(cont_fit, sp.array(list(data.values()))[sort] )
         for i, p in enumerate(sorted(list(data.keys()))):
             data[p] = data_fit_cont[i]
@@ -376,6 +379,7 @@ if __name__ == '__main__':
         pool.close()
 
         if it < nit-1:
+            breakpoint()
             ll_rest, mc, wmc = prep_del.mc(data)
             forest.mean_cont = interp1d(ll_rest[wmc>0.], forest.mean_cont(ll_rest[wmc>0.]) * mc[wmc>0.], fill_value = "extrapolate")
             if not (args.use_ivar_as_weight or args.use_constant_weight):
@@ -420,7 +424,7 @@ if __name__ == '__main__':
                 forest.var_lss = interp1d(ll, vlss, fill_value='extrapolate', kind='nearest')
                 forest.fudge = interp1d(ll, fudge, fill_value='extrapolate', kind='nearest')
 
-
+    breakpoint()
     ll_st,st,wst = prep_del.stack(data)
 
     ### Save iter_out_prefix
@@ -440,6 +444,8 @@ if __name__ == '__main__':
     st = interp1d(ll_st[wst>0.],st[wst>0.],kind="nearest",fill_value="extrapolate")
     deltas = {}
     data_bad_cont = []
+    breakpoint()
+                
     for p in sorted(data.keys()):
         deltas[p] = [delta.from_forest(d,st,forest.var_lss,forest.eta,forest.fudge, args.use_mock_continuum) for d in data[p] if d.bad_cont is None]
         data_bad_cont = data_bad_cont + [d for d in data[p] if d.bad_cont is not None]
