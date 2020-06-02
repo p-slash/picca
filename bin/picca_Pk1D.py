@@ -145,6 +145,13 @@ if __name__ == '__main__':
     parser.add_argument('--use-desi-new-defaults', action='store_true', default = False,
         help='use changes put into picca to allow resolution treatment for the P1d more properly with DESI mocks (e.g. different sampling)')
 
+    parser.add_argument('--nb-noise-exp', default = 100, type=int,
+        help='number of pipeline noise realizations to generate per spectrum')
+
+    parser.add_argument('--noise-overestim-factor', default = 1.0, type=float,
+        help='factor by which the pipeline noise is too large') 
+
+
 
     args = parser.parse_args()
     if args.use_desi_new_defaults:
@@ -309,11 +316,11 @@ if __name__ == '__main__':
                 # Compute Pk_noise
                 run_noise = False
                 if (args.noise_estimate=='pipeline'): run_noise=True
-                Pk_noise,Pk_diff = compute_Pk_noise(d.dll,iv_new,diff_new,run_noise,linear_binning=args.linear_binning,nb_noise_exp=100)
+                Pk_noise,Pk_diff = compute_Pk_noise(d.dll,iv_new*args.noise_overestim_factor**2,diff_new,run_noise,linear_binning=args.linear_binning,nb_noise_exp=args.nb_noise_exp)
 
                 # Compute resolution correction
                 
-                if args.linear_binning:  #it's weird to compute this here manually, could be cleaned up
+                if args.linear_binning:  #it's weird to compute this here manually, could be cleaned up 
                     delta_pixel = d.dlambda
                 else:
                     delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
@@ -385,7 +392,8 @@ if __name__ == '__main__':
                         {'name':'PLATE','value':d.plate,'comment':"Spectrum's plate id"},
                         {'name':'MJD','value':d.mjd,'comment':'Modified Julian Date,date the spectrum was taken'},
                         {'name': 'FIBER', 'value': d.fid, 'comment': "Spectrum's fiber number"},
-                        {'name': 'LIN_BIN', 'value': args.linear_binning, 'comment': "analysis was performed on delta with linear binned lambda"}
+                        {'name': 'LIN_BIN', 'value': args.linear_binning, 'comment': "analysis was performed on delta with linear binned lambda"},
+                        {'name': 'THING_ID', 'value': d.thid, 'comment': "thingid"}
                     ]
 
                     cols=[k,Pk_raw,Pk_noise,Pk_diff,cor_reso,Pk]
@@ -399,7 +407,7 @@ if __name__ == '__main__':
                     try:
                         out.write(cols,names=names,header=hd,comments=comments,units=units)
                     except AttributeError:
-                        out = fitsio.FITS(args.out_dir+'/Pk1D-'+str(i)+'.fits.gz','rw',clobber=True)
+                        out = fitsio.FITS(args.out_dir+'/Pk1D-'+str(d.plate)+'.fits.gz','rw',clobber=True)    #note that the former naming convention only had a number instead of plate here
                         out.write(cols,names=names,header=hd,comment=comments,units=units)
         if (args.out_format=='fits' and out is not None):
             out.close()

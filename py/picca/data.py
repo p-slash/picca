@@ -108,6 +108,7 @@ class forest(qso):
     reso_matrix = None
     mean_reso_matrix = None
     linear_binning = None
+    mc_rebin_fac = None
 
 
     def __init__(self, ll, fl, iv, thid, ra, dec, zqso, plate, mjd, fid, order, diff=None, reso=None, mmef = None, reso_matrix=None):
@@ -265,7 +266,7 @@ class forest(qso):
             else: #for e.g. the reso matrix
                 cnew = np.zeros([v.shape[0],bins.max() + 1])
                 for ivsub,vsub in enumerate(v):
-                    ccsubnew = sp.bincount(bins, weights=iv * vsub)
+                    ccsubnew = sp.bincount(bins, weights=iv * vsub)    #this doesn't coadd the reso matrix correctly
                     cnew[ivsub,:len(ccnew)] += ccsubnew
                 setattr(self, k, cnew[:,w] / civ[w])
 
@@ -376,7 +377,7 @@ class forest(qso):
         lmax = forest.lmax_rest+sp.log10(1+self.zqso)
         lmin = forest.lmin_rest+sp.log10(1+self.zqso)
         try:
-            mc = forest.mean_cont(self.ll-sp.log10(1+self.zqso))
+            mc = forest.mean_cont(self.ll-sp.log10(1+self.zqso))          #this is the mean cont for log lambda_RF
         except ValueError:
             raise Exception
 

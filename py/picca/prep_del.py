@@ -8,8 +8,15 @@ from picca.utils import print
 ## mean continuum
 def mc(data):
     if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
-        nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/(forest.dlambda*(1+2.1)))+1   #just took the pixel size at z=2.1 here, this needs to be changed to something reasonable       
-        ll = sp.log10(10**forest.lmin_rest + (sp.arange(nmc)+.5)*(10**forest.lmax_rest-10**forest.lmin_rest)/nmc)
+        nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/forest.mc_rebin_fac/(forest.dlambda/(1+2.1)))+1  
+        # the redshift factor at the end converts pixel size from obs to rest, the rebinning allows for coarser bins which leads to less noisy continua
+        # in the case of few spectra
+        
+        # the following line allows having everything in linearly spaced pixels even here, but is this a good idea? 
+        # Maybe one should even just use the standard way of doing this fit (which should also work)
+        # it's also buggy given that bins down there is defined differently... (the effect is not super large)
+        #   ll = sp.log10(10**forest.lmin_rest + (sp.arange(nmc)+.5)*(10**forest.lmax_rest-10**forest.lmin_rest)/nmc)
+        ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc
     else:
         nmc = int((forest.lmax_rest-forest.lmin_rest)/forest.dll)+1  
         ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc

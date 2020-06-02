@@ -158,6 +158,13 @@ if __name__ == '__main__':
     parser.add_argument('--min-SNR', type=float, default = 1,
         help='only use data with at least this SNR, note that MiniSV analyses ran at 0.2, else 1 was default')
 
+    
+    parser.add_argument('--mc-rebin-fac', type=int, default = 10,
+        help='use pixels coarser by this factor when estimating the mean continuum')
+
+    parser.add_argument('--use-poly-meancont', action='store_true', default = False,
+        help='fit a polynomial to the mean continuum instead of doing linear interpolation')
+
     args = parser.parse_args()
 
     ## init forest class
@@ -166,6 +173,7 @@ if __name__ == '__main__':
     forest.lmax = sp.log10(args.lambda_max)
     forest.lmin_rest = sp.log10(args.lambda_rest_min)
     forest.lmax_rest = sp.log10(args.lambda_rest_max)
+    forest.mc_rebin_fac = args.mc_rebin_fac
         
     if args.use_desi_P1d_changes:
         args.linear_binning = True
@@ -320,7 +328,7 @@ if __name__ == '__main__':
         sp.random.seed(0)
         dlas = io.read_dlas(args.dla_vac)
         nb_dla_in_forest = 0
-        #breakpoint()
+        
         for p in data:
             for d in data[p]:
                 if d.thid in dlas:
@@ -363,25 +371,61 @@ if __name__ == '__main__':
     for p in data:
         for d in data[p]:
             assert hasattr(d,'ll')
-    #breakpoint()            
+                
     for it in range(nit):
-        pool = Pool(processes=args.nproc)
         print("iteration: ", it)
         nfit = 0
         sort = sp.array(list(data.keys())).argsort()
-        #breakpoint()
-        data_fit_cont = pool.map(cont_fit, sp.array(list(data.values()))[sort] )
+        
+        if args.nproc>1:
+            pool = Pool(processes=args.nproc)
+            data_fit_cont = pool.map(cont_fit, sp.array(list(data.values()))[sort] )
+        else:
+            data_fit_cont=[]
+            for i in sp.array(list(data.values()))[sort]:
+                data_fit_cont.append(cont_fit(i))
         for i, p in enumerate(sorted(list(data.keys()))):
             data[p] = data_fit_cont[i]
 
         print("done")
-
-        pool.close()
+        if args.nproc>1:
+            pool.close()
 
         if it < nit-1:
-            #breakpoint()
+            
             ll_rest, mc, wmc = prep_del.mc(data)
-            forest.mean_cont = interp1d(ll_rest[wmc>0.], forest.mean_cont(ll_rest[wmc>0.]) * mc[wmc>0.], fill_value = "extrapolate")
+            # shouldn't the mean continuum be obtained using a fitting funciton to mc instead of using linear interpolation ??? 
+            # This would allow way smoother continua in this step if there's few spectra, this fit could potentially also be done to the non-stacked data
+            if args.use_poly_meancont:
+                import iminuit
+                ll_cen=np.mean(ll_rest)
+                fit_order=12
+                def fcn(pars):
+                  poly=np.polyval(pars,ll_rest[wmc>0]-ll_cen)
+                  return 0.5*np.sum(((mc[wmc>0] - poly)/np.std(mc[wmc>0]))**2)
+
+                if it==0:
+                    fitter=iminuit.Minuit.from_array_func(fcn,np.zeros(fit_order+1), error=np.ones(fit_order+1),errordef=0.5)
+                    fitter.values['x{:d}'.format(fit_order)]=np.mean(mc[wmc>0])    #probably need to fix order in here or sth
+                if it>0:
+                    #this is for initializing at previous best fit, but using the new lambda/mc arrays
+                    oldpars=fitter.np_values()
+                    fitter=iminuit.Minuit.from_array_func(fcn,oldpars, error=oldpars/2,errordef=0.5)
+                    #for i in range(args.order):
+                    #    fitter.fixed['x{:d}'.format(fit_order-i)]=True
+                    #maybe need to fix some pars in that case
+
+                fmin,_=fitter.migrad()
+                if not fmin.is_valid:
+                    #raise ValueError("Error in fitting mean cont with polynomial")
+                    pass
+                    #seems to get invalid fits sometimes, but still doesn't necessarily look terrible
+                    #breakpoint()
+                def mean_cont_fct(ll):
+                    return np.polyval(fitter.np_values(),ll-ll_cen)
+                forest.mean_cont = mean_cont_fct
+            else:
+                forest.mean_cont = interp1d(ll_rest[wmc>0.], forest.mean_cont(ll_rest[wmc>0.]) * mc[wmc>0.], fill_value = "extrapolate")
             if not (args.use_ivar_as_weight or args.use_constant_weight):
                 ll, eta, vlss, fudge, nb_pixels, var, var_del, var2_del,\
                     count, nqsos, chi2, err_eta, err_vlss, err_fudge = \
@@ -424,27 +468,27 @@ if __name__ == '__main__':
                 forest.var_lss = interp1d(ll, vlss, fill_value='extrapolate', kind='nearest')
                 forest.fudge = interp1d(ll, fudge, fill_value='extrapolate', kind='nearest')
 
-    #breakpoint()
-    ll_st,st,wst = prep_del.stack(data)
+    
+        ll_st,st,wst = prep_del.stack(data)
 
-    ### Save iter_out_prefix
-    res = fitsio.FITS(args.iter_out_prefix+".fits.gz",'rw',clobber=True)
-    hd = {}
-    hd["NSIDE"] = healpy_nside
-    hd["PIXORDER"] = healpy_pix_ordering
-    hd["FITORDER"] = args.order
-    res.write([ll_st,st,wst],names=['loglam','stack','weight'],header=hd,extname='STACK')
-    res.write([ll,eta,vlss,fudge,nb_pixels],names=['loglam','eta','var_lss','fudge','nb_pixels'],extname='WEIGHT')
-    res.write([ll_rest,forest.mean_cont(ll_rest),wmc],names=['loglam_rest','mean_cont','weight'],extname='CONT')
-    var = sp.broadcast_to(var.reshape(1,-1),var_del.shape)
-    res.write([var,var_del,var2_del,count,nqsos,chi2],names=['var_pipe','var_del','var2_del','count','nqsos','chi2'],extname='VAR')
-    res.close()
+        ### Save iter_out_prefix
+        res = fitsio.FITS(args.iter_out_prefix+"_{:d}.fits.gz".format(it),'rw',clobber=True)
+        hd = {}
+        hd["NSIDE"] = healpy_nside
+        hd["PIXORDER"] = healpy_pix_ordering
+        hd["FITORDER"] = args.order
+        res.write([ll_st,st,wst],names=['loglam','stack','weight'],header=hd,extname='STACK')
+        res.write([ll,eta,vlss,fudge,nb_pixels],names=['loglam','eta','var_lss','fudge','nb_pixels'],extname='WEIGHT')
+        res.write([ll_rest,forest.mean_cont(ll_rest),wmc],names=['loglam_rest','mean_cont','weight'],extname='CONT')
+        var_out = sp.broadcast_to(var.reshape(1,-1),var_del.shape)
+        res.write([var_out,var_del,var2_del,count,nqsos,chi2],names=['var_pipe','var_del','var2_del','count','nqsos','chi2'],extname='VAR')
+        res.close()
 
     ### Save delta
     st = interp1d(ll_st[wst>0.],st[wst>0.],kind="nearest",fill_value="extrapolate")
     deltas = {}
     data_bad_cont = []
-    #breakpoint()
+        
                 
     for p in sorted(data.keys()):
         deltas[p] = [delta.from_forest(d,st,forest.var_lss,forest.eta,forest.fudge, args.use_mock_continuum) for d in data[p] if d.bad_cont is None]
