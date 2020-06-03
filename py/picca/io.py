@@ -860,12 +860,12 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             if 'TILEID' in h["FIBERMAP"].get_colnames():
                 tile_spec=h["FIBERMAP"]["TILEID"][:][0]
             else:
-                tile_spec=spec.split('-')[-2]    #minisv tiles don't have this in the fibermap
+                tile_spec=fi.split('-')[-2]    #minisv tiles don't have this in the fibermap
 
             if 'NIGHT' in h["FIBERMAP"].get_colnames():
                 night_spec=h["FIBERMAP"]["NIGHT"][:][0]
             else:
-                night_spec=int(spec.split('-')[-1].split('.')[0])
+                night_spec=int(fi.split('-')[-1].split('.')[0])
         if 'TARGET_RA' in h["FIBERMAP"].get_colnames():
             ra = h["FIBERMAP"]["TARGET_RA"][:]*sp.pi/180.
             de = h["FIBERMAP"]["TARGET_DEC"][:]*sp.pi/180.
@@ -913,11 +913,11 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         h.close()
         if minisv:
             plate_spec = int(str(tile_spec) + str(petal_spec))
-            select=(plate==plate_spec)&(night==night_spec)
+            select=(plate==plate_spec)&(mjd==night_spec)
             print('\nThis is tile {}, petal {}, night {}'.format(tile_spec,petal_spec,night_spec))
             tid_qsos = thid[select]
             plate_qsos = plate[select]
-            night_qsos = night[select]
+            mjd_qsos = mjd[select]
             fid_qsos = fid[select]
 
         for t,p,m,f in zip(tid_qsos,plate_qsos,mjd_qsos,fid_qsos):
