@@ -97,14 +97,14 @@ def rebin_diff_noise(dll,ll,diff):
     # nmax = diff.size//crebin
     # bin2 = np.zeros(diff.size)
     # for n in range (1,nmax +1):
-    #     bin2[n*crebin:] += sp.ones(diff.size-n*crebin)
+    #     bin2[n*crebin:] += np.ones(diff.size-n*crebin)
 
-    cdiff2 = sp.bincount(bin2.astype(int),weights=diff)
-    civ2 = sp.bincount(bin2.astype(int))
+    cdiff2 = np.bincount(bin2.astype(int),weights=diff)
+    civ2 = np.bincount(bin2.astype(int))
     w = (civ2>0)
     if (len(civ2) == 0) :
         print( "Error: diff size = 0 ",diff)
-    diff2 = cdiff2[w]/civ2[w]*sp.sqrt(civ2[w])
+    diff2 = cdiff2[w]/civ2[w]*np.sqrt(civ2[w])
     diffout = np.zeros(diff.size)
     nmax = len(diff)//len(diff2)
     for n in range (nmax+1) :
@@ -136,7 +136,7 @@ def fill_masked_pixels(dll,ll,delta,diff,iv,no_apply_filling):
     
     index =sp.array(ll_idx,dtype=int)
     index_all = range(index[-1]+1)
-    index_ok = sp.in1d(index_all, index)
+    index_ok = np.in1d(index_all, index)
 
     delta_new = np.zeros(len(index_all))
     delta_new[index_ok]=delta
@@ -147,7 +147,7 @@ def fill_masked_pixels(dll,ll,delta,diff,iv,no_apply_filling):
     diff_new = np.zeros(len(index_all))
     diff_new[index_ok]=diff
 
-    iv_new = sp.ones(len(index_all))
+    iv_new = np.ones(len(index_all))
     iv_new *=0.0
     iv_new[index_ok]=iv
 
@@ -215,7 +215,7 @@ def compute_Pk_noise(dll,iv,diff,run_noise,linear_binning=False,nb_noise_exp=10)
     Pk = np.zeros(nb_bin_FFT)
     err = np.zeros(nb_pixels)
     w = iv>0
-    err[w] = 1.0/sp.sqrt(iv[w])
+    err[w] = 1.0/np.sqrt(iv[w])
 
     if (run_noise) :
         for _ in range(nb_noise_exp): #iexp unused, but needed
@@ -247,7 +247,7 @@ def compute_cor_reso(delta_pixel, mean_reso, k, pixel_correction='default',infre
         cor: resolution correction factor (divide P(k) by this)
     """
     nb_bin_FFT = len(k)
-    cor = sp.ones(nb_bin_FFT)
+    cor = np.ones(nb_bin_FFT)
 
     if pixel_correction == 'default':  # default correction
         cor *= sp.sinc(k * delta_pixel / (2 * sp.pi))**2 #use numpy function directly

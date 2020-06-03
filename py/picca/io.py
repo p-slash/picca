@@ -41,7 +41,7 @@ def read_dlas(fdla):
     for t in np.unique(cat['THING_ID']):
         w = t==cat['THING_ID']
         dlas[t] = [ (z,nhi) for z,nhi in zip(cat['Z'][w],cat['NHI'][w]) ]
-    nb_dla = sp.sum([len(d) for d in dlas.values()])
+    nb_dla = np.sum([len(d) for d in dlas.values()])
 
     print('\n')
     print(' In catalog: {} DLAs'.format(nb_dla) )
@@ -98,7 +98,7 @@ def read_drq(drq,zmin,zmax,keep_bal,bi_max=None):
 
     ## Sanity
     print('')
-    w = sp.ones(ra.size,dtype=bool)
+    w = np.ones(ra.size,dtype=bool)
     print(" start               : nb object in cat = {}".format(w.sum()) )
     w &= thid>0
     print(" and thid>0          : nb object in cat = {}".format(w.sum()) )
@@ -149,6 +149,131 @@ def read_drq(drq,zmin,zmax,keep_bal,bi_max=None):
 
     return ra,dec,zqso,thid,plate,mjd,fid
 
+
+def read_zbest(zbestfiles,zmin,zmax,keep_bal,bi_max=None):
+    
+    #probably add a way to allow this being a list of files????
+    if isinstance(zbestfiles, str):
+        zbestfiles=[zbestfiles]
+        numfiles=1
+    else:
+        numfiles=len(zbestfiles)
+    print('Reading {} zbest files'.format(numfiles))
+
+    ra_arr=[]
+    dec_arr=[]
+    night_arr=[]
+    petal_arr=[]
+    fiber_arr=[]
+    tid_arr=[]
+    z_arr=[]
+    for zbest in zbestfiles:
+        h = fitsio.FITS(zbest)
+
+
+        #selection of quasars with good redshifts only, the exact definition here should be decided, could in principle be moved to later
+        
+        select=(h[1]['SPECTYPE'][:].astype(str)=='QSO')&(h[1]['ZWARN'][:]==0)    #astype needed as this can be binary or unicode str depending on fitsio/python combination
+        ## Redshift
+        zqso = h[1]['Z'][:][select]
+
+
+        ## Info of the primary observation
+        
+
+        thid = h[1]['TARGETID'][:][select]
+        if len(thid)==0:
+            print("no valid QSOs in file {}".format(zbest))
+            continue
+
+        tid2=h[2]['TARGETID'][:]
+        ra=np.zeros(len(thid),dtype='float64')
+        dec=np.zeros(len(thid),dtype='float64')
+        plate=np.zeros(len(thid),dtype='int64')
+        night=np.zeros(len(thid),dtype='int64')
+        fid=np.zeros(len(thid),dtype='int64')
+
+        for i,tid in enumerate(thid):
+            #if multiple entries in fibermap take the first here
+            select2=(tid==tid2)
+            ra[i] = h[2]['TARGET_RA'][:][select2][0]
+            dec[i] = h[2]['TARGET_DEC'][:][select2][0]
+            try:
+                plate[i]=int('{}{}'.format(h[2]['TILEID'][:][select2][0], h[2]['PETAL_LOC'][:][select2][0]))
+            except ValueError:
+                plate[i]=int('{}{}'.format(zbest.split('-')[-2], h[2]['PETAL_LOC'][:][select2][0]))   #this is to allow minisv to be read in just the same even without TILEID entries
+            try:
+                night[i]=int(h[2]['NIGHT'][:][select2][0])
+            except:
+                night[i]=int(zbest.split('-')[-1].split('.')[0])
+
+            fid[i]=int( h[2]['FIBER'][:][select2][0])
+
+        h.close()
+
+        ## Sanity
+        print('')
+        w = np.ones(ra.size,dtype=bool)
+        print("Tile {}, Petal {}".format(str(plate[0])[:-1],str(plate[0])[-1]))
+        print(" start               : nb object in cat = {}".format(w.sum()) )
+        #need to have reasonable output lines for this
+        w &= zqso>0.
+        print(" and z>0.            : nb object in cat = {}".format(w.sum()) )
+
+        ## Redshift range
+        if not zmin is None:
+            w &= zqso>=zmin
+            print(" and z>=zmin         : nb object in cat = {}".format(w.sum()) )
+        if not zmax is None:
+            w &= zqso<zmax
+            print(" and z<zmax          : nb object in cat = {}".format(w.sum()) )
+
+        ## BAL visual
+        # if not keep_bal and bi_max==None:
+        #     try:
+        #         bal_flag = h[1]['BAL_FLAG_VI'][:]
+        #         w &= bal_flag==0
+        #         print(" and BAL_FLAG_VI == 0  : nb object in cat = {}".format(ra[w].size) )
+        #     except:
+        #         print("BAL_FLAG_VI not found\n")
+        # ## BAL CIV
+        # if bi_max is not None:
+        #     try:
+        #         bi = h[1]['BI_CIV'][:]
+        #         w &= bi<=bi_max
+        #         print(" and BI_CIV<=bi_max  : nb object in cat = {}".format(ra[w].size) )
+        #     except:
+        #         print("--bi-max set but no BI_CIV field in h")
+        #         sys.exit(1)
+        # print("")
+        if not keep_bal:
+            print("Note that BAL removal is not yet supported for zbest file readin!")
+
+        ra = ra[w]*sp.pi/180.
+        dec = dec[w]*sp.pi/180.
+        zqso = zqso[w]
+        thid = thid[w]
+        plate = plate[w]
+        night = night[w]
+        fid = fid[w]
+
+        ra_arr.extend(ra)
+        dec_arr.extend(dec)
+        fiber_arr.extend(fid)
+        night_arr.extend(night)
+        petal_arr.extend(plate)
+        tid_arr.extend(thid)
+        z_arr.extend(zqso)
+    ra_arr=np.array(ra_arr)
+    dec_arr=np.array(dec_arr)
+    fiber_arr=np.array(fiber_arr)
+    night_arr=np.array(night_arr)
+    petal_arr=np.array(petal_arr)
+    tid_arr=np.array(tid_arr)
+    z_arr=np.array(z_arr)
+    return ra_arr,dec_arr,z_arr,tid_arr,petal_arr,night_arr,fiber_arr
+
+
 def read_dust_map(drq, Rv = 3.793):
     h = fitsio.FITS(drq)
     thid = h[1]['THING_ID'][:]
@@ -163,7 +288,10 @@ nside_min = 8
 def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None):
 
     print("mode: "+mode)
-    ra,dec,zqso,thid,plate,mjd,fid = read_drq(drq,zmin,zmax,keep_bal,bi_max=bi_max)
+    try:
+        ra,dec,zqso,thid,plate,mjd,fid = read_drq(drq,zmin,zmax,keep_bal,bi_max=bi_max)
+    except (ValueError,OSError,AttributeError):
+        ra,dec,zqso,thid,plate,mjd,fid = read_zbest(drq,zmin,zmax,keep_bal,bi_max=bi_max)
 
     if nspec != None:
         ## choose them in a small number of pixels
@@ -198,14 +326,14 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
     elif mode in ["spec","corrected-spec","spcframe","spplate","spec-mock-1D"]:
         nside = 256
         pixs = healpy.ang2pix(nside, sp.pi / 2 - dec, ra)
-        mobj = sp.bincount(pixs).sum()/len(np.unique(pixs))
+        mobj = np.bincount(pixs).sum()/len(np.unique(pixs))
 
         ## determine nside such that there are 1000 objs per pixel on average
         print("determining nside")
         while mobj<target_mobj and nside >= nside_min:
             nside //= 2
             pixs = healpy.ang2pix(nside, sp.pi / 2 - dec, ra)
-            mobj = sp.bincount(pixs).sum()/len(np.unique(pixs))
+            mobj = np.bincount(pixs).sum()/len(np.unique(pixs))
         print("nside = {} -- mean #obj per pixel = {}".format(nside,mobj))
         if log is not None:
             log.write("nside = {} -- mean #obj per pixel = {}\n".format(nside,mobj))
@@ -232,9 +360,9 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
     if mode=="spcframe":
         pix_data = read_from_spcframe(in_dir,thid, ra, dec, zqso, plate, mjd, fid, order, mode=mode, log=log, best_obs=best_obs, single_exp=single_exp)
         ra = [d.ra for d in pix_data]
-        ra = sp.array(ra)
+        ra = np.array(ra)
         dec = [d.dec for d in pix_data]
-        dec = sp.array(dec)
+        dec = np.array(dec)
         pixs = healpy.ang2pix(nside, sp.pi / 2 - dec, ra)
         for i, p in enumerate(pixs):
             if p not in data:
@@ -249,9 +377,9 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
         else:
             pix_data = read_from_spec(in_dir,thid, ra, dec, zqso, plate, mjd, fid, order, mode=mode,log=log, pk1d=pk1d, best_obs=best_obs)
         ra = [d.ra for d in pix_data]
-        ra = sp.array(ra)
+        ra = np.array(ra)
         dec = [d.dec for d in pix_data]
-        dec = sp.array(dec)
+        dec = np.array(dec)
         pixs = healpy.ang2pix(nside, sp.pi / 2 - dec, ra)
         for i, p in enumerate(pixs):
             if p not in data:
@@ -309,7 +437,7 @@ def read_from_spec(in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,mode,log=None,pk1
         qual_spall = spAll[1]["PLATEQUALITY"][:].astype(str)
         zwarn_spall = spAll[1]["ZWARNING"][:]
 
-        w = sp.in1d(thid_spall, thid) & (qual_spall == "good")
+        w = np.in1d(thid_spall, thid) & (qual_spall == "good")
         ## Removing spectra with the following ZWARNING bits set:
         ## SKY, LITTLE_COVERAGE, UNPLUGGED, BAD_TARGET, NODATA
         ## https://www.sdss.org/dr14/algorithms/bitmasks/#ZWARNING
@@ -403,7 +531,7 @@ def read_from_mock_1D(in_dir,thid,ra,dec,zqso,plate,mjd,fid, order,mode,log=None
         h = hdu["{}".format(t)]
         log.write("file: {} hdu {} read  \n".format(fin,h))
         lamb = h["wavelength"][:]
-        ll = sp.log10(lamb)
+        ll = np.log10(lamb)
         fl = h["flux"][:]
         error =h["error"][:]
         iv = 1.0/error**2
@@ -605,7 +733,7 @@ def read_from_spplate(in_dir, thid, ra, dec, zqso, plate, mjd, fid, order, log=N
         qual_spall = spAll[1]["PLATEQUALITY"][:].astype(str)
         zwarn_spall = spAll[1]["ZWARNING"][:]
 
-        w = sp.in1d(thid_spall, thid)
+        w = np.in1d(thid_spall, thid)
         print("INFO: Found {} spectra with required THING_ID".format(w.sum()))
         w &= qual_spall == "good"
         print("INFO: Found {} spectra with 'good' plate".format(w.sum()))
@@ -702,9 +830,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         fi = sp.unique(in_pixs)
     else:
         print("I'm reading minisv")
-        spectra = glob.glob(os.path.join(in_dir,"*/coadd-*.fits"))
-        tiles = [spectra[i].split("/")[-2].strip() for i in range(len(spectra))]
-        petals = []
+        spectra = glob.glob(os.path.join(in_dir,"**/coadd-*.fits"),recursive=True)
         fi = spectra
     data = {}
     ndata = 0
@@ -729,7 +855,17 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             print("Error reading pix {}\n".format(f))
             continue      
         if minisv:
-            petals.append(h["FIBERMAP"]["PETAL_LOC"][:][0])
+            petal_spec=h["FIBERMAP"]["PETAL_LOC"][:][0]
+        
+            if 'TILEID' in h["FIBERMAP"].get_colnames():
+                tile_spec=h["FIBERMAP"]["TILEID"][:][0]
+            else:
+                tile_spec=spec.split('-')[-2]    #minisv tiles don't have this in the fibermap
+
+            if 'NIGHT' in h["FIBERMAP"].get_colnames():
+                night_spec=h["FIBERMAP"]["NIGHT"][:][0]
+            else:
+                night_spec=int(spec.split('-')[-1].split('.')[0])
         if 'TARGET_RA' in h["FIBERMAP"].get_colnames():
             ra = h["FIBERMAP"]["TARGET_RA"][:]*sp.pi/180.
             de = h["FIBERMAP"]["TARGET_DEC"][:]*sp.pi/180.
@@ -757,7 +893,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         for spec in bandnames:
             dic = {}
             try:
-                dic['LL'] = sp.log10(h['{}_WAVELENGTH'.format(spec)].read())
+                dic['LL'] = np.log10(h['{}_WAVELENGTH'.format(spec)].read())
                 dic['FL'] = h['{}_FLUX'.format(spec)].read()
                 dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
                 list_to_mask = ['FL','IV']
@@ -776,11 +912,14 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 pass
         h.close()
         if minisv:
-            plate_spec = int(str(tiles[i]) + str(petals[i]))
-            tid_qsos = thid[(plate==plate_spec)]
-            plate_qsos = plate[(plate==plate_spec)]
-            mjd_qsos = mjd[(plate==plate_spec)]
-            fid_qsos = fid[(plate==plate_spec)]
+            plate_spec = int(str(tile_spec) + str(petal_spec))
+            select=(plate==plate_spec)&(night==night_spec)
+            print('\nThis is tile {}, petal {}, night {}'.format(tile_spec,petal_spec,night_spec))
+            tid_qsos = thid[select]
+            plate_qsos = plate[select]
+            night_qsos = night[select]
+            fid_qsos = fid[select]
+
         for t,p,m,f in zip(tid_qsos,plate_qsos,mjd_qsos,fid_qsos):
             wt = in_tids == t
             if wt.sum()==0:
@@ -827,7 +966,6 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
     print("found {} quasars in input files\n".format(ndata))
 
     return data
-
 
 def read_deltas(indir,nside,lambda_abs,alpha,zref,cosmo,nspec=None,no_project=False,from_image=None):
     '''

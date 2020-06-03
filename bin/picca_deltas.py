@@ -32,8 +32,8 @@ if __name__ == '__main__':
     parser.add_argument('--out-dir',type=str,default=None,required=True,
         help='Output directory')
 
-    parser.add_argument('--drq', type=str, default=None, required=True,
-        help='Catalog of objects in DRQ format')
+    parser.add_argument('--drq', type=str, default=None, nargs='+', required=True,
+        help='Catalog(s) of objects in DRQ format or zbest format')
 
     parser.add_argument('--in-dir', type=str, default=None, required=True,
         help='Directory to spectra files')
@@ -166,6 +166,8 @@ if __name__ == '__main__':
         help='fit a polynomial to the mean continuum instead of doing linear interpolation')
 
     args = parser.parse_args()
+    if len(args.drq)==1:
+        args.drq=args.drq[0]
 
     ## init forest class
 
@@ -206,7 +208,7 @@ if __name__ == '__main__':
         print(" zqso_max = {}".format(args.zqso_max) )
 
     forest.var_lss = interp1d(forest.lmin+np.arange(2)*(forest.lmax-forest.lmin),0.2 + np.zeros(2),fill_value="extrapolate",kind="nearest")
-    forest.eta = interp1d(forest.lmin+np.arange(2)*(forest.lmax-forest.lmin), sp.ones(2),fill_value="extrapolate",kind="nearest")
+    forest.eta = interp1d(forest.lmin+np.arange(2)*(forest.lmax-forest.lmin), np.ones(2),fill_value="extrapolate",kind="nearest")
     forest.fudge = interp1d(forest.lmin+np.arange(2)*(forest.lmax-forest.lmin), np.zeros(2),fill_value="extrapolate",kind="nearest")
     forest.mean_cont = interp1d(forest.lmin_rest+np.arange(2)*(forest.lmax_rest-forest.lmin_rest),1+np.zeros(2))
 
@@ -279,9 +281,9 @@ if __name__ == '__main__':
                         usr_mask_RF_DLA += [ [float(l[1]),float(l[2])] ]
                     else:
                         raise
-            usr_mask_obs    = sp.log10(sp.asarray(usr_mask_obs))
-            usr_mask_RF     = sp.log10(sp.asarray(usr_mask_RF))
-            usr_mask_RF_DLA = sp.log10(sp.asarray(usr_mask_RF_DLA))
+            usr_mask_obs    = np.log10(np.asarray(usr_mask_obs))
+            usr_mask_RF     = np.log10(np.asarray(usr_mask_RF))
+            usr_mask_RF_DLA = np.log10(np.asarray(usr_mask_RF_DLA))
             if usr_mask_RF_DLA.size==0:
                 usr_mask_RF_DLA = None
 
@@ -338,7 +340,7 @@ if __name__ == '__main__':
         log.write("Found {} DLAs in forests\n".format(nb_dla_in_forest))
 
     ## cuts
-    log.write("INFO: Input sample has {} forests\n".format(sp.sum([len(p) for p in data.values()])))
+    log.write("INFO: Input sample has {} forests\n".format(np.sum([len(p) for p in data.values()])))
     lstKeysToDel = []
     for p in data.keys():
         l = []
@@ -366,7 +368,7 @@ if __name__ == '__main__':
     for p in lstKeysToDel:
         del data[p]
 
-    log.write("INFO: Remaining sample has {} forests\n".format(sp.sum([len(p) for p in data.values()])))
+    log.write("INFO: Remaining sample has {} forests\n".format(np.sum([len(p) for p in data.values()])))
 
     for p in data:
         for d in data[p]:
@@ -443,13 +445,13 @@ if __name__ == '__main__':
 
                 if args.use_ivar_as_weight:
                     print('INFO: using ivar as weights, skipping eta, var_lss, fudge fits')
-                    eta = sp.ones(nlss)
+                    eta = np.ones(nlss)
                     vlss = np.zeros(nlss)
                     fudge = np.zeros(nlss)
                 else :
                     print('INFO: using constant weights, skipping eta, var_lss, fudge fits')
                     eta = np.zeros(nlss)
-                    vlss = sp.ones(nlss)
+                    vlss = np.ones(nlss)
                     fudge=np.zeros(nlss)
 
                 err_eta = np.zeros(nlss)
@@ -498,7 +500,7 @@ if __name__ == '__main__':
     for d in data_bad_cont:
         log.write("INFO: Rejected {} due to {}\n".format(d.thid,d.bad_cont))
 
-    log.write("INFO: Accepted sample has {} forests\n".format(sp.sum([len(p) for p in deltas.values()])))
+    log.write("INFO: Accepted sample has {} forests\n".format(np.sum([len(p) for p in deltas.values()])))
 
     log.close()
 
