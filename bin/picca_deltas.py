@@ -475,6 +475,7 @@ if __name__ == '__main__':
         ll_st,st,wst = prep_del.stack(data)
 
         ### Save iter_out_prefix
+        
         res = fitsio.FITS(args.iter_out_prefix+("_{:d}.fits.gz".format(it) if it!=nit-1 else '.fits.gz'),'rw',clobber=True)
         hd = {}
         hd["NSIDE"] = healpy_nside
@@ -578,19 +579,20 @@ if __name__ == '__main__':
                     if args.use_resolution_matrix and (args.mode is not None and 'desi' in args.mode) :
                         resomat=d.reso_matrix.T
 
-                    cols=[d.ll,d.de,d.iv,diff,d.co]
+                    cols=[d.ll,d.de,d.iv,diff]
                     names=['LOGLAM','DELTA','IVAR','DIFF']
                     units=['log Angstrom','','','']
                     comments = ['Log lambda','Delta field','Inverse variance','Difference']
                     if 'desi' in args.mode:
-                        names.extend('CONT')
-                        units.extend('')
-                        comments.extend('Continuum')
+                        cols.append(d.co)
+                        names.append('CONT')
+                        units.append('')
+                        comments.append('Continuum')
                     if args.use_resolution_matrix and (args.mode is not None and 'desi' in args.mode) :
-                        cols.extend([resomat])
-                        names.extend(['RESOMAT'])
-                        units.extend(['(pixel)'])
-                        comments.extend(['Resolution matrix'])
+                        cols.append(resomat)
+                        names.append('RESOMAT')
+                        units.append('(pixel)')
+                        comments.append('Resolution matrix')
                 else :
                     cols=[d.ll,d.de,d.we,d.co]
                     names=['LOGLAM','DELTA','WEIGHT','CONT']
