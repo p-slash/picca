@@ -403,7 +403,6 @@ if __name__ == '__main__':
                     baseunit='AA' if (args.linear_binning and args.output_in_angstrom) else 'km/s'
                     units = ['({})^-1'.format(baseunit)]
                     units.extend([baseunit]*3+['']+[baseunit])
-
                     try:
                         out.write(cols,names=names,header=hd,comments=comments,units=units)
                     except AttributeError:
