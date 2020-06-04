@@ -171,10 +171,10 @@ if __name__ == '__main__':
 
     ## init forest class
 
-    forest.lmin = sp.log10(args.lambda_min)
-    forest.lmax = sp.log10(args.lambda_max)
-    forest.lmin_rest = sp.log10(args.lambda_rest_min)
-    forest.lmax_rest = sp.log10(args.lambda_rest_max)
+    forest.lmin = np.log10(args.lambda_min)
+    forest.lmax = np.log10(args.lambda_max)
+    forest.lmin_rest = np.log10(args.lambda_rest_min)
+    forest.lmax_rest = np.log10(args.lambda_rest_max)
     forest.mc_rebin_fac = args.mc_rebin_fac
         
     if args.use_desi_P1d_changes:
@@ -190,6 +190,7 @@ if __name__ == '__main__':
         forest.dll = None
         forest.linear_binning = True
     else:   
+        forest.rebin = args.rebin
         forest.dll = args.rebin * 1e-4
         forest.dlambda = None
 
@@ -377,14 +378,14 @@ if __name__ == '__main__':
     for it in range(nit):
         print("iteration: ", it)
         nfit = 0
-        sort = sp.array(list(data.keys())).argsort()
+        sort = np.array(list(data.keys())).argsort()
         
         if args.nproc>1:
             pool = Pool(processes=args.nproc)
-            data_fit_cont = pool.map(cont_fit, sp.array(list(data.values()))[sort] )
+            data_fit_cont = pool.map(cont_fit, np.array(list(data.values()))[sort] )
         else:
             data_fit_cont=[]
-            for i in sp.array(list(data.values()))[sort]:
+            for i in np.array(list(data.values()))[sort]:
                 data_fit_cont.append(cont_fit(i))
         for i, p in enumerate(sorted(list(data.keys()))):
             data[p] = data_fit_cont[i]
@@ -474,7 +475,7 @@ if __name__ == '__main__':
         ll_st,st,wst = prep_del.stack(data)
 
         ### Save iter_out_prefix
-        res = fitsio.FITS(args.iter_out_prefix+"_{:d}.fits.gz".format(it),'rw',clobber=True)
+        res = fitsio.FITS(args.iter_out_prefix+("_{:d}.fits.gz".format(it) if it!=nit-1 else '.fits.gz'),'rw',clobber=True)
         hd = {}
         hd["NSIDE"] = healpy_nside
         hd["PIXORDER"] = healpy_pix_ordering
@@ -482,7 +483,7 @@ if __name__ == '__main__':
         res.write([ll_st,st,wst],names=['loglam','stack','weight'],header=hd,extname='STACK')
         res.write([ll,eta,vlss,fudge,nb_pixels],names=['loglam','eta','var_lss','fudge','nb_pixels'],extname='WEIGHT')
         res.write([ll_rest,forest.mean_cont(ll_rest),wmc],names=['loglam_rest','mean_cont','weight'],extname='CONT')
-        var_out = sp.broadcast_to(var.reshape(1,-1),var_del.shape)
+        var_out = np.broadcast_to(var.reshape(1,-1),var_del.shape)
         res.write([var_out,var_del,var2_del,count,nqsos,chi2],names=['var_pipe','var_del','var2_del','count','nqsos','chi2'],extname='VAR')
         res.close()
 
@@ -516,9 +517,9 @@ if __name__ == '__main__':
                 if (args.mode is not None and 'desi' in args.mode) :
                     desi_pixsize=0.8 #set desi pixel size to one angstrom, generalize later
                     #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
-                    dll=sp.median(sp.diff(d.ll)) #this is better as masking is ignored 
-                    dll_resmat=sp.median(10**-d.ll)*desi_pixsize/sp.log(10.) #this is 1 angstrom pixel size * mean(1/lambda) or median(1/lambda)
-                    d.mean_reso*=constants.speed_light/1000.*dll_resmat*sp.log(10.0)
+                    dll=np.median(np.diff(d.ll)) #this is better as masking is ignored 
+                    dll_resmat=np.median(10**-d.ll)*desi_pixsize/np.log(10.) #this is 1 angstrom pixel size * mean(1/lambda) or median(1/lambda)
+                    d.mean_reso*=constants.speed_light/1000.*dll_resmat*np.log(10.0)
 
                 line = '{} {} {} '.format(d.plate,d.mjd,d.fid)
                 line += '{} {} {} '.format(d.ra,d.dec,d.zqso)
@@ -554,11 +555,11 @@ if __name__ == '__main__':
                     desi_pixsize=0.8 #set desi pixel size to one angstrom, generalize later
                     if (args.mode is not None and 'desi' in args.mode):
                         #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
-                        dll = sp.mean(sp.diff(d.ll))  #this is better as masking is ignored 
-                        dll_resmat=sp.median(10**-d.ll)*desi_pixsize/sp.log(10.) #this is 1 angstrom pixel size * mean(1/lambda) or median(1/lambda)
+                        dll = np.mean(np.diff(d.ll))  #this is better as masking is ignored 
+                        dll_resmat=np.median(10**-d.ll)*desi_pixsize/np.log(10.) #this is 1 angstrom pixel size * mean(1/lambda) or median(1/lambda)
                         if args.use_resolution_matrix:
                             d.dll_resmat=dll_resmat 
-                        d.mean_reso*=constants.speed_light/1000.*dll_resmat*sp.log(10.0)
+                        d.mean_reso*=constants.speed_light/1000.*dll_resmat*np.log(10.0)
 
 
                     hd += [{'name':'MEANZ','value':d.mean_z,'comment':'Mean redshift'},
@@ -578,9 +579,13 @@ if __name__ == '__main__':
                         resomat=d.reso_matrix.T
 
                     cols=[d.ll,d.de,d.iv,diff,d.co]
-                    names=['LOGLAM','DELTA','IVAR','DIFF','CONT']
-                    units=['log Angstrom','','','','']
-                    comments = ['Log lambda','Delta field','Inverse variance','Difference','Continuum']
+                    names=['LOGLAM','DELTA','IVAR','DIFF']
+                    units=['log Angstrom','','','']
+                    comments = ['Log lambda','Delta field','Inverse variance','Difference']
+                    if 'desi' in args.mode:
+                        names.extend('CONT')
+                        units.extend('')
+                        comments.extend('Continuum')
                     if args.use_resolution_matrix and (args.mode is not None and 'desi' in args.mode) :
                         cols.extend([resomat])
                         names.extend(['RESOMAT'])
