@@ -8,15 +8,22 @@ from picca.utils import print
 ## mean continuum
 def mc(data):
     if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
+        #nmc = int((forest.lmax_rest-forest.lmin_rest)/forest.dll)+1  
+
         nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/forest.mc_rebin_fac/(forest.dlambda/(1+2.1)))+1  
+        #this gives the number of mean cont pixels (can't use the other definition as dll is undefined)
+
+
+
         # the redshift factor at the end converts pixel size from obs to rest, the rebinning allows for coarser bins which leads to less noisy continua
         # in the case of few spectra
         
         # the following line allows having everything in linearly spaced pixels even here, but is this a good idea? 
         # Maybe one should even just use the standard way of doing this fit (which should also work)
         # it's also buggy given that bins down there is defined differently... (the effect is not super large)
-        #   ll = sp.log10(10**forest.lmin_rest + (sp.arange(nmc)+.5)*(10**forest.lmax_rest-10**forest.lmin_rest)/nmc)
+        #ll = sp.log10(10**forest.lmin_rest + (sp.arange(nmc)*forest.mc_rebin_fac+.5)*(10**forest.lmax_rest-10**forest.lmin_rest)/nmc)
         ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc
+        #this should ideally be a linearly sampled lambda_rest array in log????
     else:
         nmc = int((forest.lmax_rest-forest.lmin_rest)/forest.dll)+1  
         ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc
@@ -24,7 +31,11 @@ def mc(data):
     wcont = np.zeros(nmc)   
     for p in sorted(list(data.keys())):
         for d in data[p]:
-            bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
+            if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
+                #bins=((10**d.ll-10**forest.lmin_rest)/(10**forest.lmax_rest-10**forest.lmin_rest)*nmc).astype(int)
+                bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
+            else:
+                bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
             var_lss = forest.var_lss(d.ll)
             eta = forest.eta(d.ll)
             fudge = forest.fudge(d.ll)
