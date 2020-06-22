@@ -391,7 +391,7 @@ if __name__ == '__main__':
             data[p] = data_fit_cont[i]
 
         print("done")
-        if args.nproc>1:
+        if args.nproc is not None and args.nproc>1:
             pool.close()
 
         if it < nit-1:
