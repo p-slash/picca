@@ -380,7 +380,7 @@ if __name__ == '__main__':
         nfit = 0
         sort = np.array(list(data.keys())).argsort()
         
-        if args.nproc>1:
+        if args.nproc is not None and args.nproc>1:
             pool = Pool(processes=args.nproc)
             data_fit_cont = pool.map(cont_fit, np.array(list(data.values()))[sort] )
         else:
