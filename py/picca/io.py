@@ -881,7 +881,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         fi = sp.unique(in_pixs)
     else:
         print("I'm reading minisv")
-        spectra = glob.glob(os.path.join(in_dir,"**/coadd-*.fits"),recursive=True)
+        spectra_in = glob.glob(os.path.join(in_dir,"**/coadd-*.fits"),recursive=True)
         spectra = []
         plate_unique=np.unique(plate)
         for s in spectra_in:
