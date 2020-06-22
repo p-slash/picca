@@ -379,9 +379,9 @@ if __name__ == '__main__':
         print("iteration: ", it)
         nfit = 0
         sort = np.array(list(data.keys())).argsort()
-        
+        pool = Pool(processes=args.nproc)
+
         if args.nproc is not None and args.nproc>1:
-            pool = Pool(processes=args.nproc)
             data_fit_cont = pool.map(cont_fit, np.array(list(data.values()))[sort] )
         else:
             data_fit_cont=[]
@@ -391,8 +391,7 @@ if __name__ == '__main__':
             data[p] = data_fit_cont[i]
 
         print("done")
-        if args.nproc is not None and args.nproc>1:
-            pool.close()
+        pool.close()
 
         if it < nit-1:
             
