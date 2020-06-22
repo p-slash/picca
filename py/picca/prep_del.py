@@ -41,13 +41,16 @@ def mc(data):
             c = np.bincount(bins,weights=we)
             wcont[:len(c)]+=c
             c = np.bincount(bins,weights=d.ll*we)
+            llcont[:len(c)]+=c
+
 
     w=wcont>0
     mcont[w]/=wcont[w]
     mcont/=mcont.mean()
-    if not forest.linear_binning:
-        llcont=ll
-    return llcont,mcont,wcont
+    if forest.linear_binning:
+        ll=llcont/wcont
+ 
+    return ll,mcont,wcont
 
 def var_lss(data,eta_lim=(0.5,1.5),vlss_lim=(0.,0.3)):
     nlss = 20
