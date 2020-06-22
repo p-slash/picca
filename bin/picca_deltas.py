@@ -396,7 +396,7 @@ if __name__ == '__main__':
         if it < nit-1:
             
             ll_rest, mc, wmc = prep_del.mc(data)
-            # shouldn't the mean continuum be obtained using a fitting funciton to mc instead of using linear interpolation ??? 
+            # the mean continuum in the following is obtained by using a fitting funciton to mc instead of using linear interpolation, this is not fully working yet and might be removed again 
             # This would allow way smoother continua in this step if there's few spectra, this fit could potentially also be done to the non-stacked data
             if args.use_poly_meancont:
                 import iminuit
