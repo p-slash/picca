@@ -170,62 +170,106 @@ def read_zbest(zbestfiles,zmin,zmax,keep_bal,bi_max=None):
     for zbest in zbestfiles:
         h = fitsio.FITS(zbest)
 
+        
+        try:
+            h["SELECTION"]
+        except OSError:
+            do_selection=True
+        else:
+            do_selection=False
+            print("already reading a catalog, no further selection besides min/max redshift")
+
 
         #selection of quasars with good redshifts only, the exact definition here should be decided, could in principle be moved to later
+        spectypes=h["ZBEST"]['SPECTYPE'][:].astype(str)
         
-        select=(h[1]['SPECTYPE'][:].astype(str)=='QSO')&(h[1]['ZWARN'][:]==0)    #astype needed as this can be binary or unicode str depending on fitsio/python combination
+
+        if do_selection:
+            select=spectypes=='QSO'      #this could be done later but slower
+        else:
+            select=np.ones(len(spectypes),dtype=bool)
+
+
         ## Redshift
-        zqso = h[1]['Z'][:][select]
-
-
+        zqso = h["ZBEST"]['Z'][:][select]
+        zwarn=h["ZBEST"]['ZWARN'][:][select]    #note that zwarn is potentially not essential
         ## Info of the primary observation
-        
-
-        thid = h[1]['TARGETID'][:][select]
+        thid = h["ZBEST"]['TARGETID'][:][select]
         if len(thid)==0:
             print("no valid QSOs in file {}".format(zbest))
             continue
 
-        tid2=h[2]['TARGETID'][:]
-        ra=np.zeros(len(thid),dtype='float64')
-        dec=np.zeros(len(thid),dtype='float64')
-        plate=np.zeros(len(thid),dtype='int64')
-        night=np.zeros(len(thid),dtype='int64')
-        fid=np.zeros(len(thid),dtype='int64')
+        tid2=h["FIBERMAP"]['TARGETID'][:]
+        ra=np.zeros(len(thid), dtype='float64')
+        dec=np.zeros(len(thid), dtype='float64')
+        plate=np.zeros(len(thid), dtype='int64')
+        night=np.zeros(len(thid), dtype='int64')
+        fid=np.zeros(len(thid), dtype='int64')
         fiberstatus=[]
+        cmx_target=np.zeros(len(thid), dtype='int64')
+        desi_target=np.zeros(len(thid), dtype='int64')
+        sv1_target=np.zeros(len(thid), dtype='int64')
+
         for i,tid in enumerate(thid):
             #if multiple entries in fibermap take the first here
             select2=(tid==tid2)
-            ra[i] = h[2]['TARGET_RA'][:][select2][0]
-            dec[i] = h[2]['TARGET_DEC'][:][select2][0]
+            ra[i] = h["FIBERMAP"]['TARGET_RA'][:][select2][0]
+            dec[i] = h["FIBERMAP"]['TARGET_DEC'][:][select2][0]
             try:
-                plate[i]=int('{}{}'.format(h[2]['TILEID'][:][select2][0], h[2]['PETAL_LOC'][:][select2][0]))
+                plate[i]=int('{}{}'.format(h["FIBERMAP"]['TILEID'][:][select2][0], h["FIBERMAP"]['PETAL_LOC'][:][select2][0]))
             except ValueError:
-                plate[i]=int('{}{}'.format(zbest.split('-')[-2], h[2]['PETAL_LOC'][:][select2][0]))   #this is to allow minisv to be read in just the same even without TILEID entries
+                plate[i]=int('{}{}'.format(zbest.split('-')[-2], h["FIBERMAP"]['PETAL_LOC'][:][select2][0]))   #this is to allow minisv to be read in just the same even without TILEID entries
             try:
-                night[i]=int(h[2]['NIGHT'][:][select2][0])
+                night[i]=int(h["FIBERMAP"]['NIGHT'][:][select2][0])
             except:
                 night[i]=int(zbest.split('-')[-1].split('.')[0])
-            fiberstatus.append(h[2]['FIBERSTATUS'][:][select2])
-            fid[i]=int( h[2]['FIBER'][:][select2][0])
+            fiberstatus.append(h["FIBERMAP"]['FIBERSTATUS'][:][select2])
+            fid[i]=int( h["FIBERMAP"]['FIBER'][:][select2][0])
+            try:
+                cmx_target[i]=h["FIBERMAP"]['CMX_TARGET'][:][select2][0]
+            except ValueError:
+                pass
+            try:
+                desi_target[i]=h["FIBERMAP"]['DESI_TARGET'][:][select2][0]
+            except ValueError:
+                pass
+            try:
+                sv1_target[i]=h["FIBERMAP"]['SV1_DESI_TARGET'][:][select2][0]
+            except ValueError:
+                pass
 
         h.close()
-
-        ## Sanity
-        print('')
         w = np.ones(ra.size,dtype=bool)
-        print("Tile {}, Petal {}".format(str(plate[0])[:-1],str(plate[0])[-1]))
-        print(" start                            : nb object in cat = {}".format(w.sum()) )
 
-        #checking if all fibers are fine
-        w &= np.any(np.array(fiberstatus)==0,axis=1)
-        print(" FIBERSTATUS==0 for any exposures : nb object in cat = {}".format(w.sum()) )
+        if do_selection:
+            ## Sanity
+            print('')
+            print("Tile {}, Petal {}".format(str(plate[0])[:-1],str(plate[0])[-1]))
+            print(" start (all redrock QSOs)         : nb object in cat = {}".format(w.sum()) )
+            #note that in principle we could also check for subtypes here...
+            w &= (((cmx_target&(2**12))!=0) |
+                    # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/cmx/data/cmx_targetmask.yaml
+                ((desi_target&(2**2))!=0) |
+                    # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/data/targetmask.yaml
+                ((sv1_target&(2**2))!=0))
+                    # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/sv1/data/sv1_targetmask.yaml
+            print(" Targeted as QSO                  : nb object in cat = {}".format(w.sum()) )
+            #the bottom selection has been done earlier already to speed up things
+            #w &= spectypes == 'QSO'
+            #print(" Redrock QSO                      : nb object in cat = {}".format(w.sum()) )
+            
+            w &= zwarn == 0
+            print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
 
-        w &= np.all(np.array(fiberstatus)==0,axis=1)
-        print(" FIBERSTATUS==0 for all exposures : nb object in cat = {}".format(w.sum()) )
-        #need to have reasonable output lines for this
-        w &= zqso>0.
-        print(" and z>0.                         : nb object in cat = {}".format(w.sum()) )
+
+            #checking if all fibers are fine
+            w &= np.any(np.array(fiberstatus)==0,axis=1)
+            print(" FIBERSTATUS==0 for any exposures : nb object in cat = {}".format(w.sum()) )
+
+            w &= np.all(np.array(fiberstatus)==0,axis=1)
+            print(" FIBERSTATUS==0 for all exposures : nb object in cat = {}".format(w.sum()) )
+        else:
+            print(" all objects in file              : nb object in cat = {}".format(w.sum()) )
 
 
         ## Redshift range
@@ -238,7 +282,7 @@ def read_zbest(zbestfiles,zmin,zmax,keep_bal,bi_max=None):
         ## BAL visual
         # if not keep_bal and bi_max==None:
         #     try:
-        #         bal_flag = h[1]['BAL_FLAG_VI'][:]
+        #         bal_flag = h["ZBEST"]['BAL_FLAG_VI'][:]
         #         w &= bal_flag==0
         #         print(" and BAL_FLAG_VI == 0  : nb object in cat = {}".format(ra[w].size) )
         #     except:
@@ -246,7 +290,7 @@ def read_zbest(zbestfiles,zmin,zmax,keep_bal,bi_max=None):
         # ## BAL CIV
         # if bi_max is not None:
         #     try:
-        #         bi = h[1]['BI_CIV'][:]
+        #         bi = h["ZBEST"]['BI_CIV'][:]
         #         w &= bi<=bi_max
         #         print(" and BI_CIV<=bi_max  : nb object in cat = {}".format(ra[w].size) )
         #     except:
@@ -838,7 +882,13 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
     else:
         print("I'm reading minisv")
         spectra = glob.glob(os.path.join(in_dir,"**/coadd-*.fits"),recursive=True)
-        fi = spectra
+        spectra = []
+        plate_unique=np.unique(plate)
+        for s in spectra_in:
+            for p in plate_unique:
+                if str(p)[:-1] in s:
+                    spectra.append(s)
+                    break
     data = {}
     ndata = 0
 
@@ -1053,7 +1103,10 @@ def read_deltas(indir,nside,lambda_abs,alpha,zref,cosmo,nspec=None,no_project=Fa
 
 def read_objects(drq,nside,zmin,zmax,alpha,zref,cosmo,keep_bal=True):
     objs = {}
-    ra,dec,zqso,thid,plate,mjd,fid = read_drq(drq,zmin,zmax,keep_bal=True)
+    try:
+        ra,dec,zqso,thid,plate,mjd,fid = read_drq(drq,zmin,zmax,keep_bal=True)
+    except (ValueError,OSError,AttributeError):
+        ra,dec,zqso,thid,plate,mjd,fid = read_zbest(drq,zmin,zmax,keep_bal=True)
     phi = ra
     th = sp.pi/2.-dec
     pix = healpy.ang2pix(nside,th,phi)
