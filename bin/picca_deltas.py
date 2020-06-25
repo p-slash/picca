@@ -158,12 +158,8 @@ if __name__ == '__main__':
     parser.add_argument('--min-SNR', type=float, default = 1,
         help='only use data with at least this SNR, note that MiniSV analyses ran at 0.2, else 1 was default')
 
-    
     parser.add_argument('--mc-rebin-fac', type=int, default = 10,
         help='use pixels coarser by this factor when estimating the mean continuum')
-
-    parser.add_argument('--use-poly-meancont', action='store_true', default = False,
-        help='fit a polynomial to the mean continuum instead of doing linear interpolation')
 
     args = parser.parse_args()
     if len(args.drq)==1:
@@ -396,38 +392,7 @@ if __name__ == '__main__':
         if it < nit-1:
             
             ll_rest, mc, wmc = prep_del.mc(data)
-            # the mean continuum in the following is obtained by using a fitting funciton to mc instead of using linear interpolation, this is not fully working yet and might be removed again 
-            # This would allow way smoother continua in this step if there's few spectra, this fit could potentially also be done to the non-stacked data
-            if args.use_poly_meancont:
-                import iminuit
-                ll_cen=np.mean(ll_rest)
-                fit_order=12
-                def fcn(pars):
-                  poly=np.polyval(pars,ll_rest[wmc>0]-ll_cen)
-                  return 0.5*np.sum(((mc[wmc>0] - poly)/np.std(mc[wmc>0]))**2)
-
-                if it==0:
-                    fitter=iminuit.Minuit.from_array_func(fcn,np.zeros(fit_order+1), error=np.ones(fit_order+1),errordef=0.5)
-                    fitter.values['x{:d}'.format(fit_order)]=np.mean(mc[wmc>0])    #probably need to fix order in here or sth
-                if it>0:
-                    #this is for initializing at previous best fit, but using the new lambda/mc arrays
-                    oldpars=fitter.np_values()
-                    fitter=iminuit.Minuit.from_array_func(fcn,oldpars, error=oldpars/2,errordef=0.5)
-                    #for i in range(args.order):
-                    #    fitter.fixed['x{:d}'.format(fit_order-i)]=True
-                    #maybe need to fix some pars in that case
-
-                fmin,_=fitter.migrad()
-                if not fmin.is_valid:
-                    #raise ValueError("Error in fitting mean cont with polynomial")
-                    pass
-                    #seems to get invalid fits sometimes, but still doesn't necessarily look terrible
-                    #breakpoint()
-                def mean_cont_fct(ll):
-                    return np.polyval(fitter.np_values(),ll-ll_cen)
-                forest.mean_cont = mean_cont_fct
-            else:
-                forest.mean_cont = interp1d(ll_rest[wmc>0.], forest.mean_cont(ll_rest[wmc>0.]) * mc[wmc>0.], fill_value = "extrapolate")
+            forest.mean_cont = interp1d(ll_rest[wmc>0.], forest.mean_cont(ll_rest[wmc>0.]) * mc[wmc>0.], fill_value = "extrapolate")
             if not (args.use_ivar_as_weight or args.use_constant_weight):
                 ll, eta, vlss, fudge, nb_pixels, var, var_del, var2_del,\
                     count, nqsos, chi2, err_eta, err_vlss, err_fudge = \
