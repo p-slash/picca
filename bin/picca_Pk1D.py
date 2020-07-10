@@ -13,7 +13,7 @@ import scipy as sp
 
 from picca import constants
 from picca.data import delta
-from picca.Pk1D import (compute_cor_reso, compute_Pk_noise, compute_Pk_raw,
+from picca.pk1d import (compute_cor_reso, compute_Pk_noise, compute_Pk_raw,
                         fill_masked_pixels, rebin_diff_noise, split_forest,
                         compute_cor_reso_matrix)
 from picca.utils import print
