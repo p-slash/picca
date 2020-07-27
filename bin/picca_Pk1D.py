@@ -13,75 +13,11 @@ import scipy as sp
 
 from picca import constants
 from picca.data import delta
-from picca.Pk1D import (compute_cor_reso, compute_Pk_noise, compute_Pk_raw,
+from picca.pk1d import (compute_cor_reso, compute_Pk_noise, compute_Pk_raw,
                         fill_masked_pixels, rebin_diff_noise, split_forest,
                         compute_cor_reso_matrix)
 from picca.utils import print
 
-
-# def make_tree(tree,nb_bin_max):
-
-#     zqso = array( 'f', [ 0. ] )
-#     mean_z = array( 'f', [ 0. ] )
-#     mean_reso = array( 'f', [ 0. ] )
-#     mean_SNR = array( 'f', [ 0. ] )
-#     nb_mask_pix = array( 'f', [ 0. ] )
-
-#     lambda_min = array( 'f', [ 0. ] )
-#     lambda_max= array( 'f', [ 0. ] )
-
-#     plate = array( 'i', [ 0 ] )
-#     mjd = array( 'i', [ 0 ] )
-#     fiber = array( 'i', [ 0 ] )
-
-#     nb_r = array( 'i', [ 0 ] )
-#     k_r = array( 'f', nb_bin_max*[ 0. ] )
-#     Pk_r = array( 'f', nb_bin_max*[ 0. ] )
-#     Pk_raw_r = array( 'f', nb_bin_max*[ 0. ] )
-#     Pk_noise_r = array( 'f', nb_bin_max*[ 0. ] )
-#     Pk_diff_r = array( 'f', nb_bin_max*[ 0. ] )
-#     cor_reso_r = array( 'f', nb_bin_max*[ 0. ] )
-
-#     tree.Branch("zqso",zqso,"zqso/F")
-#     tree.Branch("mean_z",mean_z,"mean_z/F")
-#     tree.Branch("mean_reso",mean_reso,"mean_reso/F")
-#     tree.Branch("mean_SNR",mean_SNR,"mean_SNR/F")
-#     tree.Branch("lambda_min",lambda_min,"lambda_min/F")
-#     tree.Branch("lambda_max",lambda_max,"lambda_max/F")
-#     tree.Branch("nb_masked_pixel",nb_mask_pix,"nb_mask_pixel/F")
-
-#     tree.Branch("plate",plate,"plate/I")
-#     tree.Branch("mjd",mjd,"mjd/I")
-#     tree.Branch("fiber",fiber,"fiber/I")
-
-#     tree.Branch( 'NbBin', nb_r, 'NbBin/I' )
-#     tree.Branch( 'k', k_r, 'k[NbBin]/F' )
-#     tree.Branch( 'Pk_raw', Pk_raw_r, 'Pk_raw[NbBin]/F' )
-#     tree.Branch( 'Pk_noise', Pk_noise_r, 'Pk_noise[NbBin]/F' )
-#     tree.Branch( 'Pk_diff', Pk_diff_r, 'Pk_diff[NbBin]/F' )
-#     tree.Branch( 'cor_reso', cor_reso_r, 'cor_reso[NbBin]/F' )
-#     tree.Branch( 'Pk', Pk_r, 'Pk[NbBin]/F' )
-
-#     return zqso,mean_z,mean_reso,mean_SNR,lambda_min,lambda_max,plate,mjd,fiber,\
-#     nb_mask_pix,nb_r,k_r,Pk_r,Pk_raw_r,Pk_noise_r,cor_reso_r,Pk_diff_r
-
-# def compute_mean_delta(ll,delta,iv,zqso):
-
-#     for i, _ in enumerate (ll):
-#         ll_obs = sp.power(10., ll[i])
-#         ll_rf = ll_obs/(1.+zqso)
-#         hdelta.Fill(ll_obs, ll_rf, delta[i])
-#         hdelta_RF.Fill(ll_rf, delta[i])
-#         hdelta_OBS.Fill(ll_obs, delta[i])
-#         hivar.Fill(iv[i])
-#         snr_pixel = (delta[i]+1)*sp.sqrt(iv[i])
-#         hsnr.Fill(snr_pixel)
-#         hivar.Fill(iv[i])
-#         if (iv[i] < 1000):
-#             hdelta_RF_we.Fill(ll_rf, delta[i], iv[i])
-#             hdelta_OBS_we.Fill(ll_obs, delta[i], iv[i])
-
-#     return
 
 if __name__ == '__main__':
 
@@ -92,7 +28,7 @@ if __name__ == '__main__':
         help='Output directory')
 
     parser.add_argument('--out-format', type=str, default='fits', required=False,
-        help='Output format: root or fits (if root call PyRoot)')
+        help='Output format:  fits (only one currently supported)')
 
     parser.add_argument('--in-dir', type=str, default=None, required=True,
         help='Directory to delta files')
@@ -160,34 +96,6 @@ if __name__ == '__main__':
         args.output_in_angstrom = True
         args.res_estimate = 'matrix'
 
-#   Create root file
-    # if (args.out_format=='root') :
-    #     from ROOT import TH1D, TFile, TTree, TProfile2D, TProfile
-    #     storeFile = TFile(args.out_dir+"/Testpicca.root","RECREATE","PK 1D studies studies");
-    #     nb_bin_max = 700
-    #     tree = TTree("Pk1D","SDSS 1D Power spectrum Ly-a");
-    #     zqso,mean_z,mean_reso,mean_SNR,lambda_min,lambda_max,plate,mjd,fiber,\
-    #     nb_mask_pix,nb_r,k_r,Pk_r,Pk_raw_r,Pk_noise_r,cor_reso_r,Pk_diff_r = make_tree(tree,nb_bin_max)
-
-    #     # control histograms
-    #     if (args.forest_type=='Lya'):
-    #         forest_inf=1040.
-    #         forest_sup=1200.
-    #     elif (args.forest_type=='SiIV'):
-    #         forest_inf=1270.
-    #         forest_sup=1380.
-    #     elif (args.forest_type=='CIV'):
-    #         forest_inf=1410.
-    #         forest_sup=1520.
-    #     hdelta  = TProfile2D( 'hdelta', 'delta mean as a function of lambda-lambdaRF', 36, 3600., 7200., 16, forest_inf, forest_sup, -5.0, 5.0)
-    #     hdelta_RF  = TProfile( 'hdelta_RF', 'delta mean as a function of lambdaRF', 320, forest_inf, forest_sup, -5.0, 5.0)
-    #     hdelta_OBS  = TProfile( 'hdelta_OBS', 'delta mean as a function of lambdaOBS', 1800, 3600., 7200., -5.0, 5.0)
-    #     hdelta_RF_we  = TProfile( 'hdelta_RF_we', 'delta mean weighted as a function of lambdaRF', 320, forest_inf, forest_sup, -5.0, 5.0)
-    #     hdelta_OBS_we  = TProfile( 'hdelta_OBS_we', 'delta mean weighted as a function of lambdaOBS', 1800, 3600., 7200., -5.0, 5.0)
-    #     hivar = TH1D('hivar','  ivar ',10000,0.0,10000.)
-    #     hsnr = TH1D('hsnr','  snr per pixel ',100,0.0,100.)
-    #     hdelta_RF_we.Sumw2()
-    #     hdelta_OBS_we.Sumw2()
 
     noiseless_fullres=False #stores if the read in spectra didn't contain ivar and reso info (if this is True everything will be treated as noiseless, infinite resolution)
 
@@ -353,31 +261,6 @@ if __name__ == '__main__':
                 if args.linear_binning and not args.output_in_angstrom:
                      Pk*=constants.speed_light/1000/sp.mean(ll_new)  #note again that ll_new is actually lambda here
                      k/=constants.speed_light/1000/sp.mean(ll_new)
-
-                # save in root format
-                # if (args.out_format=='root'):
-                #     zqso[0] = d.zqso
-                #     mean_z[0] = m_z_arr[f]
-                #     mean_reso[0] = d.mean_reso
-                #     mean_SNR[0] = d.mean_SNR
-                #     lambda_min[0] =  sp.power(10.,ll_new[0])
-                #     lambda_max[0] =  sp.power(10.,ll_new[-1])
-                #     nb_mask_pix[0] = nb_masked_pixel
-
-                #     plate[0] = d.plate
-                #     mjd[0] = d.mjd
-                #     fiber[0] = d.fid
-
-                #     nb_r[0] = min(len(k),nb_bin_max)
-                #     for i in range(nb_r[0]) :
-                #         k_r[i] = k[i]
-                #         Pk_raw_r[i] = Pk_raw[i]
-                #         Pk_noise_r[i] = Pk_noise[i]
-                #         Pk_diff_r[i] = Pk_diff[i]
-                #         Pk_r[i] = Pk[i]
-                #         cor_reso_r[i] = cor_reso[i]
-
-                #     tree.Fill()
 
                 # save in fits format
 

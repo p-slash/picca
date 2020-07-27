@@ -11,7 +11,7 @@ import copy
 
 from picca.utils import print
 from picca.data import forest, delta, qso
-from picca.prep_Pk1D import exp_diff, spectral_resolution, spectral_resolution_desi
+from picca.prep_pk1d import exp_diff, spectral_resolution, spectral_resolution_desi
 
 ## use a metadata class to simplify things
 class metadata:
