@@ -466,13 +466,17 @@ def desi_convert_transmission_to_delta_files(zcat,outdir,indir=None,infiles=None
 
     ### Catalog of objects
     h = fitsio.FITS(zcat)
-    key_val = sp.char.strip(np.array([ h[1].read_header()[k] for k in h[1].read_header().keys()]).astype(str))
-    if 'TARGETID' in key_val:
+    #key_val = sp.char.strip(np.array([ h[1].read_header()[k] for k in h[1].read_header().keys()]).astype(str))
+    try:#if 'TARGETID' in key_val:
         zcat_thid = h[1]['TARGETID'][:]
-    elif 'THING_ID' in key_val:
+    except Exception:#elif 'THING_ID' in key_val:
         zcat_thid = h[1]['THING_ID'][:]
-    w = h[1]['Z'][:]>max(0.,lObs_min/lRF_max -1.)
-    w &= h[1]['Z'][:]<max(0.,lObs_max/lRF_min -1.)
+    try:
+        w = h[1]['Z'][:]>max(0.,lObs_min/lRF_max -1.)
+        w &= h[1]['Z'][:]<max(0.,lObs_max/lRF_min -1.)
+    except ValueError:
+        w = h[1]['Z_QSO_RSD'][:]>max(0.,lObs_min/lRF_max -1.)
+        w &= h[1]['Z_QSO_RSD'][:]<max(0.,lObs_max/lRF_min -1.)
     zcat_ra = h[1]['RA'][:][w].astype('float64')*sp.pi/180.
     zcat_dec = h[1]['DEC'][:][w].astype('float64')*sp.pi/180.
     zcat_thid = zcat_thid[w]
