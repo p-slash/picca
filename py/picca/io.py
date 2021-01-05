@@ -204,7 +204,7 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
     print("mode: "+mode)
     try:
         ra,dec,zqso,thid,plate,mjd,fid = read_drq(drq,zmin,zmax,keep_bal,bi_max=bi_max)
-    except (ValueError,OSError,AttributeError):
+    except (ValueError,OSError,AttributeError,KeyError):
         ra,dec,zqso,thid,plate,mjd,fid = read_drq(drq,zmin,zmax,keep_bal,bi_max=bi_max,mode='desi')
 
     if nspec != None:
