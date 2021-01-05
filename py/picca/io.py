@@ -114,7 +114,7 @@ def read_drq(drq_filename,
         obj_id_name = 'TARGETID'
         catalog.rename_column('TARGET_RA', 'RA')
         catalog.rename_column('TARGET_DEC', 'DEC')
-        keep_columns += ['TARGETID', 'TILEID', 'PETAL_LOC', 'NIGHT', 'FIBER']
+        keep_columns += ['TARGETID', 'TILEID', 'PETAL_LOC', 'NIGHT', 'FIBER','FIBERSTATUS','CMX_TARGET','DESI_TARGET','SV1_DESI_TARGET']
     else:
         obj_id_name = 'THING_ID'
         keep_columns += ['THING_ID', 'PLATE', 'MJD', 'FIBERID']
@@ -149,6 +149,27 @@ def read_drq(drq_filename,
     print(f" and z >= {z_min}        : nb object in cat = {np.sum(w)}")
     w &= catalog['Z'] < z_max
     print(f" and z < {z_max}         : nb object in cat = {np.sum(w)}")
+
+    if 'desi' in mode:
+        w &= catalog['FIBERSTATUS']==0
+        #note that in principle we could also check for subtypes here...
+        w &= (((np.array(catalog['CMX_TARGET'],dtype=int)&(2**12))!=0) |
+                # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/cmx/data/cmx_targetmask.yaml
+            ((np.array(catalog['DESI_TARGET'],dtype=int)&(2**2))!=0) |
+                # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/data/targetmask.yaml
+            ((np.array(catalog['SV1_DESI_TARGET'],dtype=int)&(2**2))!=0))
+                # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/sv1/data/sv1_targetmask.yaml
+        print(" Targeted as QSO                  : nb object in cat = {}".format(w.sum()) )
+        #the bottom selection has been done earlier already to speed up things
+        #w &= spectypes == 'QSO'
+        #print(" Redrock QSO                      : nb object in cat = {}".format(w.sum()) )
+        
+        w &= zwarn == 0
+        print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
+        #checking if all fibers are fine
+        w &= catalog['FIBERSTATUS']==0
+        print(" FIBERSTATUS==0 : nb object in cat = {}".format(w.sum()) )
+        
 
     ## BAL visual
     if not keep_bal and bi_max is None:
@@ -185,7 +206,7 @@ def read_drq(drq_filename,
     catalog['RA'] = np.radians(catalog['RA'])
     catalog['DEC'] = np.radians(catalog['DEC'])
 
-    return catalog['RA'],catalog['DEC'],catalog['z'],catalog['TARGETID'],[f'{i}{j}' for i,j in zip(catalog['TILEID'],catalog['PETAL_LOC'])],catalog['NIGHT'],catalog['FIBERID']
+    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog['TARGETID'],[f'{i}{j}' for i,j in zip(catalog['TILEID'],catalog['PETAL_LOC'])],catalog['NIGHT'],catalog['FIBER']
 
 
 def read_dust_map(drq, Rv = 3.793):
