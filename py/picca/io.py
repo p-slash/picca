@@ -105,7 +105,7 @@ def read_drq(drq_filename,
         catalog: astropy.table.Table
             Table containing the metadata of the selected objects
     """
-    userprint('Reading catalog from ', drq_filename)
+    print('Reading catalog from ', drq_filename)
     catalog = Table(fitsio.read(drq_filename, ext=1))
 
     keep_columns = ['RA', 'DEC', 'Z']
@@ -122,54 +122,54 @@ def read_drq(drq_filename,
     if 'Z' not in catalog.colnames:
         if 'Z_VI' in catalog.colnames:
             catalog.rename_column('Z_VI', 'Z')
-            userprint(
+            print(
                 "Z not found (new DRQ >= DRQ14 style), using Z_VI (DRQ <= DRQ12)"
             )
         else:
-            userprint("ERROR: No valid column for redshift found in ",
+            print("ERROR: No valid column for redshift found in ",
                       drq_filename)
             return None
 
     ## Sanity checks
-    userprint('')
+    print('')
     w = np.ones(len(catalog), dtype=bool)
-    userprint(f" start                 : nb object in cat = {np.sum(w)}")
+    print(f" start                 : nb object in cat = {np.sum(w)}")
     w &= catalog[obj_id_name] > 0
-    userprint(f" and {obj_id_name} > 0       : nb object in cat = {np.sum(w)}")
+    print(f" and {obj_id_name} > 0       : nb object in cat = {np.sum(w)}")
     w &= catalog['RA'] != catalog['DEC']
-    userprint(f" and ra != dec         : nb object in cat = {np.sum(w)}")
+    print(f" and ra != dec         : nb object in cat = {np.sum(w)}")
     w &= catalog['RA'] != 0.
-    userprint(f" and ra != 0.          : nb object in cat = {np.sum(w)}")
+    print(f" and ra != 0.          : nb object in cat = {np.sum(w)}")
     w &= catalog['DEC'] != 0.
-    userprint(f" and dec != 0.         : nb object in cat = {np.sum(w)}")
+    print(f" and dec != 0.         : nb object in cat = {np.sum(w)}")
 
     ## Redshift range
     w &= catalog['Z'] >= z_min
-    userprint(f" and z >= {z_min}        : nb object in cat = {np.sum(w)}")
+    print(f" and z >= {z_min}        : nb object in cat = {np.sum(w)}")
     w &= catalog['Z'] < z_max
-    userprint(f" and z < {z_max}         : nb object in cat = {np.sum(w)}")
+    print(f" and z < {z_max}         : nb object in cat = {np.sum(w)}")
 
     ## BAL visual
     if not keep_bal and bi_max is None:
         if 'BAL_FLAG_VI' in catalog.colnames:
             bal_flag = catalog['BAL_FLAG_VI']
             w &= bal_flag == 0
-            userprint(
+            print(
                 f" and BAL_FLAG_VI == 0  : nb object in cat = {np.sum(w)}")
             keep_columns += ['BAL_FLAG_VI']
         else:
-            userprint("WARNING: BAL_FLAG_VI not found")
+            print("WARNING: BAL_FLAG_VI not found")
 
     ## BAL CIV
     if bi_max is not None:
         if 'BI_CIV' in catalog.colnames:
             bi = catalog['BI_CIV']
             w &= bi <= bi_max
-            userprint(
+            print(
                 f" and BI_CIV <= {bi_max}  : nb object in cat = {np.sum(w)}")
             keep_columns += ['BI_CIV']
         else:
-            userprint("ERROR: --bi-max set but no BI_CIV field in HDU")
+            print("ERROR: --bi-max set but no BI_CIV field in HDU")
             sys.exit(0)
 
     #-- DLA Column density
