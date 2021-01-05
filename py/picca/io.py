@@ -206,7 +206,7 @@ def read_drq(drq_filename,
     catalog['RA'] = np.radians(catalog['RA'])
     catalog['DEC'] = np.radians(catalog['DEC'])
 
-    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog['TARGETID'],[f'{i}{j}' for i,j in zip(catalog['TILEID'],catalog['PETAL_LOC'])],catalog['NIGHT'],catalog['FIBER']
+    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog['TARGETID'],np.array([int(f'{i}{j}') for i,j in zip(catalog['TILEID'],catalog['PETAL_LOC'])]),catalog['NIGHT'],catalog['FIBER']
 
 
 def read_dust_map(drq, Rv = 3.793):
