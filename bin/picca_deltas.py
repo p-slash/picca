@@ -207,7 +207,7 @@ if __name__ == '__main__':
     forest.var_lss = interp1d(forest.lmin+np.arange(2)*(forest.lmax-forest.lmin),0.2 + np.zeros(2),fill_value="extrapolate",kind="nearest")
     forest.eta = interp1d(forest.lmin+np.arange(2)*(forest.lmax-forest.lmin), np.ones(2),fill_value="extrapolate",kind="nearest")
     forest.fudge = interp1d(forest.lmin+np.arange(2)*(forest.lmax-forest.lmin), np.zeros(2),fill_value="extrapolate",kind="nearest")
-    forest.mean_cont = interp1d(forest.lmin_rest+np.arange(2)*(forest.lmax_rest-forest.lmin_rest),1+np.zeros(2))
+    forest.mean_cont = interp1d(forest.lmin_rest+np.arange(2)*(forest.lmax_rest-forest.lmin_rest),1+np.zeros(2),fill_value="extrapolate")
 
     ### Fix the order of the continuum fit, 0 or 1.
     if args.order:

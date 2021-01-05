@@ -27,7 +27,7 @@ def mc(data):
         for d in data[p]:
             if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
                 bins=((10**d.ll/(1+d.zqso)-10**forest.lmin_rest)/(10**forest.lmax_rest-10**forest.lmin_rest)*nmc).astype(int)
-                #line above does not work, do the actual bins in log-lambda here for the moment
+                #this was buggy before, note that in linear binning it's harder to keep track of redshift factors
                 #Alternative:
                 #bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
             else:
