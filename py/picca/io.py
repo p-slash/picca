@@ -78,221 +78,113 @@ def read_absorbers(file_absorbers):
 
     return absorbers
 
-def read_drq(drq,zmin,zmax,keep_bal,bi_max=None):
-    h = fitsio.FITS(drq)
+def read_drq(drq_filename,
+             z_min=0,
+             z_max=10.,
+             keep_bal=False,
+             bi_max=None,
+             mode='sdss'):
+    """Reads the quasars in the DRQ quasar catalog.
+
+    Args:
+        drq_filename: str
+            Filename of the DRQ catalogue
+        z_min: float - default: 0.
+            Minimum redshift. Quasars with redshifts lower than z_min will be
+            discarded
+        z_max: float - default: 10.
+            Maximum redshift. Quasars with redshifts higher than or equal to
+            z_max will be discarded
+        keep_bal: bool - default: False
+            If False, remove the quasars flagged as having a Broad Absorption
+            Line. Ignored if bi_max is not None
+        bi_max: float or None - default: None
+            Maximum value allowed for the Balnicity Index to keep the quasar
+
+    Returns:
+        catalog: astropy.table.Table
+            Table containing the metadata of the selected objects
+    """
+    userprint('Reading catalog from ', drq_filename)
+    catalog = Table(fitsio.read(drq_filename, ext=1))
+
+    keep_columns = ['RA', 'DEC', 'Z']
+    if 'desi' in mode and 'TARGETID' in catalog.colnames:
+        obj_id_name = 'TARGETID'
+        catalog.rename_column('TARGET_RA', 'RA')
+        catalog.rename_column('TARGET_DEC', 'DEC')
+        keep_columns += ['TARGETID', 'TILEID', 'PETAL_LOC', 'NIGHT', 'FIBER']
+    else:
+        obj_id_name = 'THING_ID'
+        keep_columns += ['THING_ID', 'PLATE', 'MJD', 'FIBERID']
 
     ## Redshift
-    try:
-        zqso = h[1]['Z'][:]
-    except:
-        print("Z not found (new DRQ >= DRQ14 style), using Z_VI (DRQ <= DRQ12)")
-        zqso = h[1]['Z_VI'][:]
+    if 'Z' not in catalog.colnames:
+        if 'Z_VI' in catalog.colnames:
+            catalog.rename_column('Z_VI', 'Z')
+            userprint(
+                "Z not found (new DRQ >= DRQ14 style), using Z_VI (DRQ <= DRQ12)"
+            )
+        else:
+            userprint("ERROR: No valid column for redshift found in ",
+                      drq_filename)
+            return None
 
-    ## Info of the primary observation
-    thid = h[1]['THING_ID'][:]
-    ra = h[1]['RA'][:].astype('float64')
-    dec = h[1]['DEC'][:].astype('float64')
-    plate = h[1]['PLATE'][:]
-    mjd = h[1]['MJD'][:]
-    fid = h[1]['FIBERID'][:]
-
-    ## Sanity
-    print('')
-    w = np.ones(ra.size,dtype=bool)
-    print(" start               : nb object in cat = {}".format(w.sum()) )
-    w &= thid>0
-    print(" and thid>0          : nb object in cat = {}".format(w.sum()) )
-    w &= ra!=dec
-    print(" and ra!=dec         : nb object in cat = {}".format(w.sum()) )
-    w &= ra!=0.
-    print(" and ra!=0.          : nb object in cat = {}".format(w.sum()) )
-    w &= dec!=0.
-    print(" and dec!=0.         : nb object in cat = {}".format(w.sum()) )
-    w &= zqso>0.
-    print(" and z>0.            : nb object in cat = {}".format(w.sum()) )
+    ## Sanity checks
+    userprint('')
+    w = np.ones(len(catalog), dtype=bool)
+    userprint(f" start                 : nb object in cat = {np.sum(w)}")
+    w &= catalog[obj_id_name] > 0
+    userprint(f" and {obj_id_name} > 0       : nb object in cat = {np.sum(w)}")
+    w &= catalog['RA'] != catalog['DEC']
+    userprint(f" and ra != dec         : nb object in cat = {np.sum(w)}")
+    w &= catalog['RA'] != 0.
+    userprint(f" and ra != 0.          : nb object in cat = {np.sum(w)}")
+    w &= catalog['DEC'] != 0.
+    userprint(f" and dec != 0.         : nb object in cat = {np.sum(w)}")
 
     ## Redshift range
-    if not zmin is None:
-        w &= zqso>=zmin
-        print(" and z>=zmin         : nb object in cat = {}".format(w.sum()) )
-    if not zmax is None:
-        w &= zqso<zmax
-        print(" and z<zmax          : nb object in cat = {}".format(w.sum()) )
+    w &= catalog['Z'] >= z_min
+    userprint(f" and z >= {z_min}        : nb object in cat = {np.sum(w)}")
+    w &= catalog['Z'] < z_max
+    userprint(f" and z < {z_max}         : nb object in cat = {np.sum(w)}")
 
     ## BAL visual
-    if not keep_bal and bi_max==None:
-        try:
-            bal_flag = h[1]['BAL_FLAG_VI'][:]
-            w &= bal_flag==0
-            print(" and BAL_FLAG_VI == 0  : nb object in cat = {}".format(ra[w].size) )
-        except:
-            print("BAL_FLAG_VI not found\n")
+    if not keep_bal and bi_max is None:
+        if 'BAL_FLAG_VI' in catalog.colnames:
+            bal_flag = catalog['BAL_FLAG_VI']
+            w &= bal_flag == 0
+            userprint(
+                f" and BAL_FLAG_VI == 0  : nb object in cat = {np.sum(w)}")
+            keep_columns += ['BAL_FLAG_VI']
+        else:
+            userprint("WARNING: BAL_FLAG_VI not found")
+
     ## BAL CIV
     if bi_max is not None:
-        try:
-            bi = h[1]['BI_CIV'][:]
-            w &= bi<=bi_max
-            print(" and BI_CIV<=bi_max  : nb object in cat = {}".format(ra[w].size) )
-        except:
-            print("--bi-max set but no BI_CIV field in h")
-            sys.exit(1)
-    print("")
-
-    ra = ra[w]*sp.pi/180.
-    dec = dec[w]*sp.pi/180.
-    zqso = zqso[w]
-    thid = thid[w]
-    plate = plate[w]
-    mjd = mjd[w]
-    fid = fid[w]
-    h.close()
-
-    return ra,dec,zqso,thid,plate,mjd,fid
-
-
-def read_zbest(zbestfiles,zmin,zmax,keep_bal,bi_max=None):
-    
-    #probably add a way to allow this being a list of files????
-    if isinstance(zbestfiles, str):
-        zbestfiles=[zbestfiles]
-        numfiles=1
-    else:
-        numfiles=len(zbestfiles)
-    print('Reading {} zbest files'.format(numfiles))
-
-    ra_arr=[]
-    dec_arr=[]
-    night_arr=[]
-    petal_arr=[]
-    fiber_arr=[]
-    tid_arr=[]
-    z_arr=[]
-    for zbest in zbestfiles:
-        h = fitsio.FITS(zbest)
-
-        
-        try:
-            h["SELECTION"]
-        except OSError:
-            do_selection=True
+        if 'BI_CIV' in catalog.colnames:
+            bi = catalog['BI_CIV']
+            w &= bi <= bi_max
+            userprint(
+                f" and BI_CIV <= {bi_max}  : nb object in cat = {np.sum(w)}")
+            keep_columns += ['BI_CIV']
         else:
-            do_selection=False
-            print("already reading a catalog, no further selection besides min/max redshift")
+            userprint("ERROR: --bi-max set but no BI_CIV field in HDU")
+            sys.exit(0)
 
+    #-- DLA Column density
+    if 'NHI' in catalog.colnames:
+        keep_columns += ['NHI']
 
-        #selection of quasars with good redshifts only, the exact definition here should be decided, could in principle be moved to later
-        spectypes=h[1]['SPECTYPE'][:].astype(str)
-        
+    catalog.keep_columns(keep_columns)
+    w = np.where(w)[0]
+    catalog = catalog[w]
 
-        if do_selection:
-            select=spectypes=='QSO'      #this could be done later but slower
-        else:
-            select=np.ones(len(spectypes),dtype=bool)
+    #-- Convert angles to radians
+    catalog['RA'] = np.radians(catalog['RA'])
+    catalog['DEC'] = np.radians(catalog['DEC'])
 
-
-        ## Redshift
-        zqso = h[1]['Z'][:][select]
-        zwarn=h[1]['ZWARN'][:][select]    #note that zwarn is potentially not essential
-        ## Info of the primary observation
-        thid = h[1]['TARGETID'][:][select]
-        if len(thid)==0:
-            print("no valid QSOs in file {}".format(zbest))
-            continue
-
-        ra = h[1]['TARGET_RA'][:][select]
-        dec = h[1]['TARGET_DEC'][:][select]
-        plate=[int(f'{i}{j}') for i,j in zip(h[1]['TILEID'][:][select], h[1]['PETAL_LOC'][:][select])]
-        night=np.array(h[1]['NIGHT'][:][select],dtype=int)
-        fid=np.array(h[1]['FIBER'][:][select],dtype=int)
-        cmx_target=h[1]['CMX_TARGET'][:][select]
-        desi_target=h[1]['DESI_TARGET'][:][select]
-        sv1_target=h[1]['SV1_DESI_TARGET'][:][select]
-        
-        h.close()
-        w = np.ones(ra.size,dtype=bool)
-
-        if do_selection:
-            ## Sanity
-            print('')
-            print("Tile {}, Petal {}".format(str(plate[0])[:-1],str(plate[0])[-1]))
-            print(" start (all redrock QSOs)         : nb object in cat = {}".format(w.sum()) )
-            #note that in principle we could also check for subtypes here...
-            w &= (((cmx_target&(2**12))!=0) |
-                    # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/cmx/data/cmx_targetmask.yaml
-                ((desi_target&(2**2))!=0) |
-                    # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/data/targetmask.yaml
-                ((sv1_target&(2**2))!=0))
-                    # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/sv1/data/sv1_targetmask.yaml
-            print(" Targeted as QSO                  : nb object in cat = {}".format(w.sum()) )
-            #the bottom selection has been done earlier already to speed up things
-            #w &= spectypes == 'QSO'
-            #print(" Redrock QSO                      : nb object in cat = {}".format(w.sum()) )
-            
-            w &= zwarn == 0
-            print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
-
-
-            #checking if all fibers are fine
-            w &= np.any(np.array(fiberstatus)==0,axis=1)
-            print(" FIBERSTATUS==0 for any exposures : nb object in cat = {}".format(w.sum()) )
-
-            w &= np.all(np.array(fiberstatus)==0,axis=1)
-            print(" FIBERSTATUS==0 for all exposures : nb object in cat = {}".format(w.sum()) )
-        else:
-            print(" all objects in file              : nb object in cat = {}".format(w.sum()) )
-
-
-        ## Redshift range
-        if not zmin is None:
-            w &= zqso>=zmin
-            print(" and z>=zmin                      : nb object in cat = {}".format(w.sum()) )
-        if not zmax is None:
-            w &= zqso<zmax
-            print(" and z<zmax                       : nb object in cat = {}".format(w.sum()) )
-        ## BAL visual
-        # if not keep_bal and bi_max==None:
-        #     try:
-        #         bal_flag = h["ZBEST"]['BAL_FLAG_VI'][:]
-        #         w &= bal_flag==0
-        #         print(" and BAL_FLAG_VI == 0  : nb object in cat = {}".format(ra[w].size) )
-        #     except:
-        #         print("BAL_FLAG_VI not found\n")
-        # ## BAL CIV
-        # if bi_max is not None:
-        #     try:
-        #         bi = h["ZBEST"]['BI_CIV'][:]
-        #         w &= bi<=bi_max
-        #         print(" and BI_CIV<=bi_max  : nb object in cat = {}".format(ra[w].size) )
-        #     except:
-        #         print("--bi-max set but no BI_CIV field in h")
-        #         sys.exit(1)
-        # print("")
-        if not keep_bal:
-            print("Note that BAL removal is not yet supported for zbest file readin!")
-
-        ra = ra[w]*sp.pi/180.
-        dec = dec[w]*sp.pi/180.
-        zqso = zqso[w]
-        thid = thid[w]
-        plate = plate[w]
-        night = night[w]
-        fid = fid[w]
-
-        ra_arr.extend(ra)
-        dec_arr.extend(dec)
-        fiber_arr.extend(fid)
-        night_arr.extend(night)
-        petal_arr.extend(plate)
-        tid_arr.extend(thid)
-        z_arr.extend(zqso)
-    ra_arr=np.array(ra_arr)
-    dec_arr=np.array(dec_arr)
-    fiber_arr=np.array(fiber_arr)
-    night_arr=np.array(night_arr)
-    petal_arr=np.array(petal_arr)
-    tid_arr=np.array(tid_arr)
-    z_arr=np.array(z_arr)
-    return ra_arr,dec_arr,z_arr,tid_arr,petal_arr,night_arr,fiber_arr
+    return catalog['RA'],catalog['DEC'],catalog['z'],catalog['TARGETID'],[f'{i}{j}' for i,j in zip(catalog['TILEID'],catalog['PETAL_LOC'])],catalog['NIGHT'],catalog['FIBERID']
 
 
 def read_dust_map(drq, Rv = 3.793):
@@ -312,7 +204,7 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
     try:
         ra,dec,zqso,thid,plate,mjd,fid = read_drq(drq,zmin,zmax,keep_bal,bi_max=bi_max)
     except (ValueError,OSError,AttributeError):
-        ra,dec,zqso,thid,plate,mjd,fid = read_zbest(drq,zmin,zmax,keep_bal,bi_max=bi_max)
+        ra,dec,zqso,thid,plate,mjd,fid = read_drq(drq,zmin,zmax,keep_bal,bi_max=bi_max,mode='desi')
 
     if nspec != None:
         ## choose them in a small number of pixels
