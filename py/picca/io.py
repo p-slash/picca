@@ -181,7 +181,7 @@ def read_zbest(zbestfiles,zmin,zmax,keep_bal,bi_max=None):
 
 
         #selection of quasars with good redshifts only, the exact definition here should be decided, could in principle be moved to later
-        spectypes=h["ZBEST"]['SPECTYPE'][:].astype(str)
+        spectypes=h[1]['SPECTYPE'][:].astype(str)
         
 
         if do_selection:
@@ -191,53 +191,23 @@ def read_zbest(zbestfiles,zmin,zmax,keep_bal,bi_max=None):
 
 
         ## Redshift
-        zqso = h["ZBEST"]['Z'][:][select]
-        zwarn=h["ZBEST"]['ZWARN'][:][select]    #note that zwarn is potentially not essential
+        zqso = h[1]['Z'][:][select]
+        zwarn=h[1]['ZWARN'][:][select]    #note that zwarn is potentially not essential
         ## Info of the primary observation
-        thid = h["ZBEST"]['TARGETID'][:][select]
+        thid = h[1]['TARGETID'][:][select]
         if len(thid)==0:
             print("no valid QSOs in file {}".format(zbest))
             continue
 
-        tid2=h["FIBERMAP"]['TARGETID'][:]
-        ra=np.zeros(len(thid), dtype='float64')
-        dec=np.zeros(len(thid), dtype='float64')
-        plate=np.zeros(len(thid), dtype='int64')
-        night=np.zeros(len(thid), dtype='int64')
-        fid=np.zeros(len(thid), dtype='int64')
-        fiberstatus=[]
-        cmx_target=np.zeros(len(thid), dtype='int64')
-        desi_target=np.zeros(len(thid), dtype='int64')
-        sv1_target=np.zeros(len(thid), dtype='int64')
-
-        for i,tid in enumerate(thid):
-            #if multiple entries in fibermap take the first here
-            select2=(tid==tid2)
-            ra[i] = h["FIBERMAP"]['TARGET_RA'][:][select2][0]
-            dec[i] = h["FIBERMAP"]['TARGET_DEC'][:][select2][0]
-            try:
-                plate[i]=int('{}{}'.format(h["FIBERMAP"]['TILEID'][:][select2][0], h["FIBERMAP"]['PETAL_LOC'][:][select2][0]))
-            except ValueError:
-                plate[i]=int('{}{}'.format(zbest.split('-')[-2], h["FIBERMAP"]['PETAL_LOC'][:][select2][0]))   #this is to allow minisv to be read in just the same even without TILEID entries
-            try:
-                night[i]=int(h["FIBERMAP"]['NIGHT'][:][select2][0])
-            except:
-                night[i]=int(zbest.split('-')[-1].split('.')[0])
-            fiberstatus.append(h["FIBERMAP"]['FIBERSTATUS'][:][select2])
-            fid[i]=int( h["FIBERMAP"]['FIBER'][:][select2][0])
-            try:
-                cmx_target[i]=h["FIBERMAP"]['CMX_TARGET'][:][select2][0]
-            except ValueError:
-                pass
-            try:
-                desi_target[i]=h["FIBERMAP"]['DESI_TARGET'][:][select2][0]
-            except ValueError:
-                pass
-            try:
-                sv1_target[i]=h["FIBERMAP"]['SV1_DESI_TARGET'][:][select2][0]
-            except ValueError:
-                pass
-
+        ra = h[1]['TARGET_RA'][:][select]
+        dec = h[1]['TARGET_DEC'][:][select]
+        plate=[int(f'{i}{j}') for i,j in zip(h["FIBERMAP"]['TILEID'][:][select], h["FIBERMAP"]['PETAL_LOC'][:][select])]
+        night=int(h[1]['NIGHT'][:][select])
+        fid=int( h[1]['FIBER'][:][select])
+        cmx_target=h[1]['CMX_TARGET'][:][select]
+        desi_target=h[1]['DESI_TARGET'][:][select]
+        sv1_target=h[1]['SV1_DESI_TARGET'][:][select]
+        
         h.close()
         w = np.ones(ra.size,dtype=bool)
 
