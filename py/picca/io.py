@@ -202,8 +202,8 @@ def read_zbest(zbestfiles,zmin,zmax,keep_bal,bi_max=None):
         ra = h[1]['TARGET_RA'][:][select]
         dec = h[1]['TARGET_DEC'][:][select]
         plate=[int(f'{i}{j}') for i,j in zip(h[1]['TILEID'][:][select], h[1]['PETAL_LOC'][:][select])]
-        night=int(h[1]['NIGHT'][:][select])
-        fid=int( h[1]['FIBER'][:][select])
+        night=np.array(h[1]['NIGHT'][:][select],dtype=int)
+        fid=np.array(h[1]['FIBER'][:][select],dtype=int)
         cmx_target=h[1]['CMX_TARGET'][:][select]
         desi_target=h[1]['DESI_TARGET'][:][select]
         sv1_target=h[1]['SV1_DESI_TARGET'][:][select]
