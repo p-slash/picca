@@ -151,7 +151,13 @@ def read_drq(drq_filename,
     print(f" and z < {z_max}         : nb object in cat = {np.sum(w)}")
 
     if 'desi' in mode:
+
+        w &= catalog['ZWARN'] == 0
+        print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
+        #checking if all fibers are fine
         w &= catalog['FIBERSTATUS']==0
+        print(" FIBERSTATUS==0 : nb object in cat = {}".format(w.sum()) )
+        
         #note that in principle we could also check for subtypes here...
         w &= (((np.array(catalog['CMX_TARGET'],dtype=int)&(2**12))!=0) |
                 # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/cmx/data/cmx_targetmask.yaml
@@ -163,12 +169,6 @@ def read_drq(drq_filename,
         #the bottom selection has been done earlier already to speed up things
         #w &= spectypes == 'QSO'
         #print(" Redrock QSO                      : nb object in cat = {}".format(w.sum()) )
-        
-        w &= catalog['ZWARN'] == 0
-        print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
-        #checking if all fibers are fine
-        w &= catalog['FIBERSTATUS']==0
-        print(" FIBERSTATUS==0 : nb object in cat = {}".format(w.sum()) )
         
 
     ## BAL visual
