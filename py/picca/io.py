@@ -164,7 +164,7 @@ def read_drq(drq_filename,
         #w &= spectypes == 'QSO'
         #print(" Redrock QSO                      : nb object in cat = {}".format(w.sum()) )
         
-        w &= zwarn == 0
+        w &= catalog['ZWARN'] == 0
         print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
         #checking if all fibers are fine
         w &= catalog['FIBERSTATUS']==0
