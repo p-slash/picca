@@ -152,8 +152,8 @@ def read_drq(drq_filename,
 
     if 'desi' in mode:
 
-        w &= catalog['ZWARN'] == 0
-        print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
+        #w &= catalog['ZWARN'] == 0
+        #print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
         #checking if all fibers are fine
         w &= catalog['FIBERSTATUS']==0
         print(" FIBERSTATUS==0 : nb object in cat = {}".format(w.sum()) )
