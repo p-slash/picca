@@ -8,7 +8,10 @@ from picca.utils import print
 ## mean continuum
 def mc(data):
     if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
-        nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/forest.mc_rebin_fac/(forest.dlambda/(1+2.1)))+1  
+#        nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/forest.mc_rebin_fac/(forest.dlambda/(1+2.0)))+1  #this will make a grid in l_rest coarse enough to accomodate a z=2.0 QSO 
+        dll = forest.dlambda/(1216*(1+2.0))  #this converts dlambda to dll assuming z=2, for larger z this will correspondingly result in rebinning pixels
+        nmc = int((forest.lmax_rest-forest.lmin_rest)/dll/forest.mc_rebin_fac)+1  
+
         # the redshift factor at the end converts pixel size from obs to rest, the rebinning allows for coarser bins which leads to less noisy continua
         # in the case of few spectra
         
@@ -16,7 +19,7 @@ def mc(data):
         # Maybe one should even just use the standard way of doing this fit (which should also work)
         # it's also buggy given that bins down there is defined differently... (the effect is not super large)
         #   ll = sp.log10(10**forest.lmin_rest + (sp.arange(nmc)+.5)*(10**forest.lmax_rest-10**forest.lmin_rest)/nmc)
-        ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc
+        ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc  #this won't be used in the end, as the actual continnuum wave is computed below
     else:
         nmc = int((forest.lmax_rest-forest.lmin_rest)/forest.dll)+1  
         ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc
@@ -26,10 +29,10 @@ def mc(data):
     for p in sorted(list(data.keys())):
         for d in data[p]:
             if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
-                bins=((10**d.ll/(1+d.zqso)-10**forest.lmin_rest)/(10**forest.lmax_rest-10**forest.lmin_rest)*nmc).astype(int)
+                #bins=((10**d.ll/(1+d.zqso)-10**forest.lmin_rest)/(10**forest.lmax_rest-10**forest.lmin_rest)*nmc).astype(int)
                 #this was buggy before, note that in linear binning it's harder to keep track of redshift factors
                 #Alternative:
-                #bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
+                bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
             else:
                 bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
             var_lss = forest.var_lss(d.ll)
