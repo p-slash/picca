@@ -9,7 +9,7 @@ from picca.utils import print
 def mc(data):
     if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
 #        nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/forest.mc_rebin_fac/(forest.dlambda/(1+2.0)))+1  #this will make a grid in l_rest coarse enough to accomodate a z=2.0 QSO 
-        dll = forest.dlambda/(1216*(1+2.0))  #this converts dlambda to dll assuming z=2, for larger z this will correspondingly result in rebinning pixels
+        dll = forest.dlambda/(1216*(1+2.0))  #this converts dlambda to dll assuming z=2, for larger z this will correspondingly result in rebinning pixels to a log grid
         nmc = int((forest.lmax_rest-forest.lmin_rest)/dll/forest.mc_rebin_fac)+1  
 
         # the redshift factor at the end converts pixel size from obs to rest, the rebinning allows for coarser bins which leads to less noisy continua
@@ -18,7 +18,6 @@ def mc(data):
         # the following line allows having everything in linearly spaced pixels even here, but is this a good idea? 
         # Maybe one should even just use the standard way of doing this fit (which should also work)
         # it's also buggy given that bins down there is defined differently... (the effect is not super large)
-        #   ll = sp.log10(10**forest.lmin_rest + (sp.arange(nmc)+.5)*(10**forest.lmax_rest-10**forest.lmin_rest)/nmc)
         ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc  #this won't be used in the end, as the actual continnuum wave is computed below
     else:
         nmc = int((forest.lmax_rest-forest.lmin_rest)/forest.dll)+1  
@@ -42,17 +41,19 @@ def mc(data):
             we = 1/variance(var,eta,var_lss,fudge)
             c = np.bincount(bins,weights=d.fl/d.co*we)
             mcont[:len(c)]+=c
-            c = np.bincount(bins,weights=we)
-            wcont[:len(c)]+=c
+            cw = np.bincount(bins,weights=we)
+            wcont[:len(c)]+=cw
+            
+            #TEST: this is different such that every spectrum (and not every pixel) counts the same here  
             c = np.bincount(bins,weights=d.ll*we)
+            c[cw>0]=cw[cw>0]
             llcont[:len(c)]+=c
-
 
     w=wcont>0
     mcont[w]/=wcont[w]
     mcont/=mcont.mean()
-    if forest.linear_binning:
-        ll=llcont/wcont
+
+
  
     return ll,mcont,wcont
 

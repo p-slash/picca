@@ -220,7 +220,7 @@ def read_dust_map(drq, Rv = 3.793):
 target_mobj = 500
 nside_min = 8
 
-def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None):
+def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None,useall=False,usesinglenights=False):
 
     print("mode: "+mode)
     try:
@@ -282,7 +282,7 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
     elif mode=="desiminisv":
         nside = 8
         print("Found {} qsos".format(len(zqso)))
-        data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d, minisv=True)
+        data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d, minisv=True,useall=useall,usesinglenights=usesinglenights)
         return data,len(data),nside,"RING"
 
     else:
@@ -756,7 +756,7 @@ def read_from_spplate(in_dir, thid, ra, dec, zqso, plate, mjd, fid, order, log=N
     data = list(pix_data.values())
     return data
 
-def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False):
+def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False):
 
     if not minisv:
         in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
@@ -765,14 +765,35 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         fi = sp.unique(in_pixs)
     else:
         print("I'm reading minisv")
-        spectra_in = glob.glob(os.path.join(in_dir,"**/coadd-*.fits"),recursive=True)
-        fi = []
-        plate_unique=np.unique(plate)
-        for s in spectra_in:
-            for p in plate_unique:
-                if str(p)[:-1] in s:
-                    fi.append(s)
-                    break
+        if usesinglenights:
+            files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
+                            recursive=True)
+            petal_tile_night = [
+                "{plate[-1]}-{plate[:-1]}-{night}".format(str(p),n)
+                for p,n in zip(plate,night)
+            ]
+            petal_tile_night_unique = np.unique(petal_tile_night)
+        
+            fi = []
+            for f_in in files_in:
+                for ptn in petal_tile_night_unique:
+                    if ptn in os.path.basename(f_in):
+                        fi.append(f_in)
+                        break
+        else:
+            if useall:
+                files_in = glob.glob(os.path.join(in_dir, "**/all/**/coadd-*.fits"),
+                            recursive=True)
+            else:
+                files_in = glob.glob(os.path.join(in_dir, "**/deep/**/coadd-*.fits"),
+                            recursive=True)
+            petal_tile_unique = np.unique(plate)
+            fi = []
+            for f_in in files_in:
+                for pt in petal_tile_unique:
+                    if "{[-1]}-{[:-1]}".format(str(pt)) in os.path.basename(f_in):
+                        fi.append(f_in)
+                        break
     data = {}
     ndata = 0
 

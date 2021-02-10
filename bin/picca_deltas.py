@@ -161,6 +161,18 @@ if __name__ == '__main__':
     parser.add_argument('--mc-rebin-fac', type=int, default = 10,
         help='use pixels coarser by this factor when estimating the mean continuum')
 
+    parser.add_argument('--use-single-nights',
+                        action='store_true',
+                        default=False,
+                        required=False,
+                        help=('Use individual night for input spectra (DESI SV)'))
+
+    parser.add_argument('--use-all',
+                        action='store_true',
+                        default=False,
+                        required=False,
+                        help=('Use all dir for input spectra (DESI SV)'))
+
     args = parser.parse_args()
     if len(args.drq)==1:
         args.drq=args.drq[0]
@@ -253,7 +265,8 @@ if __name__ == '__main__':
     data,ndata,healpy_nside,healpy_pix_ordering = io.read_data(os.path.expandvars(args.in_dir), args.drq, args.mode,\
         zmin=args.zqso_min, zmax=args.zqso_max, nspec=args.nspec, log=log,\
         keep_bal=args.keep_bal, bi_max=args.bi_max, order=args.order,\
-        best_obs=args.best_obs, single_exp=args.single_exp, pk1d=args.delta_format )
+        best_obs=args.best_obs, single_exp=args.single_exp, pk1d=args.delta_format, useall=args.use_all,
+        usesinglenights=args.use_single_nights) )
 
     ### Get the lines to veto
     usr_mask_obs    = None
