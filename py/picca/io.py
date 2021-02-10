@@ -769,7 +769,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
                             recursive=True)
             petal_tile_night = [
-                "{plate[-1]}-{plate[:-1]}-{night}".format(str(p),n)
+                "{plate[-1]}-{plate[:-1]}-{night}".format(plate=str(p),nigth=n)
                 for p,n in zip(plate,night)
             ]
             petal_tile_night_unique = np.unique(petal_tile_night)
@@ -791,7 +791,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             fi = []
             for f_in in files_in:
                 for pt in petal_tile_unique:
-                    if "{[-1]}-{[:-1]}".format(str(pt)) in os.path.basename(f_in):
+                    if "{pt[-1]}-{pt[:-1]}".format(pt=str(pt)) in os.path.basename(f_in):
                         fi.append(f_in)
                         break
     data = {}
