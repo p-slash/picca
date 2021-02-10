@@ -266,7 +266,7 @@ if __name__ == '__main__':
         zmin=args.zqso_min, zmax=args.zqso_max, nspec=args.nspec, log=log,\
         keep_bal=args.keep_bal, bi_max=args.bi_max, order=args.order,\
         best_obs=args.best_obs, single_exp=args.single_exp, pk1d=args.delta_format, useall=args.use_all,
-        usesinglenights=args.use_single_nights) )
+        usesinglenights=args.use_single_nights) 
 
     ### Get the lines to veto
     usr_mask_obs    = None
