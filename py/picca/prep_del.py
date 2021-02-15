@@ -8,9 +8,9 @@ from picca.utils import print
 ## mean continuum
 def mc(data):
     if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
-#        nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/forest.mc_rebin_fac/(forest.dlambda/(1+2.0)))+1  #this will make a grid in l_rest coarse enough to accomodate a z=2.0 QSO 
-        dll = forest.dlambda/(1216*(1+2.0))  #this converts dlambda to dll assuming z=2, for larger z this will correspondingly result in rebinning pixels to a log grid
-        nmc = int((forest.lmax_rest-forest.lmin_rest)/dll/forest.mc_rebin_fac)+1  
+        nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/forest.mc_rebin_fac/(forest.dlambda/(1+2.0)))+1  #this will make a grid in l_rest coarse enough to accomodate a z=2.0 QSO 
+#        dll = forest.dlambda/(1216*(1+2.0))  #this converts dlambda to dll assuming z=2, for larger z this will correspondingly result in rebinning pixels to a log grid
+#        nmc = int((forest.lmax_rest-forest.lmin_rest)/dll/forest.mc_rebin_fac)+1  
 
         # the redshift factor at the end converts pixel size from obs to rest, the rebinning allows for coarser bins which leads to less noisy continua
         # in the case of few spectra
@@ -52,7 +52,6 @@ def mc(data):
     w=wcont>0
     mcont[w]/=wcont[w]
     mcont/=mcont.mean()
-    breakpoint()
     llcont[w]/=wcont
     ll=np.log10(llcont)
  
