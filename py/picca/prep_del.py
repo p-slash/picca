@@ -18,7 +18,7 @@ def mc(data):
         # the following line allows having everything in linearly spaced pixels even here, but is this a good idea? 
         # Maybe one should even just use the standard way of doing this fit (which should also work)
         # it's also buggy given that bins down there is defined differently... (the effect is not super large)
-        ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc  #this won't be used in the end, as the actual continnuum wave is computed below
+        #ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc  #this won't be used in the end, as the actual continnuum wave is computed below
     else:
         nmc = int((forest.lmax_rest-forest.lmin_rest)/forest.dll)+1  
         ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc
@@ -46,14 +46,15 @@ def mc(data):
             
             #TEST: this is different such that every spectrum (and not every pixel) counts the same here  
             c = np.bincount(bins,weights=d.ll*we)
-            c[cw>0]=cw[cw>0]
+            #c[cw>0]/=cw[cw>0]
             llcont[:len(c)]+=c
 
     w=wcont>0
     mcont[w]/=wcont[w]
     mcont/=mcont.mean()
-
-
+    breakpoint()
+    llcont[w]/=wcont
+    ll=llcont
  
     return ll,mcont,wcont
 
