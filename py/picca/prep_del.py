@@ -28,10 +28,10 @@ def mc(data):
     for p in sorted(list(data.keys())):
         for d in data[p]:
             if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
-                #bins=((10**d.ll/(1+d.zqso)-10**forest.lmin_rest)/(10**forest.lmax_rest-10**forest.lmin_rest)*nmc).astype(int)
+                bins=((10**d.ll/(1+d.zqso)-10**forest.lmin_rest)/(10**forest.lmax_rest-10**forest.lmin_rest)*nmc).astype(int)
                 #this was buggy before, note that in linear binning it's harder to keep track of redshift factors
                 #Alternative:
-                bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
+                #bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
             else:
                 bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
             var_lss = forest.var_lss(d.ll)
@@ -45,7 +45,7 @@ def mc(data):
             wcont[:len(c)]+=cw
             
             #TEST: this is different such that every spectrum (and not every pixel) counts the same here  
-            c = np.bincount(bins,weights=d.ll*we)
+            c = np.bincount(bins,weights=10**d.ll/(1+d.zqso)*we)
             #c[cw>0]/=cw[cw>0]
             llcont[:len(c)]+=c
 
@@ -54,7 +54,7 @@ def mc(data):
     mcont/=mcont.mean()
     breakpoint()
     llcont[w]/=wcont
-    ll=llcont
+    ll=np.log10(llcont)
  
     return ll,mcont,wcont
 
