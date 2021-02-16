@@ -17,11 +17,11 @@ def mc(data):
     llcont = np.zeros(nmc)   
     for p in sorted(list(data.keys())):
         for d in data[p]:
+            ll_rest=d.ll-np.log10(1+d.zqso)
             if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
-                ll_rest=d.ll-np.log10(1+d.zqso)
                 bins=((10**ll_rest-10**forest.lmin_rest)/(10**forest.lmax_rest-10**forest.lmin_rest)*nmc).astype(int)
             else:
-                bins=((d.ll-forest.lmin_rest-np.log10(1+d.zqso))/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
+                bins=((ll_rest-forest.lmin_rest)/(forest.lmax_rest-forest.lmin_rest)*nmc).astype(int)
             var_lss = forest.var_lss(d.ll)
             eta = forest.eta(d.ll)
             fudge = forest.fudge(d.ll)
