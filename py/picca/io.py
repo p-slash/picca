@@ -151,9 +151,6 @@ def read_drq(drq_filename,
     print(f" and z < {z_max}         : nb object in cat = {np.sum(w)}")
 
     if 'desi' in mode and 'TARGETID' in catalog.colnames:
-        catalog['PLATE'] = np.array([int(f'{i}{j}') for i,j in zip(catalog['TILEID'],catalog['PETAL_LOC'])])
-        night=catalog['NIGHT']
-
         #w &= catalog['ZWARN'] == 0
         #print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
         #checking if all fibers are fine
@@ -171,8 +168,7 @@ def read_drq(drq_filename,
         #the bottom selection has been done earlier already to speed up things
         #w &= spectypes == 'QSO'
         #print(" Redrock QSO                      : nb object in cat = {}".format(w.sum()) )
-    else:
-        catalog.rename_column('MJD','NIGHT')
+    
 
     ## BAL visual
     if not keep_bal and bi_max is None:
@@ -208,6 +204,10 @@ def read_drq(drq_filename,
     #-- Convert angles to radians
     catalog['RA'] = np.radians(catalog['RA'])
     catalog['DEC'] = np.radians(catalog['DEC'])
+    if 'desi' in mode and 'TARGETID' in catalog.colnames:
+        catalog['PLATE'] = np.array([int(f'{i}{j}') for i,j in zip(catalog['TILEID'],catalog['PETAL_LOC'])])
+    else:
+        catalog.rename_column('MJD','NIGHT')
     
     return catalog['RA'],catalog['DEC'],catalog['Z'],catalog[obj_id_name],catalog['PLATE'],catalog['NIGHT'],catalog['FIBER']
 
