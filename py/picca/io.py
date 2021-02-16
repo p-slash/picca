@@ -852,6 +852,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 bandnames=['B','R','Z']
             else:
                 raise ValueError('data format not understood, neither blue spectrograph, nor BRZ coadd are part of the file (or the way they are in is not implemented)')
+        reso_from_truth=False
         for spec in bandnames:
             dic = {}
             try:
@@ -868,7 +869,21 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
                 for k in list_to_mask:
                     dic[k][w] = 0.
-                dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
+                if f"{spec}_RESOLUTION" in hdul:
+                    dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
+                elif pk1d is not None:
+                    filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"
+                    try:
+                        with fitsio.FITS(filename_truth) as hdul_truth:
+                            dic["RESO"] = hdul_truth[f"{spec}_RESOLUTION"].read()
+                    except IOError:
+                        print(f"Error reading truth file {filename_truth}")   
+                    except KeyError:
+                        print(f"Error reading resolution from truth file for pix {healpix}")
+                    else:
+                        if not reso_from_truth:
+                            print('Did not find resolution matrix in spectrum files, using resolution from truth files')
+                            reso_from_truth=True
                 specData[spec] = dic
             except OSError:
                 pass
