@@ -873,7 +873,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
                 for k in list_to_mask:
                     dic[k][w] = 0.
-                if f"{spec}_RESOLUTION" in hdul:
+                if f"{spec}_RESOLUTION" in h:
                     dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
                 elif pk1d is not None:
                     filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"
