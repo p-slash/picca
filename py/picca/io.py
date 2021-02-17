@@ -208,6 +208,7 @@ def read_drq(drq_filename,
         catalog['PLATE'] = np.array([int(f'{i}{j}') for i,j in zip(catalog['TILEID'],catalog['PETAL_LOC'])])
     else:
         catalog.rename_column('MJD','NIGHT')
+        catalog.rename_column('FIBERID','FIBER')
     
     return catalog['RA'],catalog['DEC'],catalog['Z'],catalog[obj_id_name],catalog['PLATE'],catalog['NIGHT'],catalog['FIBER']
 
