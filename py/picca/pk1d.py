@@ -128,7 +128,7 @@ def fill_masked_pixels(dll,ll,delta,diff,iv,no_apply_filling):
 
     if no_apply_filling : return ll,delta,diff,iv,0
 
-######################CHECK THIS ROUTINE###############################
+    ###note that in case of linear binning this routine is actually fed ll=10**logllambda and dll=dlambda###
     ll_idx = ll.copy()
     ll_idx -= ll[0]
     ll_idx /= dll
