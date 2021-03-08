@@ -836,6 +836,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
 
             if 'NIGHT' in h["FIBERMAP"].get_colnames():
                 night_spec=h["FIBERMAP"]["NIGHT"][:][0]
+            elif "LAST_NIGHT" in h["FIBERMAP"].get_colnames():
+                night_spec=h["FIBERMAP"]["LAST_NIGHT"][:][0]
             else:
                 night_spec=int(fi.split('-')[-1].split('.')[0])
         if 'TARGET_RA' in h["FIBERMAP"].get_colnames():
