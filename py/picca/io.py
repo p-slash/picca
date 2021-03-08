@@ -116,9 +116,9 @@ def read_drq(drq_filename,
         catalog.rename_column('TARGET_DEC', 'DEC')
         keep_columns += ['TARGETID', 'TILEID', 'PETAL_LOC', 'FIBER','FIBERSTATUS','CMX_TARGET','DESI_TARGET','SV1_DESI_TARGET']
         if 'NIGHT' in catalog.columns:
-            keep_columns+='NIGHT'
+            keep_columns+=['NIGHT']
         elif "LAST_NIGHT" in catalog.columns:
-            keep_columns+='LAST_NIGHT'
+            keep_columns+=['LAST_NIGHT']
     else:
         obj_id_name = 'THING_ID'
         keep_columns += ['THING_ID', 'PLATE', 'MJD', 'FIBERID']
