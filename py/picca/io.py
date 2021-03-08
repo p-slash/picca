@@ -117,6 +117,8 @@ def read_drq(drq_filename,
         keep_columns += ['TARGETID', 'TILEID', 'PETAL_LOC', 'FIBER','FIBERSTATUS','CMX_TARGET','DESI_TARGET','SV1_DESI_TARGET']
         if 'NIGHT' in catalog.columns:
             keep_columns+='NIGHT'
+        elif "LAST_NIGHT" in catalog.columns:
+            keep_columns+='LAST_NIGHT'
     else:
         obj_id_name = 'THING_ID'
         keep_columns += ['THING_ID', 'PLATE', 'MJD', 'FIBERID']
@@ -208,8 +210,8 @@ def read_drq(drq_filename,
     catalog['DEC'] = np.radians(catalog['DEC'])
     if 'desi' in mode and 'TARGETID' in catalog.colnames:
         catalog['PLATE'] = np.array([int(f'{i}{j}') for i,j in zip(catalog['TILEID'],catalog['PETAL_LOC'])])
-        if 'NIGHT' not in catalog.columns:
-            catalog['NIGHT']=-1
+        if 'NIGHT' not in catalog.columns and "LAST_NIGHT" in catalog.columns:
+            catalog.rename_column('LAST_NIGHT','NIGHT')
     else:
         catalog.rename_column('MJD','NIGHT')
         catalog.rename_column('FIBERID','FIBER')
