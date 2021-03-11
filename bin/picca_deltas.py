@@ -161,6 +161,10 @@ if __name__ == '__main__':
     parser.add_argument('--mc-rebin-fac', type=int, default = 10,
         help='use pixels coarser by this factor when estimating the mean continuum')
 
+    parser.add_argument('--coadd-by-picca', action='store_true', default = False,
+        help='let picca do the coadding of spectra files (instead of using existing coadds)')
+
+
     parser.add_argument('--use-single-nights',
                         action='store_true',
                         default=False,
@@ -266,7 +270,7 @@ if __name__ == '__main__':
         zmin=args.zqso_min, zmax=args.zqso_max, nspec=args.nspec, log=log,\
         keep_bal=args.keep_bal, bi_max=args.bi_max, order=args.order,\
         best_obs=args.best_obs, single_exp=args.single_exp, pk1d=args.delta_format, useall=args.use_all,
-        usesinglenights=args.use_single_nights) 
+        usesinglenights=args.use_single_nights,coadd_by_picca=args.coadd_by_picca) 
 
     ### Get the lines to veto
     usr_mask_obs    = None

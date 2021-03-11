@@ -230,7 +230,7 @@ def read_dust_map(drq, Rv = 3.793):
 target_mobj = 500
 nside_min = 8
 
-def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None,useall=False,usesinglenights=False):
+def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None,useall=False,usesinglenights=False,coadd_by_picca=False):
 
     print("mode: "+mode)
     try:
@@ -292,7 +292,7 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
     elif mode=="desiminisv":
         nside = 8
         print("Found {} qsos".format(len(zqso)))
-        data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d, minisv=True,useall=useall,usesinglenights=usesinglenights)
+        data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d, minisv=True,useall=useall,usesinglenights=usesinglenights,coadd_by_picca=coadd_by_picca)
         return data,len(data),nside,"RING"
 
     else:
@@ -766,7 +766,7 @@ def read_from_spplate(in_dir, thid, ra, dec, zqso, plate, mjd, fid, order, log=N
     data = list(pix_data.values())
     return data
 
-def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False):
+def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False,coadd_by_picca=False):
 
     if not minisv:
         in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
@@ -776,7 +776,11 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
     else:
         print("I'm reading minisv")
         if usesinglenights:
-            files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
+            if not coadd_by_picca:
+                files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
+                            recursive=True)
+            else:
+                files_in = glob.glob(os.path.join(in_dir, "**/spectra-*.fits"),
                             recursive=True)
             petal_tile_night = [
                 "{p}-{t}-{night}".format(p=str(pt)[-1],t=str(pt)[:-1],nigth=n)
@@ -792,10 +796,18 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                         break
         else:
             if useall:
-                files_in = glob.glob(os.path.join(in_dir, "**/all/**/coadd-*.fits"),
+                if not coadd_by_picca:
+                    files_in = glob.glob(os.path.join(in_dir, "**/all/**/coadd-*.fits"),
+                            recursive=True)
+                else:
+                    files_in = glob.glob(os.path.join(in_dir, "**/all/**/spectra-*.fits"),
                             recursive=True)
             else:
-                files_in = glob.glob(os.path.join(in_dir, "**/deep/**/coadd-*.fits"),
+                if not coadd_by_picca:
+                    files_in = glob.glob(os.path.join(in_dir, "**/deep/**/coadd-*.fits"),
+                            recursive=True)
+                else:
+                    files_in = glob.glob(os.path.join(in_dir, "**/deep/**/spectra-*.fits"),
                             recursive=True)
             petal_tile_unique = np.unique(plate)
             fi = []
