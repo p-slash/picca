@@ -809,6 +809,9 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 else:
                     files_in = glob.glob(os.path.join(in_dir, "**/deep/**/spectra-*.fits"),
                             recursive=True)
+            print("input files:")
+            print(files_in)
+            print("")
             petal_tile_unique = np.unique(plate)
             fi = []
             for f_in in files_in:
