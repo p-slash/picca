@@ -917,7 +917,10 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         h.close()
         if minisv:
             plate_spec = int(str(tile_spec) + str(petal_spec))
-            select=(plate==plate_spec)&(mjd==night_spec)
+            if (not coadd_by_picca) or usesinglenights:
+                select=(plate==plate_spec)&(mjd==night_spec)
+            else:
+                select=(plate==plate_spec)
             print('\nThis is tile {}, petal {}, night {}'.format(tile_spec,petal_spec,night_spec))
             tid_qsos = thid[select]
             plate_qsos = plate[select]
