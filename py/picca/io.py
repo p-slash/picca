@@ -803,11 +803,19 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     files_in = glob.glob(os.path.join(in_dir, "**/all/**/spectra-*.fits"),
                             recursive=True)
             else:
-                if not coadd_by_picca:
-                    files_in = glob.glob(os.path.join(in_dir, "**/deep/**/coadd-*.fits"),
+                if 'cumulative' in in_dir:
+                    if not coadd_by_picca:
+                        files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
+                            recursive=True)
+                    else:
+                         files_in = glob.glob(os.path.join(in_dir, "**/spectra-*.fits"),
                             recursive=True)
                 else:
-                    files_in = glob.glob(os.path.join(in_dir, "**/deep/**/spectra-*.fits"),
+                    if not coadd_by_picca:
+                        files_in = glob.glob(os.path.join(in_dir, "**/deep/**/coadd-*.fits"),
+                            recursive=True)
+                    else:
+                        files_in = glob.glob(os.path.join(in_dir, "**/deep/**/spectra-*.fits"),
                             recursive=True)
             print("input files:")
             print(files_in)
