@@ -845,7 +845,6 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         else:
             path=f
         print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
-        breakpoint()
         try:
             h = fitsio.FITS(path)
             if not minisv:
@@ -931,10 +930,12 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             except OSError:
                 pass
         h.close()
+        #breakpoint()
+
         if minisv:
             plate_spec = int(str(tile_spec) + str(petal_spec))
             if (not coadd_by_picca) or usesinglenights:
-                select=(plate==plate_spec)&(mjd==night_spec)
+                select=(plate==plate_spec)#&(mjd==night_spec)
             else:
                 select=(plate==plate_spec)
             print('\nThis is tile {}, petal {}, night {}'.format(tile_spec,petal_spec,night_spec))
