@@ -155,6 +155,13 @@ def read_drq(drq_filename,
     print(f" and z < {z_max}         : nb object in cat = {np.sum(w)}")
 
     if 'desi' in mode and 'TARGETID' in catalog.colnames:
+        
+        for col in catalog.colnames:
+            w &= np.isfinite(catalog[col])
+        print(" Remove catalog entries with infinities    : nb object in cat = {}".format(w.sum()) )
+
+
+
         w &= catalog['ZWARN'] == 0
         print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
         #checking if all fibers are fine
