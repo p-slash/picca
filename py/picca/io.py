@@ -155,14 +155,6 @@ def read_drq(drq_filename,
     print(f" and z < {z_max}         : nb object in cat = {np.sum(w)}")
 
     if 'desi' in mode and 'TARGETID' in catalog.colnames:
-        
-        for col in catalog.colnames:
-            if col != 'SPECTYPE':
-                w &= np.isfinite(catalog[col])
-        print(" Remove catalog entries with infinities    : nb object in cat = {}".format(w.sum()) )
-
-
-
         w &= catalog['ZWARN'] == 0
         print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
         #checking if all fibers are fine
@@ -885,7 +877,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             ## Should be removed at some point
             ra = h["FIBERMAP"]["RA_TARGET"][:]*sp.pi/180.
             de = h["FIBERMAP"]["DEC_TARGET"][:]*sp.pi/180.
-        pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
+        if not minisv:
+            pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
         #exp = h["FIBERMAP"]["EXPID"][:]
         #night = h["FIBERMAP"]["NIGHT"][:]
         #fib = h["FIBERMAP"]["FIBER"][:]
