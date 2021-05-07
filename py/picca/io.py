@@ -155,23 +155,24 @@ def read_drq(drq_filename,
     print(f" and z < {z_max}         : nb object in cat = {np.sum(w)}")
 
     if 'desi' in mode and 'TARGETID' in catalog.colnames:
-        #w &= catalog['ZWARN'] == 0
-        #print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
+        w &= catalog['ZWARN'] == 0
+        print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
         #checking if all fibers are fine
         w &= catalog['FIBERSTATUS']==0
         print(" FIBERSTATUS==0 : nb object in cat = {}".format(w.sum()) )
         
         #note that in principle we could also check for subtypes here...
-        w &= ((((np.array(catalog['CMX_TARGET'],dtype=int)&(2**12))!=0) if 'CMX_TARGET' in catalog else np.zeros(len(catalog,dtype=bool))) |
-                # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/cmx/data/cmx_targetmask.yaml
-            (((np.array(catalog['DESI_TARGET'],dtype=int)&(2**2))!=0)  if 'DESI_TARGET' in catalog else np.zeros(len(catalog,dtype=bool)))|
-                # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/data/targetmask.yaml
-            (((np.array(catalog['SV1_DESI_TARGET'],dtype=int)&(2**2))!=0) if 'SV1_DESI_TARGET' in catalog else np.zeros(len(catalog,dtype=bool)))|
-                # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/sv1/data/sv1_targetmask.yaml
-            (((np.array(catalog['SV2_DESI_TARGET'],dtype=int)&(2**2))!=0) if 'SV2_DESI_TARGET' in catalog else np.zeros(len(catalog,dtype=bool)))|
-                # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/sv2/data/sv2_targetmask.yaml
-            (((np.array(catalog['SV3_DESI_TARGET'],dtype=int)&(2**2))!=0) if 'SV3_DESI_TARGET' in catalog else np.zeros(len(catalog,dtype=bool))))
-                # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/sv3/data/sv3_targetmask.yaml
+        print('no checks for targeting spectype have been performed, assuming that has been done at cat creation')
+        #w &= ((((np.array(catalog['CMX_TARGET'],dtype=int)&(2**12))!=0) if 'CMX_TARGET' in catalog else np.zeros(len(catalog,dtype=bool))) |
+        #        # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/cmx/data/cmx_targetmask.yaml
+        #    (((np.array(catalog['DESI_TARGET'],dtype=int)&(2**2))!=0)  if 'DESI_TARGET' in catalog else np.zeros(len(catalog,dtype=bool)))|
+        #        # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/data/targetmask.yaml
+        #    (((np.array(catalog['SV1_DESI_TARGET'],dtype=int)&(2**2))!=0) if 'SV1_DESI_TARGET' in catalog else np.zeros(len(catalog,dtype=bool)))|
+        #        # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/sv1/data/sv1_targetmask.yaml
+        #    (((np.array(catalog['SV2_DESI_TARGET'],dtype=int)&(2**2))!=0) if 'SV2_DESI_TARGET' in catalog else np.zeros(len(catalog,dtype=bool)))|
+        #        # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/sv2/data/sv2_targetmask.yaml
+        #    (((np.array(catalog['SV3_DESI_TARGET'],dtype=int)&(2**2))!=0) if 'SV3_DESI_TARGET' in catalog else np.zeros(len(catalog,dtype=bool))))
+        #        # see https://github.com/desihub/desitarget/blob/0.37.0/py/desitarget/sv3/data/sv3_targetmask.yaml
 
         print(" Targeted as QSO                  : nb object in cat = {}".format(w.sum()) )
         #the bottom selection has been done earlier already to speed up things
