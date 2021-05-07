@@ -222,7 +222,7 @@ def read_drq(drq_filename,
         catalog.rename_column('MJD','NIGHT')
         catalog.rename_column('FIBERID','FIBER')
     
-    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog[obj_id_name],catalog['PLATE'],catalog['NIGHT'] if 'NIGHT' in catalog else catalog['RA']*0,catalog['FIBER']
+    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog[obj_id_name],catalog['PLATE'],catalog['NIGHT'] if 'NIGHT' in catalog else None,catalog['FIBER']
 
 
 def read_dust_map(drq, Rv = 3.793):
@@ -938,10 +938,9 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             print('\nThis is tile {}, petal {}, night {}'.format(tile_spec,petal_spec,night_spec))
             tid_qsos = thid[select]
             plate_qsos = plate[select]
-            mjd_qsos = mjd[select]
             fid_qsos = fid[select]
 
-        for t,p,m,f in zip(tid_qsos,plate_qsos,mjd_qsos,fid_qsos):
+        for t,p,f in zip(tid_qsos,plate_qsos,fid_qsos):
             wt = in_tids == t
             if wt.sum()==0:
                 print("\nError reading thingid {}\n".format(t))
