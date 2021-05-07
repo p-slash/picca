@@ -222,7 +222,7 @@ def read_drq(drq_filename,
         catalog.rename_column('MJD','NIGHT')
         catalog.rename_column('FIBERID','FIBER')
     
-    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog[obj_id_name],catalog['PLATE'],catalog['NIGHT'],catalog['FIBER']
+    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog[obj_id_name],catalog['PLATE'],catalog['NIGHT'] if 'NIGHT' in catalog else catalog['RA']*0,catalog['FIBER']
 
 
 def read_dust_map(drq, Rv = 3.793):
