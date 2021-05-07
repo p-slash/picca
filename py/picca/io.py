@@ -157,7 +157,8 @@ def read_drq(drq_filename,
     if 'desi' in mode and 'TARGETID' in catalog.colnames:
         
         for col in catalog.colnames:
-            w &= np.isfinite(catalog[col])
+            if col != 'SPECTYPE':
+                w &= np.isfinite(catalog[col])
         print(" Remove catalog entries with infinities    : nb object in cat = {}".format(w.sum()) )
 
 
