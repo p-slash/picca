@@ -972,7 +972,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     diff = None
                     reso_sum = None
                 td = forest(tspecData['LL'],fl,iv,t,ra[wt][0],de[wt][0],ztable[t],
-                    p,(m if m is not None else -1),f,order,diff,reso_in_pixel,reso_matrix=reso_sum)
+                    p,-1,f,order,diff,reso_in_pixel,reso_matrix=reso_sum)  #note that this will lead to nights not being well defined later
                 if d is None:
                     d = copy.deepcopy(td)
                 else:
