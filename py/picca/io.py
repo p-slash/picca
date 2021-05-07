@@ -845,6 +845,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         else:
             path=f
         print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
+        breakpoint()
         try:
             h = fitsio.FITS(path)
             if not minisv:
