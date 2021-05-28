@@ -221,8 +221,7 @@ def read_drq(drq_filename,
     else:
         catalog.rename_column('MJD','NIGHT')
         catalog.rename_column('FIBERID','FIBER')
-    
-    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog[obj_id_name],catalog['PLATE'],catalog['NIGHT'] if 'NIGHT' in catalog else None,catalog['FIBER']
+    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog[obj_id_name],catalog['PLATE'],catalog['NIGHT'] if 'NIGHT' in catalog.columns else None,catalog['FIBER']
 
 
 def read_dust_map(drq, Rv = 3.793):
@@ -854,7 +853,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 fid_qsos = fid[(in_pixs==f)]
         except IOError:
             print("Error reading pix {}\n".format(f))
-            continue      
+            raise #continue      
         if minisv:
             petal_spec=h["FIBERMAP"]["PETAL_LOC"][:][0]
         
