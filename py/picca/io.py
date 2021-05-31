@@ -826,10 +826,11 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             print(files_in)
             print("")
             petal_tile_unique = np.unique(plate)
+            files_in.sort()
             fi = []
             for f_in in files_in:
                 for pt in petal_tile_unique:
-                    if "/{p}/".format(p=str(pt)[-1]) in os.path.dirname and "{p}-{t}".format(p=str(pt)[-1],t=str(pt)[:-1]) in os.path.basename(f_in):
+                    if "/{p}/".format(p=str(pt)[-1]) in os.path.dirname(f_in) and "{p}-{t}".format(p=str(pt)[-1],t=str(pt)[:-1]) in os.path.basename(f_in):
                         fi.append(f_in)
                         break
     data = {}
