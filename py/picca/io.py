@@ -894,9 +894,9 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             except IOError:
                 print(f"Error reading truth file {filename_truth}")   
             except KeyError:
-                print(f"Error getting BALs from truth file for pix {healpix}")
+                print(f"Error getting BALs from truth file for pix {f}")
             except ValueError:
-                print(f"Error getting BALs from truth file for pix {healpix}, probably cannot read a field; maybe no BALs in this pix?")
+                print(f"Error getting BALs from truth file for pix {f}, probably cannot read a field; maybe no BALs in this pix?")
             else:
                 oldlen = len(tid_qsos)
                 tid_qsos = np.array([tid for tid in tid_qsos if tid not in remove_tid])
@@ -941,7 +941,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     except IOError:
                         print(f"Error reading truth file {filename_truth}")   
                     except KeyError:
-                        print(f"Error reading resolution from truth file for pix {healpix}")
+                        print(f"Error reading resolution from truth file for pix {f}")
                     else:
                         if not reso_from_truth:
                             print('Did not find resolution matrix in spectrum files, using resolution from truth files')
