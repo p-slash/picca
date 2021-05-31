@@ -972,10 +972,10 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 print("\nError reading thingid {}\n".format(t))
                 print("catalog thid : {}".format( tid_qsos))
                 print("spectra : {}".format(spec))
-                try:
+                if minisv:
                     print("plate_spec : {}".format(plate_spec))
-                except:
-                    print("'plate_spec' variable undefined")
+                else:
+                    print(f"pix : {f}")
                 continue
 
             d = None
