@@ -897,7 +897,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 print(f"Error getting BALs from truth file for pix {healpix}")
             else:
                 oldlen = len(in_tids)
-                in_tids = [tid for tid in in_tids if tid not in remove_tid]
+                in_tids = np.array([tid for tid in in_tids if tid not in remove_tid])
                 newlen = len(in_tids)
 
         specData = {}
