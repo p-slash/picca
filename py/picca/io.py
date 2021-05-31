@@ -788,8 +788,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 files_in = glob.glob(os.path.join(in_dir, "**/spectra-*.fits"),
                             recursive=True)
             petal_tile_night = [
-                "{p}-{t}-{night}".format(p=str(pt)[-1],t=str(pt)[:-1],nigth=n)
-                for p,n in zip(plate,night)
+                "{p}-{t}-{night}".format(p=str(pt)[-1],t=str(pt)[:-1],night=n)
+                for pt,n in zip(plate,night)
             ]
             petal_tile_night_unique = np.unique(petal_tile_night)
         
