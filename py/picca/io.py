@@ -892,6 +892,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     if len(bal_table)>0:
                         select = bal_table['BI_CIV']>0
                         remove_tid = bal_table['TARGETID'][select]
+                    else:
+                        remove_tid = []
             except IOError:
                 print(f"Error reading truth file {filename_truth}")   
             except KeyError:
