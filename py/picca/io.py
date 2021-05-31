@@ -787,10 +787,16 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             else:
                 files_in = glob.glob(os.path.join(in_dir, "**/spectra-*.fits"),
                             recursive=True)
-            petal_tile_night = [
-                "{p}-{t}-{night}".format(p=str(pt)[-1],t=str(pt)[:-1],night=n)
-                for pt,n in zip(plate,night)
-            ]
+            if not 'cumulative' in in_dir:
+                petal_tile_night = [
+                    "{p}-{t}-{night}".format(p=str(pt)[-1],t=str(pt)[:-1],night=n)
+                    for pt,n in zip(plate,night)
+                ]
+            else:
+                petal_tile_night = [
+                    "{p}-{t}-thru{night}".format(p=str(pt)[-1],t=str(pt)[:-1],night=n)
+                    for pt,n in zip(plate,night)
+                ]
             petal_tile_night_unique = np.unique(petal_tile_night)
         
             fi = []
@@ -832,7 +838,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 for pt in petal_tile_unique:
                     p=str(pt)[-1]
                     t=str(pt)[:-1]
-                    if f"/{t}/" in os.path.dirname(f_in) and f"{p}-{t}" in os.path.basename(f_in):
+                    if f"/{t}/" in os.path.dirname(f_in) and f"-{p}-{t}-" in os.path.basename(f_in):
                         fi.append(f_in)
                         break
             print("used number of input files (after selection of tile/petal):")
