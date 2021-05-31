@@ -896,10 +896,12 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             except KeyError:
                 print(f"Error getting BALs from truth file for pix {healpix}")
             else:
-                oldlen = len(in_tids)
-                in_tids = np.array([tid for tid in in_tids if tid not in remove_tid])
-                newlen = len(in_tids)
-
+                oldlen = len(tid_qsos)
+                tid_qsos = np.array([tid for tid in tid_qsos if tid not in remove_tid])
+                plate_qsos = np.array([tid for tid in plate_qsos if tid not in remove_tid])
+                fid_qsos = np.array([tid for tid in fid_qsos if tid not in remove_tid])
+                newlen = len(tid_qsos)
+                print(f"rejected {newlen-oldlen} BAL QSOs")
         specData = {}
         if not minisv:
             bandnames=['B','R','Z']
