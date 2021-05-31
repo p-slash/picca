@@ -830,7 +830,9 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             fi = []
             for f_in in files_in:
                 for pt in petal_tile_unique:
-                    if "/{p}/".format(p=str(pt)[-1]) in os.path.dirname(f_in) and "{p}-{t}".format(p=str(pt)[-1],t=str(pt)[:-1]) in os.path.basename(f_in):
+                    p=str(pt)[-1]
+                    t=str(pt)[:-1]
+                    if f"/{t}/" in os.path.dirname(f_in) and f"{p}-{t}" in os.path.basename(f_in):
                         fi.append(f_in)
                         break
             print("used number of input files (after selection of tile/petal):")
