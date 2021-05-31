@@ -822,8 +822,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     else:
                         files_in = glob.glob(os.path.join(in_dir, "**/deep/**/spectra-*.fits"),
                             recursive=True)
-            print("input files:")
-            print(files_in)
+            print("total number of input files:")
+            print(len(files_in))
             print("")
             petal_tile_unique = np.unique(plate)
             files_in.sort()
@@ -833,6 +833,11 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     if "/{p}/".format(p=str(pt)[-1]) in os.path.dirname(f_in) and "{p}-{t}".format(p=str(pt)[-1],t=str(pt)[:-1]) in os.path.basename(f_in):
                         fi.append(f_in)
                         break
+            print("used number of input files (after selection of tile/petal):")
+            print(len(fi))
+            print("used input files")
+            print(fi)
+            print("")
     data = {}
     ndata = 0
 
