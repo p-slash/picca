@@ -901,7 +901,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 plate_qsos = np.array([tid for tid in plate_qsos if tid not in remove_tid])
                 fid_qsos = np.array([tid for tid in fid_qsos if tid not in remove_tid])
                 newlen = len(tid_qsos)
-                print(f"rejected {newlen-oldlen} BAL QSOs")
+                print(f"rejected {oldlen-newlen} BAL QSOs")
         specData = {}
         if not minisv:
             bandnames=['B','R','Z']
