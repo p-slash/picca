@@ -888,13 +888,15 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"
             try:
                 with fitsio.FITS(filename_truth) as hdul_truth:
-                    bal_table = hdul_truth[f"BAL_META"].read()
+                    bal_table = hdul_truth["BAL_META"].read()
                     select = bal_table['BI_CIV']>0
                     remove_tid = bal_table['TARGETID'][select]
             except IOError:
                 print(f"Error reading truth file {filename_truth}")   
             except KeyError:
                 print(f"Error getting BALs from truth file for pix {healpix}")
+            except ValueError:
+                print(f"Error getting BALs from truth file for pix {healpix}, probably cannot read a field; maybe no BALs in this pix?")
             else:
                 oldlen = len(tid_qsos)
                 tid_qsos = np.array([tid for tid in tid_qsos if tid not in remove_tid])
