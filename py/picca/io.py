@@ -235,7 +235,7 @@ def read_dust_map(drq, Rv = 3.793):
 target_mobj = 500
 nside_min = 8
 
-def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None,useall=False,usesinglenights=False,coadd_by_picca=False):
+def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None,useall=False,usesinglenights=False,coadd_by_picca=False, reject_bal_from_truth=False):
 
     print("mode: "+mode)
     try:
@@ -291,7 +291,7 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
     elif mode=="desi":
         nside = 8
         print("Found {} qsos".format(len(zqso)))
-        data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d)
+        data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d,reject_bal_from_truth=reject_bal_from_truth)
         return data,len(data),nside,"RING"
 
     elif mode=="desiminisv":
@@ -771,7 +771,7 @@ def read_from_spplate(in_dir, thid, ra, dec, zqso, plate, mjd, fid, order, log=N
     data = list(pix_data.values())
     return data
 
-def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False,coadd_by_picca=False):
+def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False,coadd_by_picca=False, reject_bal_from_truth=False):
 
     if not minisv:
         in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
@@ -844,6 +844,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         else:
             path=f
         print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
+
         try:
             h = fitsio.FITS(path)
             if not minisv:
@@ -882,6 +883,22 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         #night = h["FIBERMAP"]["NIGHT"][:]
         #fib = h["FIBERMAP"]["FIBER"][:]
         in_tids = h["FIBERMAP"]["TARGETID"][:]
+
+        if reject_bal_from_truth:
+            filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"
+            try:
+                with fitsio.FITS(filename_truth) as hdul_truth:
+                    bal_table = hdul_truth[f"BAL_META"].read()
+                    select = bal_table['BI_CIV']>0
+                    remove_tid = bal_table['TARGETID'][select]
+            except IOError:
+                print(f"Error reading truth file {filename_truth}")   
+            except KeyError:
+                print(f"Error getting BALs from truth file for pix {healpix}")
+            else:
+                oldlen = len(in_tids)
+                in_tids = [tid for tid in in_tids if tid not in remove_tid]
+                newlen = len(in_tids)
 
         specData = {}
         if not minisv:

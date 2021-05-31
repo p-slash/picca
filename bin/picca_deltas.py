@@ -164,6 +164,9 @@ if __name__ == '__main__':
     parser.add_argument('--coadd-by-picca', action='store_true', default = False,
         help='let picca do the coadding of spectra files (instead of using existing coadds)')
 
+    parser.add_argument('--reject-bal-from-truth', action='store_true', default = False,
+        help='remove bal QSOs based on truth file (for mocks without a BAL cat)')
+
 
     parser.add_argument('--use-single-nights',
                         action='store_true',
@@ -270,7 +273,7 @@ if __name__ == '__main__':
         zmin=args.zqso_min, zmax=args.zqso_max, nspec=args.nspec, log=log,\
         keep_bal=args.keep_bal, bi_max=args.bi_max, order=args.order,\
         best_obs=args.best_obs, single_exp=args.single_exp, pk1d=args.delta_format, useall=args.use_all,
-        usesinglenights=args.use_single_nights,coadd_by_picca=args.coadd_by_picca) 
+        usesinglenights=args.use_single_nights,coadd_by_picca=args.coadd_by_picca, reject_bal_from_truth=args.reject_bal_from_truth)
 
     ### Get the lines to veto
     usr_mask_obs    = None
