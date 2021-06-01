@@ -889,14 +889,14 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             ## Should be removed at some point
             ra = h["FIBERMAP"]["RA_TARGET"][:]*sp.pi/180.
             de = h["FIBERMAP"]["DEC_TARGET"][:]*sp.pi/180.
-        if not minisv:
-            pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
+        #if not minisv:
+        pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
         #exp = h["FIBERMAP"]["EXPID"][:]
         #night = h["FIBERMAP"]["NIGHT"][:]
         #fib = h["FIBERMAP"]["FIBER"][:]
         in_tids = h["FIBERMAP"]["TARGETID"][:]
 
-        if reject_bal_from_truth:
+        if reject_bal_from_truth and not minisv:
             filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"
             try:
                 with fitsio.FITS(filename_truth) as hdul_truth:
@@ -907,7 +907,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     else:
                         remove_tid = []
             except IOError:
-                print(f"Error reading truth file {filename_truth}")   
+                print(f"Error reading truth file {filename_truth}")
             except KeyError:
                 print(f"Error getting BALs from truth file for pix {f}")
             except ValueError:
@@ -979,7 +979,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             fid_qsos = fid[select]
 
         for t,p,f in zip(tid_qsos,plate_qsos,fid_qsos):
-            wt = in_tids == t
+            if minisv:
+                wt = (in_tids == t)
             if wt.sum()==0:
                 print("\nError reading thingid {}\n".format(t))
                 print("catalog thid : {}".format( tid_qsos))
@@ -1018,7 +1019,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             if not minisv:
                 pix = pixs[wt][0]
             else:
-                pix = plate_spec
+                pix = pixs[wt][0] #this would store everything by healpix again    #plate_spec
             if pix not in data:
                 data[pix]=[]
             data[pix].append(d)
