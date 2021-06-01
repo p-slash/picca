@@ -37,9 +37,9 @@ def read_dlas(fdla):
     catalog.sort(obj_id_name)
     
     dlas = {}
-    for t in np.unique(cat[obj_id_name]):
+    for t in np.unique(catalog[obj_id_name]):
         w = t==cat[obj_id_name]
-        dlas[t] = [ (z,nhi) for z,nhi in zip(cat['Z_DLA'][w],cat['NHI'][w]) ]
+        dlas[t] = [ (z,nhi) for z,nhi in zip(catalog['Z_DLA'][w],catalog['NHI'][w]) ]
     nb_dla = np.sum([len(d) for d in dlas.values()])
 
     print('\n')
