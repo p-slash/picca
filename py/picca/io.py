@@ -890,7 +890,14 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             ra = h["FIBERMAP"]["RA_TARGET"][:]*sp.pi/180.
             de = h["FIBERMAP"]["DEC_TARGET"][:]*sp.pi/180.
         #if not minisv:
-        pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
+
+        try:
+            pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
+        except ValueError:
+            de[np.logical_not(np.isfinite(de))]=0
+            ra[np.logical_not(np.isfinite(de))]=0
+            pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
+            print("found non-finite ra/dec values, setting to zeros")
         #exp = h["FIBERMAP"]["EXPID"][:]
         #night = h["FIBERMAP"]["NIGHT"][:]
         #fib = h["FIBERMAP"]["FIBER"][:]
