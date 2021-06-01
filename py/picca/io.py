@@ -25,23 +25,21 @@ def read_dlas(fdla):
         utils.eBOSS_convert_DLA()
         utils.desi_convert_DLA()
     """
+    catalog = Table(fitsio.read(fdla, ext="DLACAT"))
 
-    lst = ['THING_ID','Z','NHI']
-    h = fitsio.FITS(fdla)
-    cat = { k:h['DLACAT'][k][:] for k in lst }
-    h.close()
+    if 'TARGETID' in catalog.colnames:
+        obj_id_name = 'TARGETID'
+    else:
+        obj_id_name = 'THING_ID'
+        catalog.rename_column('Z','Z_DLA')
 
-    w = sp.argsort(cat['Z'])
-    for k in cat.keys():
-        cat[k] = cat[k][w]
-    w = sp.argsort(cat['THING_ID'])
-    for k in cat.keys():
-        cat[k] = cat[k][w]
-
+    catalog.sort('Z_DLA')
+    catalog.sort(obj_id_name)
+    
     dlas = {}
-    for t in np.unique(cat['THING_ID']):
-        w = t==cat['THING_ID']
-        dlas[t] = [ (z,nhi) for z,nhi in zip(cat['Z'][w],cat['NHI'][w]) ]
+    for t in np.unique(cat[obj_id_name]):
+        w = t==cat[obj_id_name]
+        dlas[t] = [ (z,nhi) for z,nhi in zip(cat['Z_DLA'][w],cat['NHI'][w]) ]
     nb_dla = np.sum([len(d) for d in dlas.values()])
 
     print('\n')
