@@ -890,18 +890,18 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             ra = h["FIBERMAP"]["RA_TARGET"][:]*sp.pi/180.
             de = h["FIBERMAP"]["DEC_TARGET"][:]*sp.pi/180.
         #if not minisv:
+        in_tids = h["FIBERMAP"]["TARGETID"][:]
 
         try:
             pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
         except ValueError:
             de[np.logical_not(np.isfinite(de))]=0
-            ra[np.logical_not(np.isfinite(de))]=0
+            ra[np.logical_not(np.isfinite(ra))]=0
             pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
-            print("found non-finite ra/dec values, setting to zeros")
+            print("found non-finite ra/dec values, setting to zeros, needs to be handled more gracefully in the future")
         #exp = h["FIBERMAP"]["EXPID"][:]
         #night = h["FIBERMAP"]["NIGHT"][:]
         #fib = h["FIBERMAP"]["FIBER"][:]
-        in_tids = h["FIBERMAP"]["TARGETID"][:]
 
         if reject_bal_from_truth and not minisv:
             filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"

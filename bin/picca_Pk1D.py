@@ -289,7 +289,7 @@ if __name__ == '__main__':
                     try:
                         out.write(cols,names=names,header=hd,comments=comments,units=units)
                     except AttributeError:
-                        out = fitsio.FITS(args.out_dir+'/Pk1D-'+str(d.plate)+'.fits.gz','rw',clobber=True)    #note that the former naming convention only had a number instead of plate here
+                        out = fitsio.FITS(args.out_dir+f'/Pk1D-{i}.fits.gz','rw',clobber=True)    #note that the former naming convention only had a number instead of plate here
                         out.write(cols,names=names,header=hd,comment=comments,units=units)
         if (args.out_format=='fits' and out is not None):
             out.close()
