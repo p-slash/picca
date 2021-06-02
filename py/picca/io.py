@@ -1030,7 +1030,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 do_append=True
             else:
                 pix = pixs[wt][0] #this would store everything by healpix again    #plate_spec
-                #the following would coadd things on the same healpix
+                #the following would actually coadd things on the same healpix
                 do_append=True
                 if pix in data:
                     for index,d_old in enumerate(data[pix]):
