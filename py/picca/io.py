@@ -1043,7 +1043,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 data[pix]=[]
             if do_append:
                 data[pix].append(d)
-            ndata+=1
+                ndata+=1
 
     print("found {} quasars in input files\n".format(ndata))
 
