@@ -788,12 +788,12 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             if not 'cumulative' in in_dir:
                 petal_tile_night = [
                     "{p}-{t}-{night}".format(p=str(pt)[-1],t=str(pt)[:-1],night=n)
-                    for pt,n in zip(plate,night)
+                    for pt,n in zip(plate,mjd)
                 ]
             else:
                 petal_tile_night = [
-                    "{p}-{t}-thru{night}".format(p=str(pt)[-1],t=str(pt)[:-1],night=n)
-                    for pt,n in zip(plate,night)
+                    "{p}-{t}-thru{ni}".format(p=str(pt)[-1],t=str(pt)[:-1],ni=n)
+                    for pt,n in zip(plate,mjd)
                 ]
             print("total number of input files:")
             print(len(files_in))
