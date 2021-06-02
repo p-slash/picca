@@ -895,10 +895,12 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         try:
             pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
         except ValueError:
-            de[np.logical_not(np.isfinite(de))]=0
-            ra[np.logical_not(np.isfinite(ra))]=0
+            select_nan_rade=np.logical_not(np.isfinite(de)&np.isfinite(ra))
+            de[select_nan_rade]=0
+            ra[select_nan_rade]=0
             pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
-            print("found non-finite ra/dec values, setting to zeros, needs to be handled more gracefully in the future")
+            pixs[select_nan_rade]=-12345
+            print("found non-finite ra/dec values, setting their healpix id to -12345")
         #exp = h["FIBERMAP"]["EXPID"][:]
         #night = h["FIBERMAP"]["NIGHT"][:]
         #fib = h["FIBERMAP"]["FIBER"][:]
