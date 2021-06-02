@@ -778,7 +778,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         fi = sp.unique(in_pixs)
     else:
         print("I'm reading minisv")
-        if usesinglenights:
+        if usesinglenights or 'cumulative' in in_dir:
             if not coadd_by_picca:
                 files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
                             recursive=True)
@@ -795,6 +795,10 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     "{p}-{t}-thru{night}".format(p=str(pt)[-1],t=str(pt)[:-1],night=n)
                     for pt,n in zip(plate,night)
                 ]
+            print("total number of input files:")
+            print(len(files_in))
+            print("")
+            
             petal_tile_night_unique = np.unique(petal_tile_night)
         
             fi = []
@@ -812,20 +816,12 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     files_in = glob.glob(os.path.join(in_dir, "**/all/**/spectra-*.fits"),
                             recursive=True)
             else:
-                if 'cumulative' in in_dir:
-                    if not coadd_by_picca:
-                        files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
-                            recursive=True)
-                    else:
-                         files_in = glob.glob(os.path.join(in_dir, "**/spectra-*.fits"),
-                            recursive=True)
+                if not coadd_by_picca:
+                    files_in = glob.glob(os.path.join(in_dir, "**/deep/**/coadd-*.fits"),
+                        recursive=True)
                 else:
-                    if not coadd_by_picca:
-                        files_in = glob.glob(os.path.join(in_dir, "**/deep/**/coadd-*.fits"),
-                            recursive=True)
-                    else:
-                        files_in = glob.glob(os.path.join(in_dir, "**/deep/**/spectra-*.fits"),
-                            recursive=True)
+                    files_in = glob.glob(os.path.join(in_dir, "**/deep/**/spectra-*.fits"),
+                        recursive=True)
             print("total number of input files:")
             print(len(files_in))
             print("")
