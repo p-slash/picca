@@ -1027,11 +1027,22 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     d += td
             if not minisv:
                 pix = pixs[wt][0]
+                do_append=True
             else:
                 pix = pixs[wt][0] #this would store everything by healpix again    #plate_spec
+                #the following would coadd things on the same healpix
+                do_append=True
+                if pix in data:
+                    for index,d_old in enumerate(data[pix]):
+                        if d_old.thid==d.thid:
+                            d+=d_old
+                            data[pix][index]=d
+                            do_append=False
+                            break
             if pix not in data:
                 data[pix]=[]
-            data[pix].append(d)
+            if do_append:
+                data[pix].append(d)
             ndata+=1
 
     print("found {} quasars in input files\n".format(ndata))
