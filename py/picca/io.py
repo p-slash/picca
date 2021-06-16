@@ -984,8 +984,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             fid_qsos = fid[select]
 
         for t,p,f in zip(tid_qsos,plate_qsos,fid_qsos):
-            if minisv:
-                wt = (in_tids == t)
+            wt = (in_tids == t)
             if wt.sum()==0:
                 print("\nError reading thingid {}\n".format(t))
                 print("catalog thid : {}".format( tid_qsos))
