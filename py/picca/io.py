@@ -204,6 +204,15 @@ def read_drq(drq_filename,
     #-- DLA Column density
     if 'NHI' in catalog.colnames:
         keep_columns += ['NHI']
+    
+    if 'desi' in mode and 'TARGETID' in catalog.colnames:
+        if 'TILEID' not in catalog.colnames:
+            catalog['TILEID']=0
+        if 'PETAL_LOC' not in catalog.colnames:
+            catalog['PETAL_LOC']=0
+        if 'FIBER' not in catalog.colnames:
+            catalog['FIBER']=0
+
 
     catalog.keep_columns(keep_columns)
     w = np.where(w)[0]
@@ -214,12 +223,14 @@ def read_drq(drq_filename,
     catalog['DEC'] = np.radians(catalog['DEC'])
     if 'desi' in mode and 'TARGETID' in catalog.colnames:
         catalog['PLATE'] = np.array([int(f'{i}{j}') for i,j in zip(catalog['TILEID'],catalog['PETAL_LOC'])])
-        if ('NIGHT' not in catalog.columns) and ("LAST_NIGHT" in catalog.columns):
+        if ('NIGHT' not in catalog.colnames) and ("LAST_NIGHT" in catalog.colnames):
             catalog.rename_column('LAST_NIGHT','NIGHT')
+        elif 'NIGHT' not in catalog.colnames:
+            catalog['NIGHT']=0
     else:
         catalog.rename_column('MJD','NIGHT')
         catalog.rename_column('FIBERID','FIBER')
-    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog[obj_id_name],catalog['PLATE'],catalog['NIGHT'] if 'NIGHT' in catalog.columns else None,catalog['FIBER']
+    return catalog['RA'],catalog['DEC'],catalog['Z'],catalog[obj_id_name],catalog['PLATE'],catalog['NIGHT'] if 'NIGHT' in catalog.colnames else None,catalog['FIBER']
 
 
 def read_dust_map(drq, Rv = 3.793):
@@ -281,7 +292,7 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
         while mobj<target_mobj and nside >= nside_min:
             nside //= 2
             pixs = healpy.ang2pix(nside, sp.pi / 2 - dec, ra)
-            mobj = np.bincount(pixs).sum()/len(np.unique(pixs))
+            Lmobj = np.bincount(pixs).sum()/len(np.unique(pixs))
         print("nside = {} -- mean #obj per pixel = {}".format(nside,mobj))
         if log is not None:
             log.write("nside = {} -- mean #obj per pixel = {}\n".format(nside,mobj))
@@ -323,7 +334,7 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
         if mode == "spplate":
             pix_data = read_from_spplate(in_dir,thid, ra, dec, zqso, plate, mjd, fid, order, log=log, best_obs=best_obs)
         else:
-            pix_data = read_from_spec(in_dir,thid, ra, dec, zqso, plate, mjd, fid, order, mode=mode,log=log, pk1d=pk1d, best_obs=best_obs)
+            Epix_data = read_from_spec(in_dir,thid, ra, dec, zqso, plate, mjd, fid, order, mode=mode,log=log, pk1d=pk1d, best_obs=best_obs)
         ra = [d.ra for d in pix_data]
         ra = np.array(ra)
         dec = [d.dec for d in pix_data]
@@ -772,9 +783,17 @@ def read_from_spplate(in_dir, thid, ra, dec, zqso, plate, mjd, fid, order, log=N
 def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False,coadd_by_picca=False, reject_bal_from_truth=False):
 
     if not minisv:
-        in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
-        nest = True
-        in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra,nest=nest)
+        try:
+            in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
+            nest = True
+            in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra, nest=nest)
+        except ValueError:
+            print("Trying default healpix nside")
+            in_nside = 64
+            nest=True
+            in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra, nest=nest)
+        except:
+            raise
         fi = sp.unique(in_pixs)
     else:
         print("I'm reading minisv")
@@ -848,7 +867,11 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
 
     for i,f in enumerate(fi):
         if not minisv:
-            path = in_dir+"/"+str(int(f/100))+"/"+str(f)+"/spectra-"+str(in_nside)+"-"+str(f)+".fits"
+            path = in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra-"+str(in_nside)+"-"+str(f)+".fits"
+            test=glob.glob(path)
+            if not test:
+                print("default filename does not exist, trying glob")
+                path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/coadd*-"+str(f)+".fits")[0]
         else:
             path=f
         print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
@@ -862,6 +885,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 fid_qsos = fid[(in_pixs==f)]
         except IOError:
             print("Error reading pix {}\n".format(f))
+
+
             raise #continue      
         if minisv:
             petal_spec=h["FIBERMAP"]["PETAL_LOC"][:][0]
@@ -877,16 +902,25 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 night_spec=h["FIBERMAP"]["LAST_NIGHT"][:][0]
             else:
                 night_spec=int(fi.split('-')[-1].split('.')[0])
-        if 'TARGET_RA' in h["FIBERMAP"].get_colnames():
-            ra = h["FIBERMAP"]["TARGET_RA"][:]*sp.pi/180.
-            de = h["FIBERMAP"]["TARGET_DEC"][:]*sp.pi/180.
-        elif 'RA_TARGET' in h["FIBERMAP"].get_colnames():
+        
+        fibmap_name="FIBERMAP"
+        try: 
+            h[fibmap_name]
+        except:
+            fibmap_name="COADD_FIBERMAP"
+
+        
+        if 'TARGET_RA' in h[fibmap_name].get_colnames():
+            ra = h[fibmap_name]["TARGET_RA"][:]*sp.pi/180.
+            de = h[fibmap_name]["TARGET_DEC"][:]*sp.pi/180.
+        elif 'RA_TARGET' in h[fibmap_name].get_colnames():
             ## TODO: These lines are for backward compatibility
             ## Should be removed at some point
-            ra = h["FIBERMAP"]["RA_TARGET"][:]*sp.pi/180.
-            de = h["FIBERMAP"]["DEC_TARGET"][:]*sp.pi/180.
+            ra = h[fibmap_name]["RA_TARGET"][:]*sp.pi/180.
+            de = h[fibmap_name]["DEC_TARGET"][:]*sp.pi/180.
         #if not minisv:
-        in_tids = h["FIBERMAP"]["TARGETID"][:]
+        
+        in_tids = h[fibmap_name]["TARGETID"][:]
 
         try:
             pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
