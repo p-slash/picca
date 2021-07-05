@@ -1000,6 +1000,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                         if not reso_from_truth:
                             print('Did not find resolution matrix in spectrum files, using resolution from truth files')
                             reso_from_truth=True
+                if(len(dic['RESO'].shape)==2):
+                    dic['RESO'] = dic['RESO'][np.newaxis,...]
                 specData[spec] = dic
             except OSError:
                 pass
