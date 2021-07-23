@@ -228,7 +228,10 @@ class forest(qso):
     def __add__(self,d):
 
         if not hasattr(self,'ll') or not hasattr(d,'ll'):
-            return self
+            if not hasattr(self,'ll'):
+                return d
+            else:
+                return self
 
         dic = {}  # this should contain all quantities that are to be coadded with ivar weighting
 
