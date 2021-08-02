@@ -35,7 +35,7 @@ def read_dlas(fdla):
 
     catalog.sort('Z_DLA')
     catalog.sort(obj_id_name)
-    
+
     dlas = {}
     for t in np.unique(catalog[obj_id_name]):
         w = t==catalog[obj_id_name]
@@ -121,6 +121,10 @@ def read_drq(drq_filename,
         obj_id_name = 'THING_ID'
         keep_columns += ['THING_ID', 'PLATE', 'MJD', 'FIBERID']
 
+    if( 'COADD_FIBERSTATUS'  in catalog.colnames):
+        catalog.rename_column('COADD_FIBERSTATUS' , 'FIBERSTATUS')
+
+
     ## Redshift
     if 'Z' not in catalog.colnames:
         if 'Z_VI' in catalog.colnames:
@@ -158,7 +162,7 @@ def read_drq(drq_filename,
         #checking if all fibers are fine
         w &= catalog['FIBERSTATUS']==0
         print(" FIBERSTATUS==0 : nb object in cat = {}".format(w.sum()) )
-        
+
         #note that in principle we could also check for subtypes here...
         print('no checks for targeting spectype have been performed, assuming that has been done at cat creation')
         #w &= ((((np.array(catalog['CMX_TARGET'],dtype=int)&(2**12))!=0) if 'CMX_TARGET' in catalog else np.zeros(len(catalog,dtype=bool))) |
@@ -176,7 +180,7 @@ def read_drq(drq_filename,
         #the bottom selection has been done earlier already to speed up things
         #w &= spectypes == 'QSO'
         #print(" Redrock QSO                      : nb object in cat = {}".format(w.sum()) )
-    
+
 
     ## BAL visual
     if not keep_bal and bi_max is None:
@@ -204,7 +208,7 @@ def read_drq(drq_filename,
     #-- DLA Column density
     if 'NHI' in catalog.colnames:
         keep_columns += ['NHI']
-    
+
     if 'desi' in mode and 'TARGETID' in catalog.colnames:
         if 'TILEID' not in catalog.colnames:
             catalog['TILEID']=0
@@ -817,9 +821,9 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             print("total number of input files:")
             print(len(files_in))
             print("")
-            
+
             petal_tile_night_unique = np.unique(petal_tile_night)
-        
+
             fi = []
             for f_in in files_in:
                 for ptn in petal_tile_night_unique:
@@ -868,10 +872,15 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
     for i,f in enumerate(fi):
         if not minisv:
             path = in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra-"+str(in_nside)+"-"+str(f)+".fits"
+            print(path)
             test=glob.glob(path)
             if not test:
                 print("default filename does not exist, trying glob")
-                path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/coadd*-"+str(f)+".fits")[0]
+                path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/coadd*-"+str(f)+".fits")
+                if not path :
+                    continue
+                else:
+                    path = path[0]
         else:
             path=f
         print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
@@ -887,10 +896,10 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             print("Error reading pix {}\n".format(f))
 
 
-            raise #continue      
+            raise #continue
         if minisv:
             petal_spec=h["FIBERMAP"]["PETAL_LOC"][:][0]
-        
+
             if 'TILEID' in h["FIBERMAP"].get_colnames():
                 tile_spec=h["FIBERMAP"]["TILEID"][:][0]
             else:
@@ -902,14 +911,14 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 night_spec=h["FIBERMAP"]["LAST_NIGHT"][:][0]
             else:
                 night_spec=int(fi.split('-')[-1].split('.')[0])
-        
+
         fibmap_name="FIBERMAP"
-        try: 
+        try:
             h[fibmap_name]
         except:
             fibmap_name="COADD_FIBERMAP"
 
-        
+
         if 'TARGET_RA' in h[fibmap_name].get_colnames():
             ra = h[fibmap_name]["TARGET_RA"][:]*sp.pi/180.
             de = h[fibmap_name]["TARGET_DEC"][:]*sp.pi/180.
@@ -919,7 +928,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             ra = h[fibmap_name]["RA_TARGET"][:]*sp.pi/180.
             de = h[fibmap_name]["DEC_TARGET"][:]*sp.pi/180.
         #if not minisv:
-        
+
         in_tids = h[fibmap_name]["TARGETID"][:]
 
         try:
@@ -977,7 +986,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
                 list_to_mask = ['FL','IV']
 
-                if ('{}_DIFF_FLUX'.format(spec) in h): 
+                if ('{}_DIFF_FLUX'.format(spec) in h):
                     dic['DIFF'] = h['{}_DIFF_FLUX'.format(spec)].read()
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV']) | sp.isnan(dic['DIFF'])
                     list_to_mask.append('DIFF')
@@ -993,7 +1002,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                         with fitsio.FITS(filename_truth) as hdul_truth:
                             dic["RESO"] = hdul_truth[f"{spec}_RESOLUTION"].read()
                     except IOError:
-                        print(f"Error reading truth file {filename_truth}")   
+                        print(f"Error reading truth file {filename_truth}")
                     except KeyError:
                         print(f"Error reading resolution from truth file for pix {f}")
                     else:
