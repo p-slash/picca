@@ -871,8 +871,12 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
 
     for i,f in enumerate(fi):
         if not minisv:
+            # CR - this default name is for desi-mocks.
+            # We need to define three modes:
+            # desi-mocks (healpix with the mock format),
+            # desi-tiles (tile-based, the one used for SV until everest)
+            # desi-healpix (healpix-based, the one used for SV after everest)
             path = in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra-"+str(in_nside)+"-"+str(f)+".fits"
-            print(path)
             test=glob.glob(path)
             if not test:
                 print("default filename does not exist, trying glob")
@@ -881,6 +885,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     continue
                 else:
                     path = path[0]
+
         else:
             path=f
         print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
@@ -927,7 +932,6 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             ## Should be removed at some point
             ra = h[fibmap_name]["RA_TARGET"][:]*sp.pi/180.
             de = h[fibmap_name]["DEC_TARGET"][:]*sp.pi/180.
-        #if not minisv:
 
         in_tids = h[fibmap_name]["TARGETID"][:]
 
