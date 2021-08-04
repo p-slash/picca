@@ -883,15 +883,17 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/coadd*-"+str(f)+".fits")
                 if not path :
                     continue
-                else:
+                elif(len(path) == 1):
                     path = path[0]
-
         else:
             path=f
         print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
 
         try:
-            h = fitsio.FITS(path)
+            if(type(path) == list):
+                h = [fitsio.FITS(path[i]) for i in range(len(path))]
+            else:
+                h = fitsio.FITS(path)
             if not minisv:
                 tid_qsos = thid[(in_pixs==f)]
                 plate_qsos = plate[(in_pixs==f)]
@@ -901,7 +903,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             print("Error reading pix {}\n".format(f))
 
 
-            raise #continue
+            raise
         if minisv:
             petal_spec=h["FIBERMAP"]["PETAL_LOC"][:][0]
 
@@ -917,23 +919,25 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             else:
                 night_spec=int(fi.split('-')[-1].split('.')[0])
 
+        if(type(h) == list):
+            test_h_name = h[0]
+        else:
+            test_h_name = h
+
         fibmap_name="FIBERMAP"
         try:
-            h[fibmap_name]
+            test_h_name[fibmap_name]
         except:
             fibmap_name="COADD_FIBERMAP"
 
-
-        if 'TARGET_RA' in h[fibmap_name].get_colnames():
-            ra = h[fibmap_name]["TARGET_RA"][:]*sp.pi/180.
-            de = h[fibmap_name]["TARGET_DEC"][:]*sp.pi/180.
-        elif 'RA_TARGET' in h[fibmap_name].get_colnames():
-            ## TODO: These lines are for backward compatibility
-            ## Should be removed at some point
-            ra = h[fibmap_name]["RA_TARGET"][:]*sp.pi/180.
-            de = h[fibmap_name]["DEC_TARGET"][:]*sp.pi/180.
-
-        in_tids = h[fibmap_name]["TARGETID"][:]
+        if(type(h) == list):
+            ra = np.concatenate([np.radians(h[i][fibmap_name]["TARGET_RA"][:]) for i in range(len(h))],axis=0)
+            de = np.concatenate([np.radians(h[i][fibmap_name]["TARGET_DEC"][:]) for i in range(len(h))],axis=0)
+            in_tids = np.concatenate([h[i][fibmap_name]["TARGETID"][:] for i in range(len(h))],axis=0)
+        else:
+            ra = np.radians(h[fibmap_name]["TARGET_RA"][:])
+            de = np.radians(h[fibmap_name]["TARGET_DEC"][:])
+            in_tids = h[fibmap_name]["TARGETID"][:]
 
         try:
             pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
@@ -944,11 +948,10 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
             pixs[select_nan_rade]=-12345
             print("found non-finite ra/dec values, setting their healpix id to -12345")
-        #exp = h["FIBERMAP"]["EXPID"][:]
-        #night = h["FIBERMAP"]["NIGHT"][:]
-        #fib = h["FIBERMAP"]["FIBER"][:]
+
 
         if reject_bal_from_truth and not minisv:
+            # Only for desi-mocks
             filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"
             try:
                 with fitsio.FITS(filename_truth) as hdul_truth:
@@ -985,22 +988,34 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         for spec in bandnames:
             dic = {}
             try:
-                dic['LL'] = np.log10(h['{}_WAVELENGTH'.format(spec)].read())
-                dic['FL'] = h['{}_FLUX'.format(spec)].read()
-                dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
+                if(type(h) == list):
+                    dic['LL'] = np.log10(h[0]['{}_WAVELENGTH'.format(spec)].read())
+                    dic['FL'] = np.concatenate([h[i]['{}_FLUX'.format(spec)].read() for i in range(len(h))],axis=0)
+                    dic['IV'] = np.concatenate([h[i]['{}_IVAR'.format(spec)].read()*(h[i]['{}_MASK'.format(spec)].read()==0) for i in range(len(h))],axis=0)
+                else:
+                    dic['LL'] = np.log10(h['{}_WAVELENGTH'.format(spec)].read())
+                    dic['FL'] = h['{}_FLUX'.format(spec)].read()
+                    dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
                 list_to_mask = ['FL','IV']
 
-                if ('{}_DIFF_FLUX'.format(spec) in h):
-                    dic['DIFF'] = h['{}_DIFF_FLUX'.format(spec)].read()
+                if ('{}_DIFF_FLUX'.format(spec) in test_h_name):
+                    if(type(h) == list):
+                        dic['DIFF'] = np.concatenate([h[i]['{}_DIFF_FLUX'.format(spec)].read() for i in range(len(h))],axis=0)
+                    else:
+                        dic['DIFF'] = h['{}_DIFF_FLUX'.format(spec)].read()
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV']) | sp.isnan(dic['DIFF'])
                     list_to_mask.append('DIFF')
                 else:
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
                 for k in list_to_mask:
                     dic[k][w] = 0.
-                if f"{spec}_RESOLUTION" in h:
-                    dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
+                if f"{spec}_RESOLUTION" in test_h_name:
+                    if(type(h) == list):
+                        dic['RESO'] = np.concatenate([h[i]['{}_RESOLUTION'.format(spec)].read() for i in range(len(h))],axis=0)
+                    else:
+                        dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
                 elif pk1d is not None:
+                    # Only for desi-mocks
                     filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"
                     try:
                         with fitsio.FITS(filename_truth) as hdul_truth:
@@ -1018,8 +1033,14 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 specData[spec] = dic
             except OSError:
                 pass
-        h.close()
+        if(type(h) == list):
+            for i in range(len(h)):
+                h[i].close()
+        else:
+            h.close()
+
         #breakpoint()
+
 
         if minisv:
             plate_spec = int(str(tile_spec) + str(petal_spec))
