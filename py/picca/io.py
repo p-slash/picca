@@ -1030,7 +1030,11 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                         if(number_spectra_diff <2):
                             dic['DIFF'].append(np.full((1,flux_diff.shape[1]),np.nan))
                         else:
-                            dic['DIFF'].append(np.sum(flux_diff[mask_tids][0:number_spectra_diff]*ivar_diff[mask_tids][0:number_spectra_diff],axis=0)/np.sum(ivar_diff[mask_tids][0:number_spectra_diff],axis=0))
+                            diff = np.sum(np.array([(-1)**i * flux_diff[mask_tids][0:number_spectra_diff][i]*
+                                                    ivar_diff[mask_tids][0:number_spectra_diff][i]
+                                                    for i in range(len(flux_diff[mask_tids][0:number_spectra_diff]))]),axis=0)
+                            diff /= np.sum(ivar_diff[mask_tids][0:number_spectra_diff],axis=0)
+                            dic['DIFF'].append(diff)
                 else:
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
                 for k in list_to_mask:
