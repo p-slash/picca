@@ -248,7 +248,7 @@ def read_dust_map(drq, Rv = 3.793):
 target_mobj = 500
 nside_min = 8
 
-def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None,useall=False,usesinglenights=False,coadd_by_picca=False, reject_bal_from_truth=False):
+def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None,useall=False,usesinglenights=False,coadd_by_picca=False, reject_bal_from_truth=False,compute_diff_flux=False):
 
     print("mode: "+mode)
     try:
@@ -304,7 +304,7 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
     elif mode=="desi":
         nside = 8
         print("Found {} qsos".format(len(zqso)))
-        data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d,reject_bal_from_truth=reject_bal_from_truth)
+        data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d,reject_bal_from_truth=reject_bal_from_truth,compute_diff_flux=compute_diff_flux)
         return data,len(data),nside,"RING"
 
     elif mode=="desiminisv":
@@ -784,7 +784,7 @@ def read_from_spplate(in_dir, thid, ra, dec, zqso, plate, mjd, fid, order, log=N
     data = list(pix_data.values())
     return data
 
-def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False,coadd_by_picca=False, reject_bal_from_truth=False):
+def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False,coadd_by_picca=False, reject_bal_from_truth=False,compute_diff_flux=False):
 
     if not minisv:
         try:
@@ -881,6 +881,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             if not test:
                 print("default filename does not exist, trying glob")
                 path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/coadd*-"+str(f)+".fits")
+                if(compute_diff_flux):
+                    path_diff = glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra*-"+str(f)+".fits")
                 if not path :
                     continue
                 elif(len(path) == 1):
@@ -892,8 +894,12 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         try:
             if(type(path) == list):
                 h = [fitsio.FITS(path[i]) for i in range(len(path))]
+                if(compute_diff_flux):
+                    h_diff = [fitsio.FITS(path_diff[i]) for i in range(len(path))]
             else:
                 h = fitsio.FITS(path)
+                if(compute_diff_flux):
+                    h_diff = fitsio.FITS(path_diff)
             if not minisv:
                 tid_qsos = thid[(in_pixs==f)]
                 plate_qsos = plate[(in_pixs==f)]
@@ -999,12 +1005,32 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 list_to_mask = ['FL','IV']
 
                 if ('{}_DIFF_FLUX'.format(spec) in test_h_name):
+                    if(compute_diff_flux):
+                        print("DIFF_FLUX already computed on input spectra, extracting now")
                     if(type(h) == list):
                         dic['DIFF'] = np.concatenate([h[i]['{}_DIFF_FLUX'.format(spec)].read() for i in range(len(h))],axis=0)
                     else:
                         dic['DIFF'] = h['{}_DIFF_FLUX'.format(spec)].read()
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV']) | sp.isnan(dic['DIFF'])
                     list_to_mask.append('DIFF')
+                elif(compute_diff_flux):
+                    print("DIFF_FLUX computed by picca")
+                    if(type(h_diff) == list):
+                        in_tids_diff = np.concatenate([h_diff[i][fibmap_name]["TARGETID"][:] for i in range(len(h_diff))],axis=0)
+                        flux_diff = np.concatenate([h_diff[i]['{}_FLUX'.format(spec)].read() for i in range(len(h_diff))],axis=0)
+                        ivar_diff = dic['IV'] = np.concatenate([h_diff[i]['{}_IVAR'.format(spec)].read()*(h_diff[i]['{}_MASK'.format(spec)].read()==0) for i in range(len(h_diff))],axis=0)
+                    else:
+                        in_tids_diff = h_diff[fibmap_name]["TARGETID"][:]
+                        flux_diff = h_diff['{}_FLUX'.format(spec)].read()
+                        ivar_diff = h_diff['{}_IVAR'.format(spec)].read()*(h_diff['{}_MASK'.format(spec)].read()==0)
+                    dic['DIFF'] = []
+                    for tid in in_tids:
+                        mask_tids = in_tids_diff == tid
+                        number_spectra_diff = 2 * (len(flux_diff[mask_tids])//2)
+                        if(number_spectra_diff <2):
+                            dic['DIFF'].append(np.full((1,flux_diff.shape[1]),np.nan))
+                        else:
+                            dic['DIFF'].append(np.sum(flux_diff[mask_tids][0:number_spectra_diff]*ivar_diff[mask_tids][0:number_spectra_diff],axis=0)/np.sum(ivar_diff[mask_tids][0:number_spectra_diff],axis=0))
                 else:
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
                 for k in list_to_mask:

@@ -154,7 +154,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--use-desi-P1d-changes', action='store_true', default = False,
         help='use changes put into picca to allow resolution treatment for the P1d more properly with DESI mocks (e.g. different sampling)')
-    
+
     parser.add_argument('--min-SNR', type=float, default = 1,
         help='only use data with at least this SNR, note that MiniSV analyses ran at 0.2, else 1 was default')
 
@@ -163,6 +163,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--coadd-by-picca', action='store_true', default = False,
         help='let picca do the coadding of spectra files (instead of using existing coadds)')
+
+    parser.add_argument('--compute-diff-flux', action='store_true', default = False,
+        help='let picca do the diff coadding of spectra files')
 
     parser.add_argument('--reject-bal-from-truth', action='store_true', default = False,
         help='remove bal QSOs based on truth file (for mocks without a BAL cat)')
@@ -191,7 +194,7 @@ if __name__ == '__main__':
     forest.lmin_rest = np.log10(args.lambda_rest_min)
     forest.lmax_rest = np.log10(args.lambda_rest_max)
     forest.mc_rebin_fac = args.mc_rebin_fac
-        
+
     if args.use_desi_P1d_changes:
         args.linear_binning = True
         if args.delta_format == 'Pk1D':
@@ -204,12 +207,12 @@ if __name__ == '__main__':
         forest.dlambda = 1
         forest.dll = None
         forest.linear_binning = True
-    else:   
+    else:
         forest.rebin = args.rebin
         forest.dll = args.rebin * 1e-4
         forest.dlambda = None
 
-        
+
 
     ## minumum dla transmission
     forest.dla_mask = args.dla_mask
@@ -273,7 +276,8 @@ if __name__ == '__main__':
         zmin=args.zqso_min, zmax=args.zqso_max, nspec=args.nspec, log=log,\
         keep_bal=args.keep_bal, bi_max=args.bi_max, order=args.order,\
         best_obs=args.best_obs, single_exp=args.single_exp, pk1d=args.delta_format, useall=args.use_all,
-        usesinglenights=args.use_single_nights,coadd_by_picca=args.coadd_by_picca, reject_bal_from_truth=args.reject_bal_from_truth)
+        usesinglenights=args.use_single_nights,coadd_by_picca=args.coadd_by_picca, reject_bal_from_truth=args.reject_bal_from_truth,
+        compute_diff_flux=args.compute_diff_flux)
 
     ### Get the lines to veto
     usr_mask_obs    = None
@@ -310,7 +314,7 @@ if __name__ == '__main__':
 
     ### Veto lines
     if not usr_mask_obs is None:
-        if ( usr_mask_obs.size+usr_mask_RF.size!=0):              
+        if ( usr_mask_obs.size+usr_mask_RF.size!=0):
             for p in data:
                 for d in data[p]:
                     d.mask(mask_obs=usr_mask_obs , mask_RF=usr_mask_RF)
@@ -347,7 +351,7 @@ if __name__ == '__main__':
         sp.random.seed(0)
         dlas = io.read_dlas(args.dla_vac)
         nb_dla_in_forest = 0
-        
+
         for p in data:
             for d in data[p]:
                 if d.thid in dlas:
@@ -390,7 +394,7 @@ if __name__ == '__main__':
     for p in data:
         for d in data[p]:
             assert hasattr(d,'ll')
-                
+
     for it in range(nit):
         print("iteration: ", it)
         nfit = 0
@@ -410,7 +414,7 @@ if __name__ == '__main__':
         pool.close()
 
         if it < nit-1:
-            
+
             ll_rest, mc, wmc = prep_del.mc(data)
             forest.mean_cont = interp1d(ll_rest[wmc>0.], forest.mean_cont(ll_rest[wmc>0.]) * mc[wmc>0.], fill_value = "extrapolate")
             if not (args.use_ivar_as_weight or args.use_constant_weight):
@@ -455,11 +459,11 @@ if __name__ == '__main__':
                 forest.var_lss = interp1d(ll, vlss, fill_value='extrapolate', kind='nearest')
                 forest.fudge = interp1d(ll, fudge, fill_value='extrapolate', kind='nearest')
 
-    
+
         ll_st,st,wst = prep_del.stack(data)
 
         ### Save iter_out_prefix
-        
+
         res = fitsio.FITS(args.iter_out_prefix+("_{:d}.fits.gz".format(it) if it!=nit-1 else '.fits.gz'),'rw',clobber=True)
         hd = {}
         hd["NSIDE"] = healpy_nside
@@ -476,8 +480,8 @@ if __name__ == '__main__':
     st = interp1d(ll_st[wst>0.],st[wst>0.],kind="nearest",fill_value="extrapolate")
     deltas = {}
     data_bad_cont = []
-        
-                
+
+
     for p in sorted(data.keys()):
         deltas[p] = [delta.from_forest(d,st,forest.var_lss,forest.eta,forest.fudge, args.use_mock_continuum) for d in data[p] if d.bad_cont is None]
         data_bad_cont = data_bad_cont + [d for d in data[p] if d.bad_cont is not None]
@@ -502,7 +506,7 @@ if __name__ == '__main__':
                 if (args.mode is not None and 'desi' in args.mode) :
                     desi_pixsize=0.8 #set desi pixel size to one angstrom, generalize later
                     #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
-                    dll=np.median(np.diff(d.ll)) #this is better as masking is ignored 
+                    dll=np.median(np.diff(d.ll)) #this is better as masking is ignored
                     dll_resmat=np.median(10**-d.ll)*desi_pixsize/np.log(10.) #this is 1 angstrom pixel size * mean(1/lambda) or median(1/lambda)
                     d.mean_reso*=constants.speed_light/1000.*dll_resmat*np.log(10.0)
 
@@ -540,10 +544,10 @@ if __name__ == '__main__':
                     desi_pixsize=0.8 #set desi pixel size to one angstrom, generalize later
                     if (args.mode is not None and 'desi' in args.mode):
                         #dll = (d.ll[-1]-d.ll[0])/float(len(d.ll)-1)  #this is not the right number given that pixelization is changed at spectra readin
-                        dll = np.mean(np.diff(d.ll))  #this is better as masking is ignored 
+                        dll = np.mean(np.diff(d.ll))  #this is better as masking is ignored
                         dll_resmat=np.median(10**-d.ll)*desi_pixsize/np.log(10.) #this is 1 angstrom pixel size * mean(1/lambda) or median(1/lambda)
                         if args.use_resolution_matrix:
-                            d.dll_resmat=dll_resmat 
+                            d.dll_resmat=dll_resmat
                         d.mean_reso*=constants.speed_light/1000.*dll_resmat*np.log(10.0)
 
 
@@ -556,7 +560,7 @@ if __name__ == '__main__':
                         hd += [{'name':'DLL_RES', 'value':dll_resmat, 'comment':'Loglam bin size for resolution matrix'}]
                     if d.linear_binning:
                         hd += [{'name':'DLAMBDA', 'value':d.dlambda, 'comment':'Lambda bin size'}]
-                            
+
                     diff = d.diff
                     if diff is None:
                         diff = d.ll*0
