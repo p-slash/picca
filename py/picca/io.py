@@ -110,8 +110,10 @@ def read_drq(drq_filename,
     keep_columns = ['RA', 'DEC', 'Z']
     if 'desi' in mode and 'TARGETID' in catalog.colnames:
         obj_id_name = 'TARGETID'
-        catalog.rename_column('TARGET_RA', 'RA')
-        catalog.rename_column('TARGET_DEC', 'DEC')
+        if 'TARGET_RA' in catalog.columns:
+            catalog.rename_column('TARGET_RA', 'RA')
+        if 'TARGET_DEC' in catalog.columns:
+            catalog.rename_column('TARGET_DEC', 'DEC')
         keep_columns += ['TARGETID', 'TILEID', 'PETAL_LOC', 'FIBER','FIBERSTATUS','DESI_TARGET']
         if 'LAST_NIGHT' in catalog.columns: #prefer last_night here as this is what you'd have with multi-night-coadds
             keep_columns+=['LAST_NIGHT']
