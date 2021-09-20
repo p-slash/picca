@@ -234,7 +234,7 @@ if __name__ == '__main__':
     ### Fix the order of the continuum fit, 0 or 1.
     if args.order:
         if (args.order != 0) and (args.order != 1):
-            print("ERROR : invalid value for order, must be eqal to 0 or 1. Here order = %i"%(order))
+            print("ERROR : invalid value for order, must be eqal to 0 or 1. Here order = %i"%(args.order))
             sys.exit(12)
 
 ### todo: make sure the following is fine with linearly binned pixels
@@ -271,7 +271,6 @@ if __name__ == '__main__':
     nit = args.nit
 
     log = open(os.path.expandvars(args.log),'w')
-
     data,ndata,healpy_nside,healpy_pix_ordering = io.read_data(os.path.expandvars(args.in_dir), args.drq, args.mode,\
         zmin=args.zqso_min, zmax=args.zqso_max, nspec=args.nspec, log=log,\
         keep_bal=args.keep_bal, bi_max=args.bi_max, order=args.order,\

@@ -11,7 +11,7 @@ import copy
 
 from picca.utils import print
 from picca.data import forest, delta, qso
-from picca.prep_pk1d import exp_diff, spectral_resolution, spectral_resolution_desi
+from picca.prep_pk1d import exp_diff, exp_diff_desi, spectral_resolution, spectral_resolution_desi
 from astropy.table import Table
 
 ## use a metadata class to simplify things
@@ -306,7 +306,7 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
     elif mode=="desi":
         nside = 8
         print("Found {} qsos".format(len(zqso)))
-        data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d,reject_bal_from_truth=reject_bal_from_truth,compute_diff_flux=compute_diff_flux)
+        data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d,reject_bal_from_truth=reject_bal_from_truth,compute_diff_flux=compute_diff_flux,coadd_by_picca=coadd_by_picca)
         return data,len(data),nside,"RING"
 
     elif mode=="desiminisv":
@@ -870,7 +870,6 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
 
     ztable = {t:z for t,z in zip(thid,zqso)}
 
-
     for i,f in enumerate(fi):
         if not minisv:
             # CR - this default name is for desi-mocks.
@@ -882,9 +881,10 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             test=glob.glob(path)
             if not test:
                 print("default filename does not exist, trying glob")
-                path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/coadd*-"+str(f)+".fits")
-                if(compute_diff_flux):
-                    path_diff = glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra*-"+str(f)+".fits")
+                if(coadd_by_picca):
+                    path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra*-"+str(f)+".fits")
+                else:
+                    path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/coadd*-"+str(f)+".fits")
                 if not path :
                     continue
                 elif(len(path) == 1):
@@ -896,12 +896,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
         try:
             if(type(path) == list):
                 h = [fitsio.FITS(path[i]) for i in range(len(path))]
-                if(compute_diff_flux):
-                    h_diff = [fitsio.FITS(path_diff[i]) for i in range(len(path))]
             else:
                 h = fitsio.FITS(path)
-                if(compute_diff_flux):
-                    h_diff = fitsio.FITS(path_diff)
             if not minisv:
                 tid_qsos = thid[(in_pixs==f)]
                 plate_qsos = plate[(in_pixs==f)]
@@ -1009,36 +1005,12 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 list_to_mask = ['FL','IV']
 
                 if ('{}_DIFF_FLUX'.format(spec) in test_h_name):
-                    if(compute_diff_flux):
-                        print("DIFF_FLUX already computed on input spectra, extracting now")
                     if(type(h) == list):
                         dic['DIFF'] = np.concatenate([h[i]['{}_DIFF_FLUX'.format(spec)].read() for i in range(len(h))],axis=0)
                     else:
                         dic['DIFF'] = h['{}_DIFF_FLUX'.format(spec)].read()
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV']) | sp.isnan(dic['DIFF'])
                     list_to_mask.append('DIFF')
-                elif(compute_diff_flux):
-                    print("DIFF_FLUX computed by picca")
-                    if(type(h_diff) == list):
-                        in_tids_diff = np.concatenate([h_diff[i][fibmap_name]["TARGETID"][:] for i in range(len(h_diff))],axis=0)
-                        flux_diff = np.concatenate([h_diff[i]['{}_FLUX'.format(spec)].read() for i in range(len(h_diff))],axis=0)
-                        ivar_diff = dic['IV'] = np.concatenate([h_diff[i]['{}_IVAR'.format(spec)].read()*(h_diff[i]['{}_MASK'.format(spec)].read()==0) for i in range(len(h_diff))],axis=0)
-                    else:
-                        in_tids_diff = h_diff[fibmap_name]["TARGETID"][:]
-                        flux_diff = h_diff['{}_FLUX'.format(spec)].read()
-                        ivar_diff = h_diff['{}_IVAR'.format(spec)].read()*(h_diff['{}_MASK'.format(spec)].read()==0)
-                    dic['DIFF'] = []
-                    for tid in in_tids:
-                        mask_tids = in_tids_diff == tid
-                        number_spectra_diff = 2 * (len(flux_diff[mask_tids])//2)
-                        if(number_spectra_diff <2):
-                            dic['DIFF'].append(np.full((1,flux_diff.shape[1]),np.nan))
-                        else:
-                            diff = np.sum(np.array([(-1)**i * flux_diff[mask_tids][0:number_spectra_diff][i]*
-                                                    ivar_diff[mask_tids][0:number_spectra_diff][i]
-                                                    for i in range(len(flux_diff[mask_tids][0:number_spectra_diff]))]),axis=0)
-                            diff /= np.sum(ivar_diff[mask_tids][0:number_spectra_diff],axis=0)
-                            dic['DIFF'].append(diff)
                 else:
                     w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
                 for k in list_to_mask:
@@ -1075,7 +1047,6 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
 
         #breakpoint()
 
-
         if minisv:
             plate_spec = int(str(tile_spec) + str(petal_spec))
             if (not coadd_by_picca) or usesinglenights:
@@ -1091,8 +1062,6 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             wt = (in_tids == t)
             if wt.sum()==0:
                 print("\nError reading thingid {}\n".format(t))
-                print("catalog thid : {}".format( tid_qsos))
-                print("spectra : {}".format(spec))
                 if minisv:
                     print("plate_spec : {}".format(plate_spec))
                 else:
@@ -1103,12 +1072,20 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
             for tspecData in specData.values():
                 iv = tspecData['IV'][wt]
                 fl = (iv*tspecData['FL'][wt]).sum(axis=0)
-                if("DIFF" in tspecData): diff_sp = (iv*tspecData['DIFF'][wt]).sum(axis=0)
-                else : diff_sp = None
+                if("DIFF" in tspecData):
+                    diff_sp = (iv*tspecData['DIFF'][wt]).sum(axis=0)
+                    w = iv.sum(axis=0)>0.
+                    diff_sp[w] /= iv[w]
+                elif(coadd_by_picca&compute_diff_flux):
+                    diff_sp = exp_diff_desi(tspecData,wt)
+                elif(not(coadd_by_picca)&compute_diff_flux):
+                    print("Option coadd_by_picca need to be used when DIFF is not pre-computed in the coadd files")
+                    diff_sp = None
+                else:
+                    diff_sp = None
                 iv = iv.sum(axis=0)
                 w = iv>0.
                 fl[w] /= iv[w]
-                if diff_sp is not None : diff_sp[w] /= iv[w]
                 if pk1d is not None:
                     reso_sum = tspecData['RESO'][wt].sum(axis=0)
                     reso_in_pixel = spectral_resolution_desi(reso_sum,tspecData['LL'])

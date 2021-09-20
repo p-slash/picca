@@ -85,7 +85,7 @@ if __name__ == '__main__':
         help='number of pipeline noise realizations to generate per spectrum')
 
     parser.add_argument('--noise-overestim-factor', default = 1.0, type=float,
-        help='factor by which the pipeline noise is too large') 
+        help='factor by which the pipeline noise is too large')
 
 
 
@@ -124,7 +124,7 @@ if __name__ == '__main__':
                 print("skipped analysis for existing outputs")
                 skipmsgprinted=True
             return 1#skip existing files
-        
+
         if i%1==0:
             print("\rread {} of {} {}".format(i,len(fi),ndata),end="")
 
@@ -185,7 +185,7 @@ if __name__ == '__main__':
                 if args.linear_binning:
                     d.dll = d.dlambda
                     d.ll=10**d.ll
-            
+
             ###note that beginning here, all ll arrays will be either lambda or log lambda binned depending on input and dll will be the corresponding pixel size
 
             if args.res_estimate == 'Gaussian':
@@ -222,17 +222,16 @@ if __name__ == '__main__':
                 k,Pk_raw = compute_Pk_raw(d.dll,delta_new,linear_binning=args.linear_binning)
 
                 # Compute Pk_noise
-                run_noise = False
-                if (args.noise_estimate=='pipeline'): run_noise=True
+                run_noise = True
                 Pk_noise,Pk_diff = compute_Pk_noise(d.dll,iv_new*args.noise_overestim_factor**2,diff_new,run_noise,linear_binning=args.linear_binning,nb_noise_exp=args.nb_noise_exp)
 
                 # Compute resolution correction
-                
-                if args.linear_binning:  #it's weird to compute this here manually, could be cleaned up 
+
+                if args.linear_binning:  #it's weird to compute this here manually, could be cleaned up
                     delta_pixel = d.dlambda
                 else:
                     delta_pixel = d.dll*sp.log(10.)*constants.speed_light/1000.
-                
+
                 if args.res_estimate == 'Gaussian' and not noiseless_fullres:
                     cor_reso = compute_cor_reso(delta_pixel, d.mean_reso,k, pixel_correction=args.pixel_correction)
                 elif  args.res_estimate == 'matrix' and not noiseless_fullres:

@@ -51,6 +51,42 @@ def exp_diff(file,ll) :
     return diff
 
 
+def exp_diff_desi(file,mask_targetid) :
+
+    nexp = len(file["FL"][mask_targetid])
+    if (nexp)<2 :
+        print("DBG : not enough exposures for diff")
+
+    fltotodd  = np.zeros(file["FL"].shape[1])
+    ivtotodd  = np.zeros(file["FL"].shape[1])
+    fltoteven = np.zeros(file["FL"].shape[1])
+    ivtoteven = np.zeros(file["FL"].shape[1])
+
+    for iexp in range (2* (nexp//2)) :
+        flexp = file["FL"][mask_targetid][iexp]
+        ivexp = file["IV"][mask_targetid][iexp]
+
+        if iexp%2 == 1 :
+            fltotodd += flexp * ivexp
+            ivtotodd += ivexp
+        else :
+            fltoteven += flexp * ivexp
+            ivtoteven += ivexp
+
+    w=ivtotodd>0
+    fltotodd[w]/=ivtotodd[w]
+    w=ivtoteven>0
+    fltoteven[w]/=ivtoteven[w]
+
+    alpha = 1
+    if (nexp%2 == 1) :
+        n_even = (nexp-1)//2
+        alpha = np.sqrt(4.*n_even*(n_even+1))/nexp
+    diff = 0.5 * (fltoteven-fltotodd) * alpha
+
+    return diff
+
+
 def spectral_resolution(wdisp,with_correction=None,fiber=None,ll=None) :
 
     reso = wdisp*constants.speed_light/1000.*1.0e-4*np.log(10.)
