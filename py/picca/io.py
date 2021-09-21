@@ -1078,7 +1078,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     diff_sp[w] /= iv[w]
                 elif(coadd_by_picca&compute_diff_flux):
                     diff_sp = exp_diff_desi(tspecData,wt)
-                elif(not(coadd_by_picca)&compute_diff_flux):
+                elif((not coadd_by_picca)&compute_diff_flux):
                     print("Option coadd_by_picca need to be used when DIFF is not pre-computed in the coadd files")
                     diff_sp = None
                 else:
