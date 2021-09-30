@@ -55,7 +55,8 @@ def exp_diff_desi(file,mask_targetid) :
 
     nexp = len(file["FL"][mask_targetid])
     if (nexp)<2 :
-        print("DBG : not enough exposures for diff")
+        return None
+        print("DBG : not enough exposures for diff, spectra rejected")
 
     fltotodd  = np.zeros(file["FL"].shape[1])
     ivtotodd  = np.zeros(file["FL"].shape[1])

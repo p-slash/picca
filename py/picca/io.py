@@ -315,6 +315,22 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
         data = read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order, pk1d=pk1d, minisv=True,useall=useall,usesinglenights=usesinglenights,coadd_by_picca=coadd_by_picca)
         return data,len(data),nside,"RING"
 
+    elif mode=="desi_tiles":
+        nside = 8
+        print("Found {} qsos".format(len(zqso)))
+        data = read_from_desi_tiles(nside,
+                                    in_dir,
+                                    thid,
+                                    ra,
+                                    dec,
+                                    zqso,
+                                    plate,
+                                    order,
+                                    pk1d=pk1d,
+                                    coadd_by_picca=coadd_by_picca,
+                                    compute_diff_flux=compute_diff_flux)
+        return data,len(data),nside,"RING"
+
     else:
         print("I don't know mode: {}".format(mode))
         sys.exit(1)
@@ -373,6 +389,8 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
             ndata += len(pix_data)
 
     return data,ndata,nside,"RING"
+
+### eBOSS delta reading
 
 def read_from_spec(in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,mode,log=None,pk1d=None,best_obs=None):
     drq_dict = {t:(r,d,z) for t,r,d,z in zip(thid,ra,dec,zqso)}
@@ -786,6 +804,339 @@ def read_from_spplate(in_dir, thid, ra, dec, zqso, plate, mjd, fid, order, log=N
     data = list(pix_data.values())
     return data
 
+
+
+
+def read_from_desi_tiles(nside,
+                         in_dir,
+                         targetid,
+                         ra,
+                         dec,
+                         zqso,
+                         petal_tile,
+                         order,
+                         pk1d=None,
+                         coadd_by_picca=False,
+                         compute_diff_flux=False):
+    compute_diff_flux=False
+    if not coadd_by_picca:
+        files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
+                    recursive=True)
+    else:
+        files_in = glob.glob(os.path.join(in_dir, "**/spectra-*.fits"),
+                    recursive=True)
+
+    print("total number of input files:")
+    print(len(files_in))
+    print("")
+
+    fi = files_in
+
+    data = {}
+    ndata = 0
+
+    ztable = {t:z for t,z in zip(targetid,zqso)}
+
+    for i,path in enumerate(fi):
+        print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
+        try:
+            h = fitsio.FITS(path)
+        except IOError:
+            print("Error reading pix {}\n".format(path))
+            raise
+
+        petal_spec=h["FIBERMAP"]["PETAL_LOC"][:][0]
+        tile_spec=h["FIBERMAP"]["TILEID"][:][0]
+
+        fibmap_name="FIBERMAP"
+        try:
+            h[fibmap_name]
+        except:
+            fibmap_name="COADD_FIBERMAP"
+
+        ra = np.radians(h[fibmap_name]["TARGET_RA"][:])
+        de = np.radians(h[fibmap_name]["TARGET_DEC"][:])
+        in_targetids = h[fibmap_name]["TARGETID"][:]
+
+        specData = {}
+        if 'brz_wavelength' in h.hdu_map.keys():
+            bandnames=['BRZ']
+        elif 'b_wavelength' in h.hdu_map.keys():
+            bandnames=['B','R','Z']
+        else:
+            raise ValueError('data format not understood, neither blue spectrograph, nor BRZ coadd are part of the file (or the way they are in is not implemented)')
+        for spec in bandnames:
+            dic = {}
+            try:
+
+                dic['LL'] = np.log10(h['{}_WAVELENGTH'.format(spec)].read())
+                dic['FL'] = h['{}_FLUX'.format(spec)].read()
+                dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
+                list_to_mask = ['FL','IV']
+                w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
+                for k in list_to_mask:
+                    dic[k][w] = 0.
+                if f"{spec}_RESOLUTION" in h:
+                    dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
+                if(len(dic['RESO'].shape)==2):
+                    dic['RESO'] = dic['RESO'][np.newaxis,...]
+                specData[spec] = dic
+            except OSError:
+                pass
+        h.close()
+
+        plate_spec = int(str(tile_spec) + str(petal_spec))
+        select = (petal_tile==plate_spec)
+
+        print('\nThis is tile {}, petal {}'.format(tile_spec,petal_spec))
+        targetid_qsos = targetid[select]
+        petal_tile_qsos = petal_tile[select]
+
+        data, ndata = fill_data_desi(specData,
+                                     data,
+                                     ndata,
+                                     path,
+                                     ra,
+                                     de,
+                                     ztable,
+                                     order,
+                                     plate_spec,
+                                     targetid_qsos,
+                                     petal_tile_qsos,
+                                     in_targetids,
+                                     coadd_by_picca,
+                                     compute_diff_flux,
+                                     pk1d)
+
+
+    print("found {} quasars in input files\n".format(ndata))
+
+    return data
+
+
+
+
+def read_from_desi_healpix(nside,
+                   in_dir,
+                   thid,
+                   ra,
+                   dec,
+                   zqso,
+                   plate,
+                   mjd,
+                   fid,
+                   order,
+                   pk1d=None,
+                   coadd_by_picca=False,
+                   compute_diff_flux=False):
+
+    try:
+        in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
+        nest = True
+        in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra, nest=nest)
+    except ValueError:
+        print("Trying default healpix nside")
+        in_nside = 64
+        nest=True
+        in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra, nest=nest)
+    except:
+        raise
+    fi = sp.unique(in_pixs)
+
+    data = {}
+    ndata = 0
+
+    ztable = {t:z for t,z in zip(thid,zqso)}
+
+    for i,f in enumerate(fi):
+        path = in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra-"+str(in_nside)+"-"+str(f)+".fits"
+        test=glob.glob(path)
+        if not test:
+            print("default filename does not exist, trying glob")
+            if(coadd_by_picca):
+                path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra*-"+str(f)+".fits")
+            else:
+                path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/coadd*-"+str(f)+".fits")
+            if not path :
+                continue
+            elif(len(path) == 1):
+                path = path[0]
+        else:
+            path=f
+        print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
+
+        try:
+            if(type(path) == list):
+                h = [fitsio.FITS(path[i]) for i in range(len(path))]
+            else:
+                h = fitsio.FITS(path)
+            tid_qsos = thid[(in_pixs==f)]
+            plate_qsos = plate[(in_pixs==f)]
+            mjd_qsos = mjd[(in_pixs==f)]
+            fid_qsos = fid[(in_pixs==f)]
+        except IOError:
+            print("Error reading pix {}\n".format(f))
+            raise
+        if(type(h) == list):
+            test_h_name = h[0]
+        else:
+            test_h_name = h
+
+        fibmap_name="FIBERMAP"
+        try:
+            test_h_name[fibmap_name]
+        except:
+            fibmap_name="COADD_FIBERMAP"
+
+        if(type(h) == list):
+            ra = np.concatenate([np.radians(h[i][fibmap_name]["TARGET_RA"][:]) for i in range(len(h))],axis=0)
+            de = np.concatenate([np.radians(h[i][fibmap_name]["TARGET_DEC"][:]) for i in range(len(h))],axis=0)
+            in_tids = np.concatenate([h[i][fibmap_name]["TARGETID"][:] for i in range(len(h))],axis=0)
+        else:
+            ra = np.radians(h[fibmap_name]["TARGET_RA"][:])
+            de = np.radians(h[fibmap_name]["TARGET_DEC"][:])
+            in_tids = h[fibmap_name]["TARGETID"][:]
+
+        try:
+            pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
+        except ValueError:
+            select_nan_rade=np.logical_not(np.isfinite(de)&np.isfinite(ra))
+            de[select_nan_rade]=0
+            ra[select_nan_rade]=0
+            pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
+            pixs[select_nan_rade]=-12345
+            print("found non-finite ra/dec values, setting their healpix id to -12345")
+
+        specData = {}
+        bandnames=['B','R','Z']
+        for spec in bandnames:
+            dic = {}
+            try:
+                if(type(h) == list):
+                    dic['LL'] = np.log10(h[0]['{}_WAVELENGTH'.format(spec)].read())
+                    dic['FL'] = np.concatenate([h[i]['{}_FLUX'.format(spec)].read() for i in range(len(h))],axis=0)
+                    dic['IV'] = np.concatenate([h[i]['{}_IVAR'.format(spec)].read()*(h[i]['{}_MASK'.format(spec)].read()==0) for i in range(len(h))],axis=0)
+                else:
+                    dic['LL'] = np.log10(h['{}_WAVELENGTH'.format(spec)].read())
+                    dic['FL'] = h['{}_FLUX'.format(spec)].read()
+                    dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
+                list_to_mask = ['FL','IV']
+
+                if ('{}_DIFF_FLUX'.format(spec) in test_h_name):
+                    if(type(h) == list):
+                        dic['DIFF'] = np.concatenate([h[i]['{}_DIFF_FLUX'.format(spec)].read() for i in range(len(h))],axis=0)
+                    else:
+                        dic['DIFF'] = h['{}_DIFF_FLUX'.format(spec)].read()
+                    w = sp.isnan(dic['FL']) | sp.isnan(dic['IV']) | sp.isnan(dic['DIFF'])
+                    list_to_mask.append('DIFF')
+                else:
+                    w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
+                for k in list_to_mask:
+                    dic[k][w] = 0.
+                if f"{spec}_RESOLUTION" in test_h_name:
+                    if(type(h) == list):
+                        dic['RESO'] = np.concatenate([h[i]['{}_RESOLUTION'.format(spec)].read() for i in range(len(h))],axis=0)
+                    else:
+                        dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
+                if(len(dic['RESO'].shape)==2):
+                    dic['RESO'] = dic['RESO'][np.newaxis,...]
+                specData[spec] = dic
+            except OSError:
+                pass
+        if(type(h) == list):
+            for i in range(len(h)):
+                h[i].close()
+        else:
+            h.close()
+
+        data, ndata = fill_data_desi(specData,
+                                     data,
+                                     ndata,
+                                     path,
+                                     ra,
+                                     de,
+                                     ztable,
+                                     order,
+                                     plate_spec,
+                                     targetid_qsos,
+                                     petal_tile_qsos,
+                                     in_targetids,
+                                     coadd_by_picca,
+                                     compute_diff_flux,
+                                     pk1d)
+
+    print("found {} quasars in input files\n".format(ndata))
+
+    return data
+
+
+
+
+def fill_data_desi(specData,
+                   data,
+                   ndata,
+                   path,
+                   ra,
+                   de,
+                   ztable,
+                   order,
+                   pix,
+                   targetid_qsos,
+                   petal_tile_qsos,
+                   in_targetids,
+                   coadd_by_picca,
+                   compute_diff_flux,
+                   pk1d):
+
+    for t,p in zip(targetid_qsos,petal_tile_qsos):
+        wt = (in_targetids == t)
+        if wt.sum()==0:
+            print("\nError reading thingid {}\n".format(t))
+            continue
+        d = None
+        for tspecData in specData.values():
+            iv = tspecData['IV'][wt]
+            fl = (iv*tspecData['FL'][wt]).sum(axis=0)
+            if("DIFF" in tspecData):
+                diff_sp = (iv*tspecData['DIFF'][wt]).sum(axis=0)
+                w = iv.sum(axis=0)>0.
+                diff_sp[w] /= iv[w]
+            elif(coadd_by_picca&compute_diff_flux):
+                diff_sp = exp_diff_desi(tspecData,wt)
+                if(diff_sp is None):
+                    continue
+            elif((not coadd_by_picca)&compute_diff_flux):
+                print("Option coadd_by_picca need to be used when DIFF is not pre-computed in the coadd files")
+                diff_sp = None
+            else:
+                diff_sp = None
+            iv = iv.sum(axis=0)
+            w = iv>0.
+            fl[w] /= iv[w]
+            if pk1d is not None:
+                reso_sum = tspecData['RESO'][wt].sum(axis=0)
+                reso_in_pixel = spectral_resolution_desi(reso_sum,tspecData['LL'])
+                if(diff_sp is not None): diff = diff_sp
+                else : diff = sp.zeros(tspecData['LL'].shape)
+            else:
+                reso_in_pixel = None
+                diff = None
+                reso_sum = None
+            td = forest(tspecData['LL'],fl,iv,t,ra[wt][0],de[wt][0],ztable[t],
+                p,-1,path,order,diff,reso_in_pixel,reso_matrix=reso_sum)
+            if d is None:
+                d = copy.deepcopy(td)
+            else:
+                d += td
+        if pix not in data:
+            data[pix]=[]
+        data[pix].append(d)
+        ndata+=1
+    return(data,ndata)
+
+
+
+
 def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False,coadd_by_picca=False, reject_bal_from_truth=False,compute_diff_flux=False):
 
     if not minisv:
@@ -1078,6 +1429,8 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     diff_sp[w] /= iv[w]
                 elif(coadd_by_picca&compute_diff_flux):
                     diff_sp = exp_diff_desi(tspecData,wt)
+                    if(diff_sp is None):
+                        continue
                 elif((not coadd_by_picca)&compute_diff_flux):
                     print("Option coadd_by_picca need to be used when DIFF is not pre-computed in the coadd files")
                     diff_sp = None
