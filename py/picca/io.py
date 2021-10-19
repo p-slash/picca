@@ -1057,6 +1057,348 @@ def read_from_desi_healpix(in_dir,
     return data
 
 
+def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False,coadd_by_picca=False, reject_bal_from_truth=False,compute_diff_flux=False):
+
+    if not minisv:
+        try:
+            in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
+            nest = True
+            in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra, nest=nest)
+        except ValueError:
+            print("Trying default healpix nside")
+            in_nside = 64
+            nest=True
+            in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra, nest=nest)
+        except:
+            raise
+        fi = sp.unique(in_pixs)
+    else:
+        print("I'm reading minisv")
+        if usesinglenights or ('cumulative' in in_dir):
+            if not coadd_by_picca:
+                files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
+                            recursive=True)
+            else:
+                files_in = glob.glob(os.path.join(in_dir, "**/spectra-*.fits"),
+                            recursive=True)
+            if not 'cumulative' in in_dir:
+                petal_tile_night = [
+                    "{p}-{t}-{night}".format(p=str(pt)[-1],t=str(pt)[:-1],night=n)
+                    for pt,n in zip(plate,mjd)
+                ]
+            else:
+                petal_tile_night = [
+                    "{p}-{t}-thru{ni}".format(p=str(pt)[-1],t=str(pt)[:-1],ni=n)
+                    for pt,n in zip(plate,mjd)
+                ]
+            print("total number of input files:")
+            print(len(files_in))
+            print("")
+
+            petal_tile_night_unique = np.unique(petal_tile_night)
+
+            fi = []
+            for f_in in files_in:
+                for ptn in petal_tile_night_unique:
+                    if ptn in os.path.basename(f_in):
+                        fi.append(f_in)
+                        break
+        else:
+            if useall:
+                if not coadd_by_picca:
+                    files_in = glob.glob(os.path.join(in_dir, "**/all/**/coadd-*.fits"),
+                            recursive=True)
+                else:
+                    files_in = glob.glob(os.path.join(in_dir, "**/all/**/spectra-*.fits"),
+                            recursive=True)
+            else:
+                if not coadd_by_picca:
+                    files_in = glob.glob(os.path.join(in_dir, "**/deep/**/coadd-*.fits"),
+                        recursive=True)
+                else:
+                    files_in = glob.glob(os.path.join(in_dir, "**/deep/**/spectra-*.fits"),
+                        recursive=True)
+            print("total number of input files:")
+            print(len(files_in))
+            print("")
+            petal_tile_unique = np.unique(plate)
+            files_in.sort()
+            fi = []
+            for f_in in files_in:
+                for pt in petal_tile_unique:
+                    p=str(pt)[-1]
+                    t=str(pt)[:-1]
+                    if f"/{t}/" in os.path.dirname(f_in) and f"-{p}-{t}-" in os.path.basename(f_in):
+                        fi.append(f_in)
+                        break
+            print("used number of input files (after selection of tile/petal):")
+            print(len(fi))
+            print("used input files")
+            print(fi)
+            print("")
+    data = {}
+    ndata = 0
+
+    ztable = {t:z for t,z in zip(thid,zqso)}
+
+    for i,f in enumerate(fi):
+        if not minisv:
+            # CR - this default name is for desi-mocks.
+            # We need to define three modes:
+            # desi-mocks (healpix with the mock format),
+            # desi-tiles (tile-based, the one used for SV until everest)
+            # desi-healpix (healpix-based, the one used for SV after everest)
+            path = in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra-"+str(in_nside)+"-"+str(f)+".fits"
+            test=glob.glob(path)
+            if not test:
+                print("default filename does not exist, trying glob")
+                if(coadd_by_picca):
+                    path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra*-"+str(f)+".fits")
+                else:
+                    path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/coadd*-"+str(f)+".fits")
+                if not path :
+                    continue
+                elif(len(path) == 1):
+                    path = path[0]
+        else:
+            path=f
+        print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
+
+        try:
+            if(type(path) == list):
+                h = [fitsio.FITS(path[i]) for i in range(len(path))]
+            else:
+                h = fitsio.FITS(path)
+            if not minisv:
+                tid_qsos = thid[(in_pixs==f)]
+                plate_qsos = plate[(in_pixs==f)]
+                mjd_qsos = mjd[(in_pixs==f)]
+                fid_qsos = fid[(in_pixs==f)]
+        except IOError:
+            print("Error reading pix {}\n".format(f))
+
+
+            raise
+        if minisv:
+            petal_spec=h["FIBERMAP"]["PETAL_LOC"][:][0]
+
+            if 'TILEID' in h["FIBERMAP"].get_colnames():
+                tile_spec=h["FIBERMAP"]["TILEID"][:][0]
+            else:
+                tile_spec=fi.split('-')[-2]    #minisv tiles don't have this in the fibermap
+
+            if 'NIGHT' in h["FIBERMAP"].get_colnames():
+                night_spec=h["FIBERMAP"]["NIGHT"][:][0]
+            elif 'NIGHT' in h["EXP_FIBERMAP"].get_colnames():
+                night_spec=h["EXP_FIBERMAP"]["NIGHT"][:][0]
+            elif "LAST_NIGHT" in h["FIBERMAP"].get_colnames():
+                night_spec=h["FIBERMAP"]["LAST_NIGHT"][:][0]
+            else:
+                night_spec=int(fi.split('-')[-1].split('.')[0])
+
+        if(type(h) == list):
+            test_h_name = h[0]
+        else:
+            test_h_name = h
+
+        fibmap_name="FIBERMAP"
+        try:
+            test_h_name[fibmap_name]
+        except:
+            fibmap_name="COADD_FIBERMAP"
+
+        if(type(h) == list):
+            ra = np.concatenate([np.radians(h[i][fibmap_name]["TARGET_RA"][:]) for i in range(len(h))],axis=0)
+            de = np.concatenate([np.radians(h[i][fibmap_name]["TARGET_DEC"][:]) for i in range(len(h))],axis=0)
+            in_tids = np.concatenate([h[i][fibmap_name]["TARGETID"][:] for i in range(len(h))],axis=0)
+        else:
+            ra = np.radians(h[fibmap_name]["TARGET_RA"][:])
+            de = np.radians(h[fibmap_name]["TARGET_DEC"][:])
+            in_tids = h[fibmap_name]["TARGETID"][:]
+
+        try:
+            pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
+        except ValueError:
+            select_nan_rade=np.logical_not(np.isfinite(de)&np.isfinite(ra))
+            de[select_nan_rade]=0
+            ra[select_nan_rade]=0
+            pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
+            pixs[select_nan_rade]=-12345
+            print("found non-finite ra/dec values, setting their healpix id to -12345")
+
+
+        if reject_bal_from_truth and not minisv:
+            # Only for desi-mocks
+            filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"
+            try:
+                with fitsio.FITS(filename_truth) as hdul_truth:
+                    bal_table = hdul_truth["BAL_META"].read()
+                    if len(bal_table)>0:
+                        select = bal_table['BI_CIV']>0
+                        remove_tid = bal_table['TARGETID'][select]
+                    else:
+                        remove_tid = []
+            except IOError:
+                print(f"Error reading truth file {filename_truth}")
+            except KeyError:
+                print(f"Error getting BALs from truth file for pix {f}")
+            except ValueError:
+                print(f"Error getting BALs from truth file for pix {f}, probably cannot read a field")
+            else:
+                oldlen = len(tid_qsos)
+                tid_qsos = np.array([tid for tid in tid_qsos if tid not in remove_tid])
+                plate_qsos = np.array([tid for tid in plate_qsos if tid not in remove_tid])
+                fid_qsos = np.array([tid for tid in fid_qsos if tid not in remove_tid])
+                newlen = len(tid_qsos)
+                print(f"rejected {oldlen-newlen} BAL QSOs")
+        specData = {}
+        if not minisv:
+            bandnames=['B','R','Z']
+        else:
+            if 'brz_wavelength' in h.hdu_map.keys():
+                bandnames=['BRZ']
+            elif 'b_wavelength' in h.hdu_map.keys():
+                bandnames=['B','R','Z']
+            else:
+                raise ValueError('data format not understood, neither blue spectrograph, nor BRZ coadd are part of the file (or the way they are in is not implemented)')
+        reso_from_truth=False
+        for spec in bandnames:
+            dic = {}
+            try:
+                if(type(h) == list):
+                    dic['LL'] = np.log10(h[0]['{}_WAVELENGTH'.format(spec)].read())
+                    dic['FL'] = np.concatenate([h[i]['{}_FLUX'.format(spec)].read() for i in range(len(h))],axis=0)
+                    dic['IV'] = np.concatenate([h[i]['{}_IVAR'.format(spec)].read()*(h[i]['{}_MASK'.format(spec)].read()==0) for i in range(len(h))],axis=0)
+                else:
+                    dic['LL'] = np.log10(h['{}_WAVELENGTH'.format(spec)].read())
+                    dic['FL'] = h['{}_FLUX'.format(spec)].read()
+                    dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
+                list_to_mask = ['FL','IV']
+
+                if ('{}_DIFF_FLUX'.format(spec) in test_h_name):
+                    if(type(h) == list):
+                        dic['DIFF'] = np.concatenate([h[i]['{}_DIFF_FLUX'.format(spec)].read() for i in range(len(h))],axis=0)
+                    else:
+                        dic['DIFF'] = h['{}_DIFF_FLUX'.format(spec)].read()
+                    w = sp.isnan(dic['FL']) | sp.isnan(dic['IV']) | sp.isnan(dic['DIFF'])
+                    list_to_mask.append('DIFF')
+                else:
+                    w = sp.isnan(dic['FL']) | sp.isnan(dic['IV'])
+                for k in list_to_mask:
+                    dic[k][w] = 0.
+                if f"{spec}_RESOLUTION" in test_h_name:
+                    if(type(h) == list):
+                        dic['RESO'] = np.concatenate([h[i]['{}_RESOLUTION'.format(spec)].read() for i in range(len(h))],axis=0)
+                    else:
+                        dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
+                elif pk1d is not None:
+                    # Only for desi-mocks
+                    filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"
+                    try:
+                        with fitsio.FITS(filename_truth) as hdul_truth:
+                            dic["RESO"] = hdul_truth[f"{spec}_RESOLUTION"].read()
+                    except IOError:
+                        print(f"Error reading truth file {filename_truth}")
+                    except KeyError:
+                        print(f"Error reading resolution from truth file for pix {f}")
+                    else:
+                        if not reso_from_truth:
+                            print('Did not find resolution matrix in spectrum files, using resolution from truth files')
+                            reso_from_truth=True
+                if(len(dic['RESO'].shape)==2):
+                    dic['RESO'] = dic['RESO'][np.newaxis,...]
+                specData[spec] = dic
+            except OSError:
+                pass
+        if(type(h) == list):
+            for i in range(len(h)):
+                h[i].close()
+        else:
+            h.close()
+
+        #breakpoint()
+
+        if minisv:
+            plate_spec = int(str(tile_spec) + str(petal_spec))
+            if (not coadd_by_picca) or usesinglenights:
+                select=(plate==plate_spec)#&(mjd==night_spec)
+            else:
+                select=(plate==plate_spec)
+            print('\nThis is tile {}, petal {}, night {}'.format(tile_spec,petal_spec,night_spec))
+            tid_qsos = thid[select]
+            plate_qsos = plate[select]
+            fid_qsos = fid[select]
+
+        for t,p,f in zip(tid_qsos,plate_qsos,fid_qsos):
+            wt = (in_tids == t)
+            if wt.sum()==0:
+                print("\nError reading thingid {}\n".format(t))
+                if minisv:
+                    print("plate_spec : {}".format(plate_spec))
+                else:
+                    print(f"pix : {f}")
+                continue
+
+            d = None
+            for tspecData in specData.values():
+                iv = tspecData['IV'][wt]
+                fl = (iv*tspecData['FL'][wt]).sum(axis=0)
+                if("DIFF" in tspecData):
+                    diff_sp = (iv*tspecData['DIFF'][wt]).sum(axis=0)
+                    w = iv.sum(axis=0)>0.
+                    diff_sp[w] /= iv[w]
+                elif(coadd_by_picca&compute_diff_flux):
+                    diff_sp = exp_diff_desi(tspecData,wt)
+                    if(diff_sp is None):
+                        continue
+                elif((not coadd_by_picca)&compute_diff_flux):
+                    print("Option coadd_by_picca need to be used when DIFF is not pre-computed in the coadd files")
+                    diff_sp = None
+                else:
+                    diff_sp = None
+                iv = iv.sum(axis=0)
+                w = iv>0.
+                fl[w] /= iv[w]
+                if pk1d is not None:
+                    reso_sum = tspecData['RESO'][wt].sum(axis=0)
+                    reso_in_pixel = spectral_resolution_desi(reso_sum,tspecData['LL'])
+                    if(diff_sp is not None): diff = diff_sp
+                    else : diff = sp.zeros(tspecData['LL'].shape)
+                else:
+                    reso_in_pixel = None
+                    diff = None
+                    reso_sum = None
+                td = forest(tspecData['LL'],fl,iv,t,ra[wt][0],de[wt][0],ztable[t],
+                    p,-1,f,order,diff,reso_in_pixel,reso_matrix=reso_sum)  #note that this will lead to nights not being well defined later
+                if d is None:
+                    d = copy.deepcopy(td)
+                else:
+                    d += td
+            if not minisv:
+                pix = pixs[wt][0]
+                do_append=True
+            else:
+                pix = pixs[wt][0] #this would store everything by healpix again    #plate_spec
+                #the following would actually coadd things on the same healpix
+                do_append=True
+                if pix in data:
+                    for index,d_old in enumerate(data[pix]):
+                        if d_old.thid==d.thid:
+                            d+=d_old
+                            data[pix][index]=d
+                            do_append=False
+                            break
+            if pix not in data:
+                data[pix]=[]
+            if do_append:
+                data[pix].append(d)
+                ndata+=1
+
+    print("found {} quasars in input files\n".format(ndata))
+
+    return data
+
+
 
 
 def fill_data_desi(specData,
