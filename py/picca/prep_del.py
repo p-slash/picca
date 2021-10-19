@@ -8,13 +8,13 @@ from picca.utils import print
 ## mean continuum
 def mc(data):
     if forest.linear_binning: #restframe wavelength differences are not the same anymore for all spectra in linear binning...
-        nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/forest.mc_rebin_fac/(forest.dlambda/(1+2.0)))+1  #this will make a grid in l_rest coarse enough to accomodate a z=2.0 QSO 
+        nmc = int((10**forest.lmax_rest-10**forest.lmin_rest)/forest.mc_rebin_fac/(forest.dlambda/(1+2.0)))+1  #this will make a grid in l_rest coarse enough to accomodate a z=2.0 QSO
     else:
-        nmc = int((forest.lmax_rest-forest.lmin_rest)/forest.dll)+1  
+        nmc = int((forest.lmax_rest-forest.lmin_rest)/forest.dll)+1
         ll = forest.lmin_rest + (np.arange(nmc)+.5)*(forest.lmax_rest-forest.lmin_rest)/nmc
     mcont = np.zeros(nmc)
     wcont = np.zeros(nmc)
-    llcont = np.zeros(nmc)   
+    llcont = np.zeros(nmc)
     for p in sorted(list(data.keys())):
         for d in data[p]:
             ll_rest=d.ll-np.log10(1+d.zqso)
@@ -39,9 +39,9 @@ def mc(data):
     mcont[w]/=wcont[w]
     mcont/=mcont.mean()
     if forest.linear_binning:
-        llcont[w]/=wcont
+        llcont[w]/=wcont[w]
         ll=np.log10(llcont)
- 
+
     return ll,mcont,wcont
 
 def var_lss(data,eta_lim=(0.5,1.5),vlss_lim=(0.,0.3)):
@@ -173,4 +173,3 @@ def stack(data, delta=False):
     w=wst>0
     st[w]/=wst[w]
     return ll,st, wst
-

@@ -316,10 +316,8 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
         return data,len(data),nside,"RING"
 
     elif mode=="desi_tiles":
-        nside = 8
         print("Found {} qsos".format(len(zqso)))
-        data = read_from_desi_tiles(nside,
-                                    in_dir,
+        data = read_from_desi_tiles(in_dir,
                                     thid,
                                     ra,
                                     dec,
@@ -329,7 +327,22 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
                                     pk1d=pk1d,
                                     coadd_by_picca=coadd_by_picca,
                                     compute_diff_flux=compute_diff_flux)
-        return data,len(data),nside,"RING"
+        return data,len(data),8,"RING"
+    elif mode=="desi_healpix":
+        print("Found {} qsos".format(len(zqso)))
+        data = read_from_desi_healpix(in_dir,
+                                      thid,
+                                      ra,
+                                      dec,
+                                      zqso,
+                                      plate,
+                                      mjd,
+                                      fid,
+                                      order,
+                                      pk1d=pk1d,
+                                      coadd_by_picca=coadd_by_picca,
+                                      compute_diff_flux=compute_diff_flux)
+        return data,len(data),8,"RING"
 
     else:
         print("I don't know mode: {}".format(mode))
@@ -356,7 +369,7 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
         if mode == "spplate":
             pix_data = read_from_spplate(in_dir,thid, ra, dec, zqso, plate, mjd, fid, order, log=log, best_obs=best_obs)
         else:
-            Epix_data = read_from_spec(in_dir,thid, ra, dec, zqso, plate, mjd, fid, order, mode=mode,log=log, pk1d=pk1d, best_obs=best_obs)
+            pix_data = read_from_spec(in_dir,thid, ra, dec, zqso, plate, mjd, fid, order, mode=mode,log=log, pk1d=pk1d, best_obs=best_obs)
         ra = [d.ra for d in pix_data]
         ra = np.array(ra)
         dec = [d.dec for d in pix_data]
@@ -807,8 +820,7 @@ def read_from_spplate(in_dir, thid, ra, dec, zqso, plate, mjd, fid, order, log=N
 
 
 
-def read_from_desi_tiles(nside,
-                         in_dir,
+def read_from_desi_tiles(in_dir,
                          targetid,
                          ra,
                          dec,
@@ -818,7 +830,7 @@ def read_from_desi_tiles(nside,
                          pk1d=None,
                          coadd_by_picca=False,
                          compute_diff_flux=False):
-    compute_diff_flux=False
+
     if not coadd_by_picca:
         files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
                     recursive=True)
@@ -826,19 +838,18 @@ def read_from_desi_tiles(nside,
         files_in = glob.glob(os.path.join(in_dir, "**/spectra-*.fits"),
                     recursive=True)
 
+
     print("total number of input files:")
     print(len(files_in))
     print("")
-
-    fi = files_in
 
     data = {}
     ndata = 0
 
     ztable = {t:z for t,z in zip(targetid,zqso)}
 
-    for i,path in enumerate(fi):
-        print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
+    for i,path in enumerate(files_in):
+        print("\rread {} of {}. ndata: {}".format(i,len(files_in),ndata))
         try:
             h = fitsio.FITS(path)
         except IOError:
@@ -895,15 +906,15 @@ def read_from_desi_tiles(nside,
         data, ndata = fill_data_desi(specData,
                                      data,
                                      ndata,
+                                     targetid_qsos,
+                                     petal_tile_qsos,
+                                     plate_spec,
+                                     in_targetids,
                                      path,
                                      ra,
                                      de,
                                      ztable,
                                      order,
-                                     plate_spec,
-                                     targetid_qsos,
-                                     petal_tile_qsos,
-                                     in_targetids,
                                      coadd_by_picca,
                                      compute_diff_flux,
                                      pk1d)
@@ -916,66 +927,51 @@ def read_from_desi_tiles(nside,
 
 
 
-def read_from_desi_healpix(nside,
-                   in_dir,
-                   thid,
-                   ra,
-                   dec,
-                   zqso,
-                   plate,
-                   mjd,
-                   fid,
-                   order,
-                   pk1d=None,
-                   coadd_by_picca=False,
-                   compute_diff_flux=False):
 
-    try:
-        in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
-        nest = True
-        in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra, nest=nest)
-    except ValueError:
-        print("Trying default healpix nside")
-        in_nside = 64
-        nest=True
-        in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra, nest=nest)
-    except:
-        raise
-    fi = sp.unique(in_pixs)
+
+def read_from_desi_healpix(in_dir,
+                           thid,
+                           ra,
+                           dec,
+                           zqso,
+                           plate,
+                           mjd,
+                           fid,
+                           order,
+                           pk1d=None,
+                           coadd_by_picca=False,
+                           compute_diff_flux=False):
+
+
+    in_nside = 64
+    in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra, nest=True)
+    files_in = sp.unique(in_pixs)
 
     data = {}
     ndata = 0
 
     ztable = {t:z for t,z in zip(thid,zqso)}
 
-    for i,f in enumerate(fi):
-        path = in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra-"+str(in_nside)+"-"+str(f)+".fits"
-        test=glob.glob(path)
-        if not test:
-            print("default filename does not exist, trying glob")
-            if(coadd_by_picca):
-                path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/spectra*-"+str(f)+".fits")
-            else:
-                path=glob.glob(in_dir+"/"+str(int(f//100))+"/"+str(f)+"/coadd*-"+str(f)+".fits")
-            if not path :
-                continue
-            elif(len(path) == 1):
-                path = path[0]
+    for i,pix in enumerate(files_in):
+        if(coadd_by_picca):
+            path=glob.glob(in_dir+"/"+str(int(pix//100))+"/"+str(pix)+"/spectra*-"+str(pix)+".fits")
         else:
-            path=f
-        print("\rread {} of {}. ndata: {}".format(i,len(fi),ndata))
-
+            path=glob.glob(in_dir+"/"+str(int(pix//100))+"/"+str(pix)+"/coadd*-"+str(pix)+".fits")
+        if not path :
+            continue
+        elif(len(path) == 1):
+            path = path[0]
+        print(path)
+        print("\rread {} of {}. ndata: {}".format(i,len(files_in),ndata))
         try:
             if(type(path) == list):
                 h = [fitsio.FITS(path[i]) for i in range(len(path))]
             else:
                 h = fitsio.FITS(path)
-            tid_qsos = thid[(in_pixs==f)]
-            plate_qsos = plate[(in_pixs==f)]
-            mjd_qsos = mjd[(in_pixs==f)]
-            fid_qsos = fid[(in_pixs==f)]
+            targetid_qsos = thid[(in_pixs==pix)]
+            petal_tile_qsos = plate[(in_pixs==pix)]
         except IOError:
-            print("Error reading pix {}\n".format(f))
+            print("Error reading pix {}\n".format(pix))
             raise
         if(type(h) == list):
             test_h_name = h[0]
@@ -991,21 +987,11 @@ def read_from_desi_healpix(nside,
         if(type(h) == list):
             ra = np.concatenate([np.radians(h[i][fibmap_name]["TARGET_RA"][:]) for i in range(len(h))],axis=0)
             de = np.concatenate([np.radians(h[i][fibmap_name]["TARGET_DEC"][:]) for i in range(len(h))],axis=0)
-            in_tids = np.concatenate([h[i][fibmap_name]["TARGETID"][:] for i in range(len(h))],axis=0)
+            in_targetids = np.concatenate([h[i][fibmap_name]["TARGETID"][:] for i in range(len(h))],axis=0)
         else:
             ra = np.radians(h[fibmap_name]["TARGET_RA"][:])
             de = np.radians(h[fibmap_name]["TARGET_DEC"][:])
-            in_tids = h[fibmap_name]["TARGETID"][:]
-
-        try:
-            pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
-        except ValueError:
-            select_nan_rade=np.logical_not(np.isfinite(de)&np.isfinite(ra))
-            de[select_nan_rade]=0
-            ra[select_nan_rade]=0
-            pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
-            pixs[select_nan_rade]=-12345
-            print("found non-finite ra/dec values, setting their healpix id to -12345")
+            in_targetids = h[fibmap_name]["TARGETID"][:]
 
         specData = {}
         bandnames=['B','R','Z']
@@ -1052,18 +1038,19 @@ def read_from_desi_healpix(nside,
         data, ndata = fill_data_desi(specData,
                                      data,
                                      ndata,
+                                     targetid_qsos,
+                                     petal_tile_qsos,
+                                     pix,
+                                     in_targetids,
                                      path,
                                      ra,
                                      de,
                                      ztable,
                                      order,
-                                     plate_spec,
-                                     targetid_qsos,
-                                     petal_tile_qsos,
-                                     in_targetids,
                                      coadd_by_picca,
                                      compute_diff_flux,
                                      pk1d)
+
 
     print("found {} quasars in input files\n".format(ndata))
 
@@ -1075,21 +1062,28 @@ def read_from_desi_healpix(nside,
 def fill_data_desi(specData,
                    data,
                    ndata,
+                   targetid,
+                   petal_tile,
+                   sub_region,
+                   targetid_in_sub_region,
                    path,
                    ra,
                    de,
                    ztable,
                    order,
-                   pix,
-                   targetid_qsos,
-                   petal_tile_qsos,
-                   in_targetids,
                    coadd_by_picca,
                    compute_diff_flux,
                    pk1d):
+    """Fill data dic.
 
-    for t,p in zip(targetid_qsos,petal_tile_qsos):
-        wt = (in_targetids == t)
+    Args:
+        sub_region: pix for healpix and tile+spectro for tile
+
+    Returns:
+    """
+    for t,p in zip(targetid,petal_tile):
+        print(p,sub_region)
+        wt = (targetid_in_sub_region == t)
         if wt.sum()==0:
             print("\nError reading thingid {}\n".format(t))
             continue
@@ -1097,6 +1091,8 @@ def fill_data_desi(specData,
         for tspecData in specData.values():
             iv = tspecData['IV'][wt]
             fl = (iv*tspecData['FL'][wt]).sum(axis=0)
+
+            ### CR - to improve
             if("DIFF" in tspecData):
                 diff_sp = (iv*tspecData['DIFF'][wt]).sum(axis=0)
                 w = iv.sum(axis=0)>0.
@@ -1110,6 +1106,8 @@ def fill_data_desi(specData,
                 diff_sp = None
             else:
                 diff_sp = None
+            ### CR - to improve
+
             iv = iv.sum(axis=0)
             w = iv>0.
             fl[w] /= iv[w]
@@ -1128,11 +1126,13 @@ def fill_data_desi(specData,
                 d = copy.deepcopy(td)
             else:
                 d += td
-        if pix not in data:
-            data[pix]=[]
-        data[pix].append(d)
+        if sub_region not in data:
+            data[sub_region]=[]
+        data[sub_region].append(d)
         ndata+=1
     return(data,ndata)
+
+
 
 
 
