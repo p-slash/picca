@@ -329,8 +329,10 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
                                     compute_diff_flux=compute_diff_flux)
         return data,len(data),8,"RING"
     elif mode=="desi_healpix":
+        nside = 8
         print("Found {} qsos".format(len(zqso)))
-        data = read_from_desi_healpix(in_dir,
+        data = read_from_desi_healpix(nside,
+                                      in_dir,
                                       thid,
                                       ra,
                                       dec,
@@ -344,8 +346,10 @@ def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal
                                       compute_diff_flux=compute_diff_flux)
         return data,len(data),8,"RING"
     elif mode=="desi_mocks":
+        nside = 8
         print("Found {} qsos".format(len(zqso)))
-        data = read_from_desi_mocks(in_dir,
+        data = read_from_desi_mocks(nside,
+                                    in_dir,
                                     thid,
                                     ra,
                                     dec,
@@ -834,11 +838,11 @@ def read_from_spplate(in_dir, thid, ra, dec, zqso, plate, mjd, fid, order, log=N
 
 
 def read_from_desi_tiles(in_dir,
-                         targetid,
-                         ra,
-                         dec,
-                         zqso,
-                         petal_tile,
+                         targetid_qso_cat,
+                         ra_qso_cat,
+                         dec_qso_cat,
+                         zqso_qso_cat,
+                         petal_tile_qso_cat,
                          order,
                          pk1d=None,
                          coadd_by_picca=False,
@@ -859,7 +863,7 @@ def read_from_desi_tiles(in_dir,
     data = {}
     ndata = 0
 
-    ztable = {t:z for t,z in zip(targetid,zqso)}
+    ztable_qso_cat = {t:z for t,z in zip(targetid_qso_cat,zqso_qso_cat)}
 
     for i,path in enumerate(files_in):
         print("\rread {} of {}. ndata: {}".format(i,len(files_in),ndata))
@@ -878,9 +882,9 @@ def read_from_desi_tiles(in_dir,
         except:
             fibmap_name="COADD_FIBERMAP"
 
-        ra = np.radians(h[fibmap_name]["TARGET_RA"][:])
-        de = np.radians(h[fibmap_name]["TARGET_DEC"][:])
-        in_targetids = h[fibmap_name]["TARGETID"][:]
+        ra_spec = np.radians(h[fibmap_name]["TARGET_RA"][:])
+        de_spec = np.radians(h[fibmap_name]["TARGET_DEC"][:])
+        targetid_spec = h[fibmap_name]["TARGETID"][:]
 
         specData = {}
         if 'brz_wavelength' in h.hdu_map.keys():
@@ -907,25 +911,26 @@ def read_from_desi_tiles(in_dir,
             except OSError:
                 pass
         h.close()
-
-        plate_spec = int(str(tile_spec) + str(petal_spec))
-        select = (petal_tile==plate_spec)
-
         print('\nThis is tile {}, petal {}'.format(tile_spec,petal_spec))
-        targetid_qsos = targetid[select]
-        petal_tile_qsos = petal_tile[select]
+        plate_spec = int(str(tile_spec) + str(petal_spec))
+        tile_petal_spec = np.full(targetid_spec.shape,plate_spec)
+
+        select = (petal_tile_qso_cat==plate_spec)
+        targetid_qsos = targetid_qso_cat[select]
+        petal_tile_qsos = petal_tile_qso_cat[select]
+
 
         data, ndata = fill_data_desi(specData,
                                      data,
                                      ndata,
                                      targetid_qsos,
                                      petal_tile_qsos,
-                                     plate_spec,
-                                     in_targetids,
+                                     tile_petal_spec,
+                                     targetid_spec,
                                      path,
-                                     ra,
-                                     de,
-                                     ztable,
+                                     ra_spec,
+                                     de_spec,
+                                     ztable_qso_cat,
                                      order,
                                      coadd_by_picca=coadd_by_picca,
                                      compute_diff_flux=compute_diff_flux,
@@ -941,7 +946,8 @@ def read_from_desi_tiles(in_dir,
 
 
 
-def read_from_desi_healpix(in_dir,
+def read_from_desi_healpix(nside,
+                           in_dir,
                            thid,
                            ra,
                            dec,
@@ -1002,6 +1008,7 @@ def read_from_desi_healpix(in_dir,
             ra = np.radians(h[fibmap_name]["TARGET_RA"][:])
             de = np.radians(h[fibmap_name]["TARGET_DEC"][:])
             in_targetids = h[fibmap_name]["TARGETID"][:]
+        pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
 
         specData = {}
         bandnames=['B','R','Z']
@@ -1050,7 +1057,7 @@ def read_from_desi_healpix(in_dir,
                                      ndata,
                                      targetid_qsos,
                                      petal_tile_qsos,
-                                     pix,
+                                     pixs,
                                      in_targetids,
                                      path,
                                      ra,
@@ -1068,7 +1075,8 @@ def read_from_desi_healpix(in_dir,
 
 
 
-def read_from_desi_mocks(in_dir,
+def read_from_desi_mocks(nside,
+                         in_dir,
                          thid,
                          ra,
                          dec,
@@ -1103,6 +1111,7 @@ def read_from_desi_mocks(in_dir,
         de = np.radians(h[fibmap_name]["TARGET_DEC"][:])
         in_targetids = h[fibmap_name]["TARGETID"][:]
 
+        pixs = healpy.ang2pix(nside, sp.pi / 2 - de, ra)
 
         if reject_bal_from_truth:
             filename_truth=in_dir+"/"+str(int(pix/100))+"/"+str(pix)+"/truth-"+str(in_nside)+"-"+str(pix)+".fits"
@@ -1164,7 +1173,7 @@ def read_from_desi_mocks(in_dir,
                                      ndata,
                                      targetid_qsos,
                                      petal_tile_qsos,
-                                     pix,
+                                     pixs,
                                      in_targetids,
                                      path,
                                      ra,
@@ -1182,9 +1191,9 @@ def read_from_desi_mocks(in_dir,
 def fill_data_desi(specData,
                    data,
                    ndata,
-                   targetid,
-                   petal_tile,
-                   sub_region,
+                   targetid_qso_cat_select,
+                   petal_tile_qso_cat_select,
+                   sub_regions,
                    targetid_in_sub_region,
                    path,
                    ra,
@@ -1197,11 +1206,11 @@ def fill_data_desi(specData,
     """Fill data dic.
 
     Args:
-        sub_region: pix for healpix and tile+spectro for tile
+        sub_regions: pix for healpix and tile+spectro for tile
 
     Returns:
     """
-    for t,p in zip(targetid,petal_tile):
+    for t,p in zip(targetid_qso_cat_select,petal_tile_qso_cat_select):
         wt = (targetid_in_sub_region == t)
         if wt.sum()==0:
             print("\nError reading thingid {}\n".format(t))
@@ -1246,6 +1255,7 @@ def fill_data_desi(specData,
                 d = copy.deepcopy(td)
             else:
                 d += td
+        sub_region = sub_regions[wt][0]
         if sub_region not in data:
             data[sub_region]=[]
         data[sub_region].append(d)
