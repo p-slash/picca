@@ -50,29 +50,36 @@ def exp_diff(file,ll) :
 
     return diff
 
-
 def exp_diff_desi(file,mask_targetid) :
+    argsort = np.flip(np.argsort(file["TEFF_LYA"][mask_targetid][:]))
+    flux = file["FL"][mask_targetid][argsort,:]
+    ivar = file["IV"][mask_targetid][argsort,:]
+    teff_lya = file["TEFF_LYA"][mask_targetid][argsort]
 
-    nexp = len(file["FL"][mask_targetid])
-    if (nexp)<2 :
-        return None
+    n_exp = len(flux)
+    if (n_exp<2) :
         print("DBG : not enough exposures for diff, spectra rejected")
-
-    fltotodd  = np.zeros(file["FL"].shape[1])
-    ivtotodd  = np.zeros(file["FL"].shape[1])
-    fltoteven = np.zeros(file["FL"].shape[1])
-    ivtoteven = np.zeros(file["FL"].shape[1])
-
-    for iexp in range (2* (nexp//2)) :
-        flexp = file["FL"][mask_targetid][iexp]
-        ivexp = file["IV"][mask_targetid][iexp]
-
+        return None
+    fltotodd  = np.zeros(flux.shape[1])
+    ivtotodd  = np.zeros(flux.shape[1])
+    fltoteven = np.zeros(flux.shape[1])
+    ivtoteven = np.zeros(flux.shape[1])
+    t_even = 0
+    t_odd = 0
+    t_exp = np.sum(teff_lya)
+    t_last = teff_lya[-1]
+    for iexp in range (2* (n_exp//2)) :
+        flexp = flux[iexp]
+        ivexp = ivar[iexp]
+        teff_lya_exp = teff_lya[iexp]
         if iexp%2 == 1 :
             fltotodd += flexp * ivexp
             ivtotodd += ivexp
+            t_odd += teff_lya_exp
         else :
             fltoteven += flexp * ivexp
             ivtoteven += ivexp
+            t_even += teff_lya_exp
 
     w=ivtotodd>0
     fltotodd[w]/=ivtotodd[w]
@@ -80,9 +87,13 @@ def exp_diff_desi(file,mask_targetid) :
     fltoteven[w]/=ivtoteven[w]
 
     alpha = 1
-    if (nexp%2 == 1) :
-        n_even = (nexp-1)//2
-        alpha = np.sqrt(4.*n_even*(n_even+1))/nexp
+    if (n_exp%2 == 1) :
+        n_even = (n_exp-1)//2
+        alpha_N_old = np.sqrt(4.*n_even*(n_exp-n_even))/n_exp
+        # alpha_N = np.sqrt(4.*t_even*(t_exp-t_even))/t_exp
+        alpha_C_new = np.sqrt((t_exp - t_last)/t_exp)
+        alpha_N_new = np.sqrt((t_exp - t_last)*(t_exp+t_last))/t_exp
+        alpha = alpha_N_new
     diff = 0.5 * (fltoteven-fltotodd) * alpha
 
     return diff

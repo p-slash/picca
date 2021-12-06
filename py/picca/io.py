@@ -31,6 +31,7 @@ def read_dlas(fdla):
         obj_id_name = 'TARGETID'
     else:
         obj_id_name = 'THING_ID'
+    if 'Z' in catalog.colnames:
         catalog.rename_column('Z','Z_DLA')
 
     catalog.sort('Z_DLA')
@@ -897,6 +898,7 @@ def read_from_desi_tiles(in_dir,
             dic = {}
             try:
                 dic['LL'] = np.log10(h['{}_WAVELENGTH'.format(spec)].read())
+                dic['TEFF_LYA'] = 11.80090901380597 * h['SCORES']['TSNR2_LYA_{}'.format(spec)].read()
                 dic['FL'] = h['{}_FLUX'.format(spec)].read()
                 dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
                 list_to_mask = ['FL','IV']
@@ -905,8 +907,6 @@ def read_from_desi_tiles(in_dir,
                     dic[k][w] = 0.
                 if f"{spec}_RESOLUTION" in h:
                     dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
-                if(len(dic['RESO'].shape)==2):
-                    dic['RESO'] = dic['RESO'][np.newaxis,...]
                 specData[spec] = dic
             except OSError:
                 pass
@@ -1017,10 +1017,14 @@ def read_from_desi_healpix(nside,
             try:
                 if(type(h) == list):
                     dic['LL'] = np.log10(h[0]['{}_WAVELENGTH'.format(spec)].read())
+                    # Calibration factor given in https://desi.lbl.gov/trac/browser/code/desimodel/trunk/data/tsnr/
+                    dic['TEFF_LYA'] = np.concatenate([ 11.80090901380597 * h[i]['SCORES']['TSNR2_LYA_{}'.format(spec)].read() for i in range(len(h))],axis=0)
                     dic['FL'] = np.concatenate([h[i]['{}_FLUX'.format(spec)].read() for i in range(len(h))],axis=0)
                     dic['IV'] = np.concatenate([h[i]['{}_IVAR'.format(spec)].read()*(h[i]['{}_MASK'.format(spec)].read()==0) for i in range(len(h))],axis=0)
                 else:
                     dic['LL'] = np.log10(h['{}_WAVELENGTH'.format(spec)].read())
+                    # Calibration factor given in https://desi.lbl.gov/trac/browser/code/desimodel/trunk/data/tsnr/
+                    dic['TEFF_LYA'] = 11.80090901380597 * h['SCORES']['TSNR2_LYA_{}'.format(spec)].read()
                     dic['FL'] = h['{}_FLUX'.format(spec)].read()
                     dic['IV'] = h['{}_IVAR'.format(spec)].read()*(h['{}_MASK'.format(spec)].read()==0)
                 list_to_mask = ['FL','IV']
@@ -1041,8 +1045,6 @@ def read_from_desi_healpix(nside,
                         dic['RESO'] = np.concatenate([h[i]['{}_RESOLUTION'.format(spec)].read() for i in range(len(h))],axis=0)
                     else:
                         dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
-                if(len(dic['RESO'].shape)==2):
-                    dic['RESO'] = dic['RESO'][np.newaxis,...]
                 specData[spec] = dic
             except OSError:
                 pass
@@ -1219,21 +1221,14 @@ def fill_data_desi(specData,
         for tspecData in specData.values():
             iv = tspecData['IV'][wt]
             fl = (iv*tspecData['FL'][wt]).sum(axis=0)
-            ### CR - to improve
-            if("DIFF" in tspecData):
-                diff_sp = (iv*tspecData['DIFF'][wt]).sum(axis=0)
-                w = iv.sum(axis=0)>0.
-                diff_sp[w] /= iv[w]
-            elif(coadd_by_picca&compute_diff_flux):
+            if(coadd_by_picca&compute_diff_flux):
                 diff_sp = exp_diff_desi(tspecData,wt)
                 if(diff_sp is None):
                     continue
             elif((not coadd_by_picca)&compute_diff_flux):
-                print("Option coadd_by_picca need to be used when DIFF is not pre-computed in the coadd files")
-                diff_sp = None
+                raise ValueError("Option coadd_by_picca need to be used when DIFF is not pre-computed in the coadd files")
             else:
                 diff_sp = None
-            ### CR - to improve
             iv = iv.sum(axis=0)
             w = iv>0.
             fl[w] /= iv[w]
@@ -1244,7 +1239,7 @@ def fill_data_desi(specData,
                     reso_sum = tspecData['RESO'][wt].sum(axis=0)
                 reso_in_pixel = spectral_resolution_desi(reso_sum,tspecData['LL'])
                 if(diff_sp is not None): diff = diff_sp
-                else : diff = sp.zeros(tspecData['LL'].shape)
+                else : diff = np.zeros(tspecData['LL'].shape)
             else:
                 reso_in_pixel = None
                 diff = None
@@ -1258,8 +1253,9 @@ def fill_data_desi(specData,
         sub_region = sub_regions[wt][0]
         if sub_region not in data:
             data[sub_region]=[]
-        data[sub_region].append(d)
-        ndata+=1
+        if(d is not None):
+            data[sub_region].append(d)
+            ndata+=1
     return(data,ndata)
 
 
@@ -1502,7 +1498,6 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     else:
                         dic['RESO'] = h['{}_RESOLUTION'.format(spec)].read()
                 elif pk1d is not None:
-                    # Only for desi-mocks
                     filename_truth=in_dir+"/"+str(int(f/100))+"/"+str(f)+"/truth-"+str(in_nside)+"-"+str(f)+".fits"
                     try:
                         with fitsio.FITS(filename_truth) as hdul_truth:
@@ -1515,8 +1510,6 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                         if not reso_from_truth:
                             print('Did not find resolution matrix in spectrum files, using resolution from truth files')
                             reso_from_truth=True
-                if(len(dic['RESO'].shape)==2):
-                    dic['RESO'] = dic['RESO'][np.newaxis,...]
                 specData[spec] = dic
             except OSError:
                 pass
@@ -1570,7 +1563,10 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                 w = iv>0.
                 fl[w] /= iv[w]
                 if pk1d is not None:
-                    reso_sum = tspecData['RESO'][wt].sum(axis=0)
+                    if(len(tspecData['RESO'].shape)==2):
+                        reso_sum = tspecData['RESO']
+                    else:
+                        reso_sum = tspecData['RESO'][wt].sum(axis=0)
                     reso_in_pixel = spectral_resolution_desi(reso_sum,tspecData['LL'])
                     if(diff_sp is not None): diff = diff_sp
                     else : diff = sp.zeros(tspecData['LL'].shape)
