@@ -373,10 +373,13 @@ if __name__ == '__main__':
                 log.write("INFO: Rejected {} due to nan found\n".format(d.thid))
                 continue
 
-            if(args.use_constant_weight and (d.fl.mean()<=0.0 or d.mean_SNR<=args.min_SNR )):
-                log.write("INFO: Rejected {} due to negative mean or too low SNR found\n".format(d.thid))
+            if(args.use_constant_weight and d.fl.mean()<=0.0):
+                log.write("INFO: Rejected {} due to negative mean\n".format(d.thid))
                 continue
 
+            if(args.use_constant_weight and d.mean_SNR<=args.min_SNR):
+                log.write("INFO: Rejected {} due to too low SNR found\n".format(d.thid))
+                continue
             l.append(d)
             log.write("{} {}-{}-{} accepted\n".format(d.thid,
                 d.plate,d.mjd,d.fid))

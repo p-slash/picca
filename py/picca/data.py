@@ -79,7 +79,7 @@ class forest(qso):
     lmax_rest = None
     rebin = None
     dll = None
-    dlambda = None    #will take delta_lambda for linearly binned spectra, None for log-binned spectra, 
+    dlambda = None    #will take delta_lambda for linearly binned spectra, None for log-binned spectra,
 
     ### Correction function for multiplicative errors in pipeline flux calibration
     correc_flux = None
@@ -103,7 +103,7 @@ class forest(qso):
     mean_SNR = None
     mean_reso = None
     mean_z = None
-    
+
     ## resolution matrix for desi forests
     reso_matrix = None
     mean_reso_matrix = None
@@ -191,7 +191,7 @@ class forest(qso):
         if reso is not None:
             reso = creso[w]/civ[w]
         if reso_matrix is not None:
-            reso_matrix = creso_matrix[:, w] / civ[sp.newaxis, w]        
+            reso_matrix = creso_matrix[:, w] / civ[sp.newaxis, w]
         ## Flux calibration correction
         if not self.correc_flux is None:
             correction = self.correc_flux(ll)
@@ -214,7 +214,7 @@ class forest(qso):
 
 
         # compute means
-        if reso is not None : 
+        if reso is not None :
             self.mean_reso = sum(reso)/float(len(reso))
         if reso_matrix is not None:
             self.mean_reso_matrix = sp.mean(reso_matrix,axis=1)
@@ -360,7 +360,7 @@ class forest(qso):
 
         w = sp.ones(self.ll.size, dtype=bool)
         w &= sp.fabs(1.e4*(self.ll-sp.log10(lambda_absorber)))>forest.absorber_mask
-        
+
         ps = ['iv','ll','fl','T_dla','Fbar','mmef','diff','reso','reso_matrix']
         for p in ps:
             if hasattr(self,p) and (getattr(self,p) is not None):
@@ -511,7 +511,10 @@ class delta(qso):
             dlambda = None
         if  Pk1D_type :
             iv = h['IVAR'][:]
-            diff = h['DIFF'][:]
+            if('DIFF' in h.get_colnames()):
+                diff = h['DIFF'][:]
+            else:
+                diff = np.ones(iv.shape)
             m_SNR = head['MEANSNR']
             m_reso = head['MEANRESO']
             m_z = head['MEANZ']
@@ -527,7 +530,7 @@ class delta(qso):
                 dll_resmat = head['DLL_RES']
             except (KeyError, ValueError):
                 dll_resmat = None
-            
+
             we = None
             co = None
             iv=iv.astype(float)   #to ensure the endianess is right for the fft
@@ -548,13 +551,25 @@ class delta(qso):
             co = h['CONT'][:]
 
 
-        thid = head['THING_ID']
+        if('THING_ID' in head.keys()):
+            thid = head['THING_ID']
+        else:
+            thid = head['TARGETID']
         ra = head['RA']
         dec = head['DEC']
         zqso = head['Z']
-        plate = head['PLATE']
-        mjd = head['MJD']
-        fid = head['FIBERID']
+        if('PLATE' in head.keys()):
+            plate = head['PLATE']
+        else:
+            plate = None
+        if('MJD' in head.keys()):
+            mjd = head['MJD']
+        else:
+            mjd = None
+        if('FIBERID' in head.keys()):
+            fid = head['FIBERID']
+        else:
+            fid = None
 
         try:
             order = head['ORDER']

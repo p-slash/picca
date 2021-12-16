@@ -964,7 +964,6 @@ def read_from_desi_healpix(nside,
     in_nside = 64
     in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-dec, ra, nest=True)
     files_in = sp.unique(in_pixs)
-
     data = {}
     ndata = 0
 

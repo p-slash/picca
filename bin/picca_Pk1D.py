@@ -103,14 +103,12 @@ if __name__ == '__main__':
 
     # Read deltas
     if (args.in_format=='fits') :
-        fi = glob.glob(args.in_dir+"/*.fits.gz")
+        fi = glob.glob(args.in_dir+"/*.fits*")
     elif (args.in_format=='ascii') :
         fi = glob.glob(args.in_dir+"/*.txt")
 
     data = {}
     ndata = 0
-    print(args.in_dir)
-    print(fi)
     # initialize randoms
     sp.random.seed(4)
     skipmsgprinted=False
