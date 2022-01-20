@@ -101,7 +101,7 @@ def get_delta_from_forest(forest,
             Flag to use the mock continuum to compute the mean expected
             flux fraction
     """
-    log_lambda = forest.log_lambda
+    log_lambda = forest.lambda #it might be easier to just keep this the same name for the rest of the script
     stack_delta = get_stack_delta(log_lambda)
     var_lss = get_var_lss(log_lambda)
     eta = get_eta(log_lambda)
@@ -242,7 +242,7 @@ def main(cmdargs):
 
     parser.add_argument('--rebin',
                         type=int,
-                        default=3,
+                        default=1,
                         required=False,
                         help=('Rebin wavelength grid by combining this number '
                               'of adjacent pixels (ivar weight)'))
@@ -437,6 +437,13 @@ def main(cmdargs):
                         default="corr_yshift",
                         required=False,
                         help='Blinding strategy. "none" for no blinding')
+    
+    #parser.add_argument('--linear-binning',
+    #                    action='store_true',
+    #                    default=False,
+    #                    required=False,
+    #                    help='Use linear binning instead of logarithmic, to select rebin '
+    #                          'number use --rebin (default now 1)')
 
     t0 = time.time()
 
@@ -448,14 +455,14 @@ def main(cmdargs):
     if args.blinding_desi == "none":
         userprint("WARINING: --blinding-desi is being ignored. 'corr_yshift' blinding engaged")
         args.blinding_desi = "corr_yshift"
-
+    
     # setup forest class variables
-    Forest.log_lambda_min = np.log10(args.lambda_min)
-    Forest.log_lambda_max = np.log10(args.lambda_max)
-    Forest.log_lambda_min_rest_frame = np.log10(args.lambda_rest_min)
-    Forest.log_lambda_max_rest_frame = np.log10(args.lambda_rest_max)
+    Forest.lambda_min = args.lambda_min
+    Forest.lambda_max = args.lambda_max
+    Forest.lambda_min_rest_frame = args.lambda_rest_min
+    Forest.lambda_max_rest_frame = args.lambda_rest_max
     Forest.rebin = args.rebin
-    Forest.delta_log_lambda = args.rebin * 1e-4
+    Forest.delta_lambda = args.rebin * 0.8
     # minumum dla transmission
     Forest.dla_mask_limit = args.dla_mask
     Forest.absorber_mask_width = args.absorber_mask
@@ -473,24 +480,24 @@ def main(cmdargs):
     #-- Pipeline ivar correction error: eta
     #-- Pipeline ivar correction term : fudge
     #-- Mean continuum : mean_cont
-    log_lambda_temp = (Forest.log_lambda_min + np.arange(2) *
-                       (Forest.log_lambda_max - Forest.log_lambda_min))
-    log_lambda_rest_frame_temp = (
-        Forest.log_lambda_min_rest_frame + np.arange(2) *
-        (Forest.log_lambda_max_rest_frame - Forest.log_lambda_min_rest_frame))
-    Forest.get_var_lss = interp1d(log_lambda_temp,
+    lambda_temp = (Forest.lambda_min + np.arange(2) *
+                       (Forest.lambda_max - Forest.lambda_min))
+    lambda_rest_frame_temp = (
+        Forest.lambda_min_rest_frame + np.arange(2) *
+        (Forest.lambda_max_rest_frame - Forest.lambda_min_rest_frame))
+    Forest.get_var_lss = interp1d(lambda_temp,
                                   0.2 + np.zeros(2),
                                   fill_value="extrapolate",
                                   kind="nearest")
-    Forest.get_eta = interp1d(log_lambda_temp,
+    Forest.get_eta = interp1d(lambda_temp,
                               np.ones(2),
                               fill_value="extrapolate",
                               kind="nearest")
-    Forest.get_fudge = interp1d(log_lambda_temp,
+    Forest.get_fudge = interp1d(lambda_temp,
                                 np.zeros(2),
                                 fill_value="extrapolate",
                                 kind="nearest")
-    Forest.get_mean_cont = interp1d(log_lambda_rest_frame_temp, 1 + np.zeros(2))
+    Forest.get_mean_cont = interp1d(lambda_rest_frame_temp, 1 + np.zeros(2))
 
 
     #-- Check that the order of the continuum fit is 0 (constant) or 1 (linear).
@@ -503,10 +510,10 @@ def main(cmdargs):
     #-- Correct multiplicative pipeline flux calibration
     if args.flux_calib is not None:
         hdu = fitsio.read(args.flux_calib, ext=1)
-        stack_log_lambda = hdu['loglam']
+        stack_log_lambda = hdu['loglam'] #*** change when output changed, bcos this is what this is reading.
         stack_delta = hdu['stack']
         w = (stack_delta != 0.)
-        Forest.correct_flux = interp1d(stack_log_lambda[w],
+        Forest.correct_flux = interp1d(stack_lambda[w],
                                        stack_delta[w],
                                        fill_value="extrapolate",
                                        kind="nearest")
@@ -514,7 +521,7 @@ def main(cmdargs):
     #-- Correct multiplicative pipeline inverse variance calibration
     if args.ivar_calib is not None:
         hdu = fitsio.read(args.ivar_calib, ext=2)
-        log_lambda = hdu['loglam']
+        log_lambda = hdu['loglam'] #***
         eta = hdu['eta']
         Forest.correct_ivar = interp1d(log_lambda,
                                        eta,
@@ -561,7 +568,7 @@ def main(cmdargs):
             mask = Table.read(args.mask_file,
                               names=('type', 'wave_min', 'wave_max', 'frame'),
                               format='ascii')
-            mask['log_wave_min'] = np.log10(mask['wave_min'])
+            mask['log_wave_min'] = np.log10(mask['wave_min'])  #***
             mask['log_wave_max'] = np.log10(mask['wave_max'])
         except (OSError, ValueError):
             userprint(("ERROR: Error while reading mask_file "
@@ -574,7 +581,8 @@ def main(cmdargs):
     ### Mask lines
     for healpix in data:
         for forest in data[healpix]:
-            forest.mask(mask)
+            forest.mask(mask) #*** I guess the Forest class is set-up to mask in log space, will need
+            # to change this in the class.
 
     ### Mask absorbers
     if not args.absorber_vac is None:
@@ -650,7 +658,8 @@ def main(cmdargs):
     for healpix in data:
         forests = []
         for forest in data[healpix]:
-            if ((forest.log_lambda is None) or
+            if ((forest.log_lambda is None) or #again, log_lambda here is just a moniker, it's actually linear.
+                #that's because it's read from read_data, which is 
                     len(forest.log_lambda) < args.npix_min):
                 log_file.write(("INFO: Rejected {} due to forest too "
                                 "short\n").format(forest.thingid))
@@ -685,7 +694,7 @@ def main(cmdargs):
     # Sanity check: all forests must have the attribute log_lambda
     for healpix in data:
         for forest in data[healpix]:
-            assert forest.log_lambda is not None
+            assert forest.lambda is not None
 
     t1 = time.time()
     tmin = (t1 - t0) / 60
@@ -718,11 +727,11 @@ def main(cmdargs):
         if iteration < num_iterations - 1:
             #-- Compute mean continuum (stack in rest-frame)
             (log_lambda_rest_frame, mean_cont,
-             mean_cont_weight) = prep_del.compute_mean_cont(data)
+             mean_cont_weight) = prep_del.compute_mean_cont(data) #*** prep_del
             w = mean_cont_weight > 0.
             log_lambda_cont = log_lambda_rest_frame[w]
-            new_cont = Forest.get_mean_cont(log_lambda_cont) * mean_cont[w]
-            Forest.get_mean_cont = interp1d(log_lambda_cont,
+            new_cont = Forest.get_mean_cont(log_lambda_cont) * mean_cont[w] 
+            Forest.get_mean_cont = interp1d(log_lambda_cont, #*** get_mean_cont
                                             new_cont,
                                             fill_value="extrapolate")
 
@@ -730,7 +739,7 @@ def main(cmdargs):
             if not (args.use_ivar_as_weight or args.use_constant_weight):
                 (log_lambda, eta, var_lss, fudge, num_pixels, var_pipe_values,
                  var_delta, var2_delta, count, num_qso, chi2_in_bin, error_eta,
-                 error_var_lss, error_fudge) = prep_del.compute_var_stats(
+                 error_var_lss, error_fudge) = prep_del.compute_var_stats( #prep_del *** has to output lin_lambda
                      data, (args.eta_min, args.eta_max),
                      (args.vlss_min, args.vlss_max))
                 w = num_pixels > 0
@@ -750,7 +759,7 @@ def main(cmdargs):
                 num_bins = 10  # this value is arbitrary
                 log_lambda = (
                     Forest.log_lambda_min + (np.arange(num_bins) + .5) *
-                    (Forest.log_lambda_max - Forest.log_lambda_min) / num_bins)
+                    (Forest.log_lambda_max - Forest.log_lambda_min) / num_bins) #***
 
                 if args.use_ivar_as_weight:
                     userprint(("INFO: using ivar as weights, skipping eta, "
@@ -777,7 +786,7 @@ def main(cmdargs):
                 count = np.zeros((num_bins, num_bins))
                 num_qso = np.zeros((num_bins, num_bins))
 
-                Forest.get_eta = interp1d(log_lambda,
+                Forest.get_eta = interp1d(log_lambda, #***
                                           eta,
                                           fill_value='extrapolate',
                                           kind='nearest')
@@ -807,25 +816,25 @@ def main(cmdargs):
             delta_attrib_name += ".fits.gz"
         else:
             delta_attrib_name += "_iteration{}.fits.gz".format(iteration + 1)
-        with fitsio.FITS(delta_attrib_name, 'rw', clobber=True) as results:
+        with fitsio.FITS(delta_attrib_name, 'rw', clobber=True) as results: #*** need to change all the ouputs
             header = {}
             header["NSIDE"] = nside
             header["PIXORDER"] = healpy_pix_ordering
             header["FITORDER"] = args.order
             results.write([stack_log_lambda, get_stack_delta(stack_log_lambda),
                            get_stack_delta_weights(stack_log_lambda)],
-                          names=['loglam', 'stack', 'weight'],
+                          names=['lam', 'stack', 'weight'],
                           header=header,
                           extname='STACK')
             results.write(
                 [log_lambda, eta, var_lss, fudge, num_pixels],
-                names=['loglam', 'eta', 'var_lss', 'fudge', 'nb_pixels'],
+                names=['lam', 'eta', 'var_lss', 'fudge', 'nb_pixels'],
                 extname='WEIGHT')
             results.write([
                 log_lambda_rest_frame,
-                Forest.get_mean_cont(log_lambda_rest_frame), mean_cont_weight
+                Forest.get_mean_cont(log_lambda_rest_frame), mean_cont_weight #*** don't get the function here
             ],
-                          names=['loglam_rest', 'mean_cont', 'weight'],
+                          names=['lam_rest', 'mean_cont', 'weight'],
                           extname='CONT')
             var_pipe_values_out = np.broadcast_to(var_pipe_values.reshape(1, -1),
                                               var_delta.shape)
@@ -849,7 +858,7 @@ def main(cmdargs):
             #-- Compute delta field from flux, continuum and various quantites
             get_delta_from_forest(forest, get_stack_delta, Forest.get_var_lss,
                                   Forest.get_eta, Forest.get_fudge,
-                                  args.use_mock_continuum)
+                                  args.use_mock_continuum) #*** need to check out this function
             if healpix in deltas:
                 deltas[healpix].append(forest)
             else:
@@ -884,20 +893,20 @@ def main(cmdargs):
             for delta in deltas[healpix]:
                 num_pixels = len(delta.delta)
                 if args.mode == 'desi':
-                    delta_log_lambda = (
-                        (delta.log_lambda[-1] - delta.log_lambda[0]) /
-                        float(len(delta.log_lambda) - 1))
+                    delta_lambda = (
+                        (delta.lambda[-1] - delta.lambda[0]) / 
+                        float(len(delta.lambda) - 1))
                 else:
-                    delta_log_lambda = delta.delta_log_lambda
+                    delta__lambda = delta.delta_lambda
                 line = '{} {} {} '.format(delta.plate, delta.mjd, delta.fiberid)
                 line += '{} {} {} '.format(delta.ra, delta.dec, delta.z_qso)
                 line += '{} {} {} {} {} '.format(delta.mean_z, delta.mean_snr,
                                                  delta.mean_reso,
-                                                 delta_log_lambda, num_pixels)
+                                                 delta_lambda, num_pixels)
                 for index in range(num_pixels):
                     line += '{} '.format(delta.delta[index])
                 for index in range(num_pixels):
-                    line += '{} '.format(delta.log_lambda[index])
+                    line += '{} '.format(delta.lambda[index])
                 for index in range(num_pixels):
                     line += '{} '.format(delta.ivar[index])
                 for index in range(num_pixels):
@@ -988,39 +997,39 @@ def main(cmdargs):
                             'comment': 'Mean SNR'
                         },
                     ]
-                    if args.mode == 'desi':
-                        delta_log_lambda = (
-                            (delta.log_lambda[-1] - delta.log_lambda[0]) /
-                            float(len(delta.log_lambda) - 1))
+                    if args.mode == 'desi': 
+                        delta_lambda = (
+                            (delta.lambda[-1] - delta.lambda[0]) /
+                            float(len(delta.lambda) - 1))
                     else:
-                        delta_log_lambda = delta.delta_log_lambda
+                        delta_log_lambda = delta.delta_lambda
                     header += [{
                         'name': 'DLL',
-                        'value': delta_log_lambda,
-                        'comment': 'Loglam bin size [log Angstrom]'
+                        'value': delta_lambda,
+                        'comment': 'lam bin size [Angstrom]'
                     }]
                     exposures_diff = delta.exposures_diff
                     if exposures_diff is None:
                         exposures_diff = delta.log_lambda * 0
 
                     cols = [
-                        delta.log_lambda, delta.delta, delta.ivar,
+                        delta.lambda, delta.delta, delta.ivar,
                         exposures_diff
                     ]
-                    names = ['LOGLAM', delta_name, 'IVAR', 'DIFF']
+                    names = ['LAM', delta_name, 'IVAR', 'DIFF']
                     units = ['log Angstrom', '', '', '']
                     comments = [
-                        'Log lambda', 'Delta field', 'Inverse variance',
+                        'lambda', 'Delta field', 'Inverse variance',
                         'Difference'
                     ]
                 else:
                     cols = [
-                        delta.log_lambda, delta.delta, delta.ivar, delta.weights, delta.cont
+                        delta.lambda, delta.delta, delta.ivar, delta.weights, delta.cont
                     ]
-                    names = ['LOGLAM', delta_name, 'IVAR', 'WEIGHT', 'CONT']
+                    names = ['LAM', delta_name, 'IVAR', 'WEIGHT', 'CONT']
                     units = ['log Angstrom', '', '', '', '']
                     comments = [
-                        'Log lambda', 'Delta field', 'Inverse variance', 'Pixel weights',
+                        'lambda', 'Delta field', 'Inverse variance', 'Pixel weights',
                         'Continuum'
                     ]
 

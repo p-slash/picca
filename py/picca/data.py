@@ -445,20 +445,20 @@ class Forest(QSO):
 
 
         ## cut to specified range
-        bins = (np.floor((log_lambda - Forest.log_lambda_min) /
-                         Forest.delta_log_lambda + 0.5).astype(int))
-        log_lambda = Forest.log_lambda_min + bins * Forest.delta_log_lambda
-        w = (log_lambda >= Forest.log_lambda_min)
-        w = w & (log_lambda < Forest.log_lambda_max)
-        w = w & (log_lambda - np.log10(1. + self.z_qso) >
-                 Forest.log_lambda_min_rest_frame)
-        w = w & (log_lambda - np.log10(1. + self.z_qso) <
-                 Forest.log_lambda_max_rest_frame)
+        bins = (np.floor((lin_lambda - Forest.lambda_min) /
+                         Forest.delta_lambda + 0.5).astype(int))
+        lin_lambda = Forest.lambda_min + bins * Forest.delta_lambda
+        w = (lin_lambda >= Forest.lambda_min)
+        w = w & (lin_lambda < Forest.lambda_max)
+        w = w & ((lin_lambda / (1. + self.z_qso)) > 
+                 Forest.lambda_min_rest_frame)
+        w = w & ((lin_lambda / (1. + self.z_qso)) < 
+                 Forest.lambda_max_rest_frame)
         w = w & (ivar > 0.)
         if w.sum() == 0:
             return
         bins = bins[w]
-        log_lambda = log_lambda[w]
+        lin_lambda = lin_lambda[w]
         flux = flux[w]
         ivar = ivar[w]
         if mean_expected_flux_frac is not None:
@@ -469,8 +469,8 @@ class Forest(QSO):
             reso = reso[w]
 
         # rebin arrays
-        rebin_log_lambda = (Forest.log_lambda_min +
-                            np.arange(bins.max() + 1) * Forest.delta_log_lambda)
+        rebin_lambda = (Forest.lambda_min +
+                            np.arange(bins.max() + 1) * Forest.delta_lambda)
         rebin_flux = np.zeros(bins.max() + 1)
         rebin_ivar = np.zeros(bins.max() + 1)
         if mean_expected_flux_frac is not None:
@@ -494,7 +494,7 @@ class Forest(QSO):
         w = (rebin_ivar > 0.)
         if w.sum() == 0:
             return
-        log_lambda = rebin_log_lambda[w]
+        lin_lambda = rebin_lambda[w]
         flux = rebin_flux[w] / rebin_ivar[w]
         ivar = rebin_ivar[w]
         if mean_expected_flux_frac is not None:
@@ -507,7 +507,7 @@ class Forest(QSO):
 
         # apply dust extinction correction
         if Forest.extinction_bv_map is not None:
-            corr = unred(10**log_lambda, Forest.extinction_bv_map[thingid])
+            corr = unred(lin_lambda, Forest.extinction_bv_map[thingid])
             flux /= corr
             ivar *= corr**2
             if not exposures_diff is None:
@@ -515,14 +515,14 @@ class Forest(QSO):
 
         # Flux calibration correction
         try:
-            correction = Forest.correct_flux(log_lambda)
+            correction = Forest.correct_flux(lin_lambda) #*** make sure this function takes linear lambda
             flux /= correction
             ivar *= correction**2
         except NotImplementedError:
             pass
         # Inverse variance correction
         try:
-            correction = Forest.correct_ivar(log_lambda)
+            correction = Forest.correct_ivar(lin_lambda) #*** likewise
             ivar /= correction
         except NotImplementedError:
             pass
@@ -530,7 +530,7 @@ class Forest(QSO):
         # keep the results so far in this instance
         self.mean_optical_depth = None
         self.dla_transmission = None
-        self.log_lambda = log_lambda
+        self.lambda = lin_lambda
         self.flux = flux
         self.ivar = ivar
         self.mean_expected_flux_frac = mean_expected_flux_frac
@@ -554,9 +554,8 @@ class Forest(QSO):
         self.mean_snr_save = np.average(snr, weights=self.ivar)
         self.mean_snr = snr.mean()
         lambda_abs_igm = constants.ABSORBER_IGM[self.abs_igm]
-        self.mean_z = ((np.power(10., log_lambda[len(log_lambda) - 1]) +
-                        np.power(10., log_lambda[0])) / 2. / lambda_abs_igm -
-                       1.0)
+        self.mean_z = ((lin_lambda[-1] + lin_lambda[0]) / 2. / lambda_abs_igm -
+                       1.0) #think I got this right.
 
         # continuum-related variables
         self.cont = None
@@ -579,8 +578,8 @@ class Forest(QSO):
         Returns:
             The coadded forest.
         """
-        if self.log_lambda is None or other.log_lambda is None:
-            if other.log_lambda is None:
+        if self.lambda is None or other.lambda is None:
+            if other.lambda is None:
                 return self
             else:
                 return other
@@ -589,7 +588,7 @@ class Forest(QSO):
         # ivar weighting
         ivar_coadd_data = {}
 
-        log_lambda = np.append(self.log_lambda, other.log_lambda)
+        lin_lambda = np.append(self.lambda, other.lambda)
         ivar_coadd_data['flux'] = np.append(self.flux, other.flux)
         ivar = np.append(self.ivar, other.ivar)
 
@@ -605,15 +604,15 @@ class Forest(QSO):
             ivar_coadd_data['reso'] = np.append(self.reso, other.reso)
 
         # coadd the deltas by rebinning
-        bins = np.floor((log_lambda - Forest.log_lambda_min) /
-                        Forest.delta_log_lambda + 0.5).astype(int)
-        rebin_log_lambda = Forest.log_lambda_min + (np.arange(bins.max() + 1) *
-                                                    Forest.delta_log_lambda)
+        bins = np.floor((lin_lambda - Forest.lambda_min) /
+                        Forest.delta_lambda + 0.5).astype(int)
+        rebin_lambda = Forest.lambda_min + (np.arange(bins.max() + 1) *
+                                                    Forest.delta_lambda)
         rebin_ivar = np.zeros(bins.max() + 1)
         rebin_ivar_aux = np.bincount(bins, weights=ivar)
         rebin_ivar[:len(rebin_ivar_aux)] += rebin_ivar_aux
         w = (rebin_ivar > 0.)
-        self.log_lambda = rebin_log_lambda[w]
+        self.lambda = rebin_lambda[w]
         self.ivar = rebin_ivar[w]
 
         # rebin using inverse variance weighting
@@ -632,13 +631,12 @@ class Forest(QSO):
         self.mean_snr_save = np.average(snr, weights=self.ivar)
         self.mean_snr = snr.mean()
         lambda_abs_igm = constants.ABSORBER_IGM[self.abs_igm]
-        self.mean_z = ((np.power(10., log_lambda[len(log_lambda) - 1]) +
-                        np.power(10., log_lambda[0])) / 2. / lambda_abs_igm -
-                       1.0)
+        self.mean_z = ((lin_lambda[-1] + lin_lambda[0]) / 2. / lambda_abs_igm -
+                       1.0) 
 
         return self
 
-    def mask(self, mask_table):
+    def mask(self, mask_table): #***
         """Applies wavelength masking.
 
         Pixels are masked according to a set of lines both in observed frame
@@ -668,12 +666,12 @@ class Forest(QSO):
 
         w = np.ones(self.log_lambda.size, dtype=bool)
         for mask_range in mask_obs_frame:
-            w &= ((self.log_lambda < mask_range['log_wave_min']) |
-                  (self.log_lambda > mask_range['log_wave_max']))
+            w &= ((self.lambda < mask_range['wave_min']) |  
+                  (self.lambda > mask_range['wave_max']))
         for mask_range in mask_rest_frame:
-            rest_frame_log_lambda = self.log_lambda - np.log10(1. + self.z_qso)
-            w &= ((rest_frame_log_lambda < mask_range['log_wave_min']) |
-                  (rest_frame_log_lambda > mask_range['log_wave_max']))
+            rest_frame_lambda = self.lambda / (1. + self.z_qso)
+            w &= ((rest_frame_lambda < mask_range['wave_min']) |
+                  (rest_frame_lambda > mask_range['wave_max']))
 
         parameters = [
             'ivar', 'log_lambda', 'flux', 'dla_transmission',
@@ -705,14 +703,14 @@ class Forest(QSO):
             Restframe wavelength of the element responsible for the absorption.
             In Angstroms
         """
-        if self.log_lambda is None:
+        if self.lambda is None:
             return
 
         if self.mean_optical_depth is None:
-            self.mean_optical_depth = np.ones(self.log_lambda.size)
+            self.mean_optical_depth = np.ones(self.lambda.size)
 
-        w = 10.**self.log_lambda / (1. + self.z_qso) <= lambda_rest_frame
-        z = 10.**self.log_lambda / lambda_rest_frame - 1.
+        w = self.lambda / (1. + self.z_qso) <= lambda_rest_frame
+        z = self.lambda / lambda_rest_frame - 1.
         self.mean_optical_depth[w] *= np.exp(-tau * (1. + z[w])**gamma)
 
         return
@@ -732,10 +730,10 @@ class Forest(QSO):
         """
 
 
-        if self.log_lambda is None:
+        if self.lambda is None:
             return
         if self.dla_transmission is None:
-            self.dla_transmission = np.ones(len(self.log_lambda))
+            self.dla_transmission = np.ones(len(self.lambda))
 
         self.dla_transmission *= DLA(self, z_abs, nhi).transmission
 
@@ -745,8 +743,8 @@ class Forest(QSO):
             mask = mask_table[select_dla_mask]
             if len(mask)>0:
                 for mask_range in mask:
-                    w &= ((self.log_lambda - np.log10(1. + z_abs) < mask_range['log_wave_min']) |
-                          (self.log_lambda - np.log10(1. + z_abs) > mask_range['log_wave_max']))
+                    w &= ((self.lambda / (1. + z_abs) < mask_range['wave_min']) | #***
+                          (self.lambda / (1. + z_abs) > mask_range['wave_max']))
 
         # do the actual masking
         parameters = [
@@ -770,9 +768,9 @@ class Forest(QSO):
         if self.log_lambda is None:
             return
 
-        w = np.ones(self.log_lambda.size, dtype=bool)
-        w &= (np.fabs(1.e4 * (self.log_lambda - np.log10(lambda_absorber))) >
-              Forest.absorber_mask_width)
+        w = np.ones(self.lambda.size, dtype=bool)
+        w &= (np.fabs(1.e4 * (np.log10(self.lambda) - np.log10(lambda_absorber))) > #***
+              Forest.absorber_mask_width) 
 
         parameters = [
             'ivar', 'log_lambda', 'flux', 'dla_transmission',
@@ -792,14 +790,12 @@ class Forest(QSO):
         (see equation 2 of du Mas des Bourboux et al. 2020)
         Flags the forest with bad_cont if the computation fails.
         """
-        log_lambda_max = (Forest.log_lambda_max_rest_frame +
-                          np.log10(1 + self.z_qso))
-        log_lambda_min = (Forest.log_lambda_min_rest_frame +
-                          np.log10(1 + self.z_qso))
+        lambda_max = (Forest.lambda_max_rest_frame * (1 + self.z_qso)) # needs to be x(1+z_qso) ***
+        lambda_min = (Forest.lambda_min_rest_frame * (1 + self.z_qso))
         # get mean continuum
         try:
             mean_cont = Forest.get_mean_cont(self.log_lambda -
-                                             np.log10(1 + self.z_qso))
+                                             np.log10(1 + self.z_qso)) #***
         except ValueError:
             raise Exception("Problem found when loading get_mean_cont")
 
@@ -813,7 +809,7 @@ class Forest(QSO):
             mean_cont *= self.dla_transmission
 
         # pixel variance due to the Large Scale Strucure
-        var_lss = Forest.get_var_lss(self.log_lambda)
+        var_lss = Forest.get_var_lss(self.log_lambda) #*** what's goin on here?
         # correction factor to the contribution of the pipeline
         # estimate of the instrumental noise to the variance.
         eta = Forest.get_eta(self.log_lambda)
@@ -839,7 +835,7 @@ class Forest(QSO):
                     Mean continuum
             """
             line = (p1 * (self.log_lambda - log_lambda_min) /
-                    (log_lambda_max - log_lambda_min) + p0)
+                    (log_lambda_max - log_lambda_min) + p0) #again, does this need to be a divide? ***
             return line * mean_cont
 
         def chi2(p0, p1):
@@ -1001,7 +997,7 @@ class Delta(QSO):
                 Variation of the logarithm of the wavelength between two pixels
         """
         QSO.__init__(self, thingid, ra, dec, z_qso, plate, mjd, fiberid)
-        self.log_lambda = log_lambda
+        self.lambda = lin_lambda
         self.weights = weights
         self.cont = cont
         self.delta = delta
@@ -1011,7 +1007,7 @@ class Delta(QSO):
         self.mean_snr = mean_snr
         self.mean_reso = mean_reso
         self.mean_z = mean_z
-        self.delta_log_lambda = delta_log_lambda
+        self.delta_lambda = delta_lambda
 
         # variables computed in function io.read_deltas
         self.z = None
@@ -1055,7 +1051,7 @@ class Delta(QSO):
         delta = hdu[delta_name][:].astype(float)
 
         if 'LOGLAM' in hdu.get_colnames():
-            log_lambda = hdu['LOGLAM'][:].astype(float)
+            log_lambda = hdu['LOGLAM'][:].astype(float) #again this output will be changed ***
         elif 'LAMBDA' in hdu.get_colnames():
             userprint("no LOGLAM found, trying to read linear_binned_lambda")
             log_lambda = np.log10(hdu['LAMBDA'][:].astype(float))

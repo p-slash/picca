@@ -1069,7 +1069,7 @@ def read_from_desi(in_dir, catalog, desi_prefix, in_nside=64, pk1d=None):
         for color in colors:
             spec = {}
             try:
-                spec["log_lambda"] = np.log10(
+                spec["lambda"] = (
                     hdul[f"{color}_WAVELENGTH"].read())
                 spec["FL"] = hdul[f"{color}_FLUX"].read()
                 spec["IV"] = (hdul[f"{color}_IVAR"].read() *
@@ -1124,13 +1124,13 @@ def read_from_desi(in_dir, catalog, desi_prefix, in_nside=64, pk1d=None):
                     else:
                         reso_sum = spec['RESO'][:].copy()
                     reso_in_km_per_s = spectral_resolution_desi(
-                        reso_sum, spec['log_lambda'])
-                    exposures_diff = np.zeros(spec['log_lambda'].shape)
+                        reso_sum, spec['lambda'])
+                    exposures_diff = np.zeros(spec['lambda'].shape)
                 else:
                     reso_in_km_per_s = None
                     exposures_diff = None
 
-                forest_temp = Forest(spec['log_lambda'], flux, ivar,
+                forest_temp = Forest(spec['lambda'], flux, ivar,
                                      entry[id_name], entry['RA'], entry['DEC'],
                                      entry['Z'], entry[plate_name],
                                      entry[mjd_name], entry[fiberid_name],
@@ -1540,7 +1540,7 @@ def read_deltas(in_dir,
     z_min = 10**deltas[0].log_lambda[0] / lambda_abs - 1.
     z_max = 0.
     for delta, healpix in zip(deltas, healpixs):
-        z = 10**delta.log_lambda / lambda_abs - 1.
+        z = 10**delta.log_lambda / lambda_abs - 1. #*** just for the correlations
         z_min = min(z_min, z.min())
         z_max = max(z_max, z.max())
         delta.z = z

@@ -28,13 +28,13 @@ def compute_mean_cont(data):
             mean_cont_weight: Total weight on the mean quasar continuum
     """
     num_bins = (int(
-        (Forest.log_lambda_max_rest_frame - Forest.log_lambda_min_rest_frame) /
-        Forest.delta_log_lambda) + 1)
+        (Forest.lambda_max_rest_frame - Forest.lambda_min_rest_frame) /
+        Forest.delta_lambda) + 1)
     mean_cont = np.zeros(num_bins)
     mean_cont_weight = np.zeros(num_bins)
-    log_lambda_rest_frame = (
-        Forest.log_lambda_min_rest_frame + (np.arange(num_bins) + .5) *
-        (Forest.log_lambda_max_rest_frame - Forest.log_lambda_min_rest_frame) /
+    lambda_rest_frame = (
+        Forest.lambda_min_rest_frame + (np.arange(num_bins) + .5) *
+        (Forest.lambda_max_rest_frame - Forest.lambda_min_rest_frame) /
         num_bins)
     for healpix in sorted(list(data.keys())):
         for forest in data[healpix]:
@@ -42,9 +42,9 @@ def compute_mean_cont(data):
                      np.log10(1 + forest.z_qso)) /
                     (Forest.log_lambda_max_rest_frame -
                      Forest.log_lambda_min_rest_frame) * num_bins).astype(int)
-            var_lss = Forest.get_var_lss(forest.log_lambda)
-            eta = Forest.get_eta(forest.log_lambda)
-            fudge = Forest.get_fudge(forest.log_lambda)
+            var_lss = Forest.get_var_lss(forest.lambda) #again need to figure out how these functions work***
+            eta = Forest.get_eta(forest.lambda)
+            fudge = Forest.get_fudge(forest.lambda)
             var_pipe = 1. / forest.ivar / forest.cont**2
             variance = eta * var_pipe + var_lss + fudge / var_pipe
             weights = 1 / variance
