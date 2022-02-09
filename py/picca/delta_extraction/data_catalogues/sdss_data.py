@@ -255,6 +255,9 @@ class SdssData(Data):
             ivar = hdul[1].read() * (hdul[2].read() == 0)
             log_lambda = coeff0 + coeff1 * np.arange(flux.shape[1])
 
+            self.logger.warning(f"Read log_lambda. Size: {log_lambda.size}\n"
+                                f"log_lambda: {log_lambda}")
+
             # Loop over all objects inside this spPlate file
             # and create the SdssForest objects
             for row in group:
@@ -304,6 +307,9 @@ class SdssData(Data):
                 self.logger.debug(
                     f"{thingid} read from file {spplate} and fiberid {fiberid}"
                 )
+
+                self.logger.warning(f"Constructed Forest with log_lambda. Size: {forest.log_lambda.size}\n"
+                                    f"log_lambda: {forest.log_lambda}")
 
             num_read = len(group)
             num_read_total += num_read
