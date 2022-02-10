@@ -104,7 +104,7 @@ class Survey:
                 self.masks[mask_index].apply_mask(self.data.forests[forest_index])
                 self.logger.warning(f"After masking. Mask type: {type(self.masks[mask_index])}\n"
                     f"size log_lambda: {self.data.forests[forest_index].log_lambda.size}\n"
-                    f"thingid: {forest.thing_id}\n"
+                    f"thingid: {forest.thingid}\n"
                     f"log_lambda: {self.data.forests[forest_index].log_lambda}\n"
                     "###################################\n")
 
@@ -139,7 +139,7 @@ class Survey:
             print("###################################")
             print(f"All masking is done. Computing fits to the forest. \n"
                   f"size log_lambda: {forest.log_lambda.size}\n"
-                  f"thingid: {forest.thing_id}\n"
+                  f"thingid: {forest.thingid}\n"
                   f"log_lambda: {forest.log_lambda}")
 
         self.expected_flux.compute_expected_flux(self.data.forests)
