@@ -98,7 +98,7 @@ class Survey:
                 self.logger.warning("###################################\n"
                     f"Before masking. Mask type: {type(self.masks[mask_index])}\n"
                     f"size log_lambda: {self.data.forests[forest_index].log_lambda.size}\n"
-                    f"thingid: {self.data.forests[forest_index].thing_id}\n"
+                    f"thingid: {self.data.forests[forest_index].thingid}\n"
                     f"log_lambda: {self.data.forests[forest_index].log_lambda}")
 
                 self.masks[mask_index].apply_mask(self.data.forests[forest_index])
