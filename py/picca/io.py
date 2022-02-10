@@ -970,12 +970,13 @@ def read_from_spplate(in_dir,
         ivar = hdul[1].read() * (hdul[2].read() == 0)
         log_lambda = coeff0 + coeff1 * np.arange(flux.shape[1])
 
-        print(f"Read log_lambda. Size: {log_lambda.size}\n"
-                            f"log_lambda: {log_lambda}")
-
         #-- Loop over all objects inside this spPlate file
         #-- and create the Forest objects
         for metadata in platemjd[(p, m)]:
+            if metadata['THING_ID'] == 455165807:
+                print(f"Read log_lambda. Size: {log_lambda.size}\n"
+                                    f"log_lambda: {log_lambda}")
+
             t = metadata['THING_ID']
             i = metadata['FIBERID'] - 1
             forest = Forest(log_lambda, flux[i], ivar[i], metadata['THING_ID'],
@@ -989,8 +990,9 @@ def read_from_spplate(in_dir,
             if log_file is not None:
                 log_file.write(f"{t} read from file {spplate} and mjd {m}\n")
 
-            print(f"Constructed Forest with log_lambda. Size: {forest.log_lambda.size}\n"
-                            f"log_lambda: {forest.log_lambda}")
+            if forest.thingid == 455165807:
+                print(f"Constructed Forest with log_lambda. Size: {forest.log_lambda.size}\n"
+                                f"log_lambda: {forest.log_lambda}")
 
         num_read = len(platemjd[(p, m)])
         time_read = (time.time() - t0) / (num_read + 1e-3)
