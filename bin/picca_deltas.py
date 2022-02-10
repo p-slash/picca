@@ -595,12 +595,12 @@ def main(cmdargs):
                 if forest.thingid in absorbers:
                     for lambda_absorber in absorbers[forest.thingid]:
                         print("###################################")
-                        print("Before masking absorbers. size log_lambda: {log_lambda.size}\n"
+                        print(f"Before masking absorbers. size log_lambda: {forest.log_lambda.size}\n"
                               f"log_lambda: {forest.log_lambda}")
 
                         forest.add_absorber(lambda_absorber)
                         num_absorbers += 1
-                        print("After masking absorbers. size log_lambda: {log_lambda.size}\n"
+                        print(f"After masking absorbers. size log_lambda: {forest.log_lambda.size}\n"
                               f"log_lambda: {forest.log_lambda}")
                         print("###################################")
         log_file.write("Found {} absorbers in forests\n".format(num_absorbers))
@@ -637,12 +637,12 @@ def main(cmdargs):
                 if forest.thingid in dlas:
                     for dla in dlas[forest.thingid]:
                         print("###################################")
-                        print("Before masking dlas. size log_lambda: {log_lambda.size}\n"
+                        print(f"Before masking dlas. size log_lambda: {forest.log_lambda.size}\n"
                               f"log_lambda: {forest.log_lambda}")
 
                         forest.add_dla(dla[0], dla[1], mask)
                         num_dlas += 1
-                        print("After masking dlas. size log_lambda: {log_lambda.size}\n"
+                        print(f"After masking dlas. size log_lambda: {forest.log_lambda.size}\n"
                               f"log_lambda: {forest.log_lambda}")
                         print("###################################")
         log_file.write("Found {} DLAs in forests\n".format(num_dlas))
@@ -659,13 +659,13 @@ def main(cmdargs):
         for healpix in data:
             for forest in data[healpix]:
                 print("###################################")
-                print("Before masking bals. size log_lambda: {log_lambda.size}\n"
+                print(f"Before masking bals. size log_lambda: {forest.log_lambda.size}\n"
                       f"log_lambda: {forest.log_lambda}")
 
                 bal_mask = bal_tools.add_bal_mask(bal_cat, forest.thingid,
                         args.mode)
                 forest.mask(bal_mask)
-                print("After masking bals. size log_lambda: {log_lambda.size}\n"
+                print(f"After masking bals. size log_lambda: {forest.log_lambda.size}\n"
                       f"log_lambda: {forest.log_lambda}")
                 print("###################################")
             if len(bal_mask) > 0:
