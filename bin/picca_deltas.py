@@ -737,11 +737,11 @@ def main(cmdargs):
 
     for healpix in data:
         for forest in data[healpix]:
-        print("###################################")
-        print(f"All masking is done. Computing fits to the forest. \n"
-              f"size log_lambda: {forest.log_lambda.size}\n"
-              f"thingid: {forest.thing_id}\n"
-              f"log_lambda: {forest.log_lambda}")
+            print("###################################")
+            print(f"All masking is done. Computing fits to the forest. \n"
+                  f"size log_lambda: {forest.log_lambda.size}\n"
+                  f"thingid: {forest.thing_id}\n"
+                  f"log_lambda: {forest.log_lambda}")
 
 
     # compute fits to the forests iteratively
