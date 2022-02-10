@@ -95,7 +95,17 @@ class Survey:
         # equivalent to range
         for forest_index in prange(len(self.data.forests)):
             for mask_index in range(len(self.masks)):
+                self.logger.warning("###################################\n"
+                    f"Before masking. Mask type: {type(self.masks[mask_index])}\n"
+                    f"size log_lambda: {self.data.forests[forest_index].log_lambda.size}\n"
+                    f"log_lambda: {self.data.forests[forest_index].log_lambda}")
+
                 self.masks[mask_index].apply_mask(self.data.forests[forest_index])
+                self.logger.warning(f"After masking. Mask type: {type(self.masks[mask_index])}\n"
+                    f"size log_lambda: {self.data.forests[forest_index].log_lambda.size}\n"
+                    f"log_lambda: {self.data.forests[forest_index].log_lambda}\n"
+                    "###################################\n")
+
 
         t1 = time.time()
         self.logger.info(f"Time spent applying masks: {t1-t0}")

@@ -576,11 +576,11 @@ def main(cmdargs):
     for healpix in data:
         for forest in data[healpix]:
             print("###################################")
-            print("Before masking lines. size log_lambda: {log_lambda.size}\n"
+            print(f"Before masking lines. size log_lambda: {forest.log_lambda.size}\n"
                   f"log_lambda: {forest.log_lambda}")
             forest.mask(mask)
 
-            print("After masking lines. size log_lambda: {log_lambda.size}\n"
+            print(f"After masking lines. size log_lambda: {forest.log_lambda.size}\n"
                   f"log_lambda: {forest.log_lambda}")
             print("###################################")
 
