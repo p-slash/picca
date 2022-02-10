@@ -575,16 +575,17 @@ def main(cmdargs):
     ### Mask lines
     for healpix in data:
         for forest in data[healpix]:
-            print("###################################")
-            print(f"Before masking lines. size log_lambda: {forest.log_lambda.size}\n"
-                  f"thingid: {forest.thingid}\n"
-                  f"log_lambda: {forest.log_lambda}")
+            if forest.thingid == 455165807:
+                print("###################################")
+                print(f"Before masking lines. size log_lambda: {forest.log_lambda.size}\n"
+                      f"thingid: {forest.thingid}\n"
+                      f"log_lambda: {forest.log_lambda}")
             forest.mask(mask)
-
-            print(f"After masking lines. size log_lambda: {forest.log_lambda.size}\n"
-                  f"thingid: {forest.thingid}\n"
-                  f"log_lambda: {forest.log_lambda}")
-            print("###################################")
+            if forest.thingid == 455165807:
+                print(f"After masking lines. size log_lambda: {forest.log_lambda.size}\n"
+                      f"thingid: {forest.thingid}\n"
+                      f"log_lambda: {forest.log_lambda}")
+                print("###################################")
 
 
     ### Mask absorbers
@@ -596,17 +597,19 @@ def main(cmdargs):
             for forest in data[healpix]:
                 if forest.thingid in absorbers:
                     for lambda_absorber in absorbers[forest.thingid]:
-                        print("###################################")
-                        print(f"Before masking absorbers. size log_lambda: {forest.log_lambda.size}\n"
-                              f"thingid: {forest.thingid}\n"
-                              f"log_lambda: {forest.log_lambda}")
+                        if forest.thingid == 455165807:
+                            print("###################################")
+                            print(f"Before masking absorbers. size log_lambda: {forest.log_lambda.size}\n"
+                                  f"thingid: {forest.thingid}\n"
+                                  f"log_lambda: {forest.log_lambda}")
 
                         forest.add_absorber(lambda_absorber)
                         num_absorbers += 1
-                        print(f"After masking absorbers. size log_lambda: {forest.log_lambda.size}\n"
-                              f"thingid: {forest.thingid}\n"
-                              f"log_lambda: {forest.log_lambda}")
-                        print("###################################")
+                        if forest.thingid == 455165807:
+                            print(f"After masking absorbers. size log_lambda: {forest.log_lambda.size}\n"
+                                  f"thingid: {forest.thingid}\n"
+                                  f"log_lambda: {forest.log_lambda}")
+                            print("###################################")
         log_file.write("Found {} absorbers in forests\n".format(num_absorbers))
 
     ### Add optical depth contribution
@@ -640,17 +643,19 @@ def main(cmdargs):
             for forest in data[healpix]:
                 if forest.thingid in dlas:
                     for dla in dlas[forest.thingid]:
-                        print("###################################")
-                        print(f"Before masking dlas. size log_lambda: {forest.log_lambda.size}\n"
-                              f"thingid: {forest.thingid}\n"
-                              f"log_lambda: {forest.log_lambda}")
+                        if forest.thingid == 455165807:
+                            print("###################################")
+                            print(f"Before masking dlas. size log_lambda: {forest.log_lambda.size}\n"
+                                  f"thingid: {forest.thingid}\n"
+                                  f"log_lambda: {forest.log_lambda}")
 
                         forest.add_dla(dla[0], dla[1], mask)
                         num_dlas += 1
-                        print(f"After masking dlas. size log_lambda: {forest.log_lambda.size}\n"
-                              f"thingid: {forest.thingid}\n"
-                              f"log_lambda: {forest.log_lambda}")
-                        print("###################################")
+                        if forest.thingid == 455165807:
+                            print(f"After masking dlas. size log_lambda: {forest.log_lambda.size}\n"
+                                  f"thingid: {forest.thingid}\n"
+                                  f"log_lambda: {forest.log_lambda}")
+                            print("###################################")
         log_file.write("Found {} DLAs in forests\n".format(num_dlas))
 
     ### Mask BALs
@@ -664,18 +669,20 @@ def main(cmdargs):
         num_bal = 0
         for healpix in data:
             for forest in data[healpix]:
-                print("###################################")
-                print(f"Before masking bals. size log_lambda: {forest.log_lambda.size}\n"
-                      f"thingid: {forest.thingid}\n"
-                      f"log_lambda: {forest.log_lambda}")
+                if forest.thingid == 455165807:
+                    print("###################################")
+                    print(f"Before masking bals. size log_lambda: {forest.log_lambda.size}\n"
+                          f"thingid: {forest.thingid}\n"
+                          f"log_lambda: {forest.log_lambda}")
 
                 bal_mask = bal_tools.add_bal_mask(bal_cat, forest.thingid,
                         args.mode)
                 forest.mask(bal_mask)
-                print(f"After masking bals. size log_lambda: {forest.log_lambda.size}\n"
-                      f"thingid: {forest.thingid}\n"
-                      f"log_lambda: {forest.log_lambda}")
-                print("###################################")
+                if forest.thingid == 455165807:
+                    print(f"After masking bals. size log_lambda: {forest.log_lambda.size}\n"
+                          f"thingid: {forest.thingid}\n"
+                          f"log_lambda: {forest.log_lambda}")
+                    print("###################################")
             if len(bal_mask) > 0:
                     num_bal += 1
         log_file.write("Found {} BAL quasars in forests\n".format(num_bal))
@@ -737,11 +744,12 @@ def main(cmdargs):
 
     for healpix in data:
         for forest in data[healpix]:
-            print("###################################")
-            print(f"All masking is done. Computing fits to the forest. \n"
-                  f"size log_lambda: {forest.log_lambda.size}\n"
-                  f"thingid: {forest.thingid}\n"
-                  f"log_lambda: {forest.log_lambda}")
+            if forest.thingid == 455165807:
+                print("###################################")
+                print(f"All masking is done. Computing fits to the forest. \n"
+                      f"size log_lambda: {forest.log_lambda.size}\n"
+                      f"thingid: {forest.thingid}\n"
+                      f"log_lambda: {forest.log_lambda}")
 
 
     # compute fits to the forests iteratively
