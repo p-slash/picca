@@ -748,6 +748,11 @@ class Forest(QSO):
                     w &= ((self.log_lambda - np.log10(1. + z_abs) < mask_range['log_wave_min']) |
                           (self.log_lambda - np.log10(1. + z_abs) > mask_range['log_wave_max']))
 
+        if self.thingid == 455165807:
+            print("Masking DLA")
+            print("DLA transmission:", self.dla_transmission)
+            print("mask:", w)
+
         # do the actual masking
         parameters = [
             'ivar', 'log_lambda', 'flux', 'dla_transmission',
