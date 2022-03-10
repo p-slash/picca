@@ -1068,6 +1068,7 @@ def read_from_desi_healpix(nside,
                                      coadd_by_picca=coadd_by_picca,
                                      compute_diff_flux=compute_diff_flux,
                                      pk1d=pk1d)
+        if
 
 
     print("found {} quasars in input files\n".format(ndata))
@@ -1099,10 +1100,11 @@ def read_from_desi_mocks(nside,
 
     ztable = {t:z for t,z in zip(thid,zqso)}
 
+    nempty=0
     for i,pix in enumerate(files_in):
         path = in_dir+"/"+str(int(pix//100))+"/"+str(pix)+"/spectra-"+str(in_nside)+"-"+str(pix)+".fits"
         h = fitsio.FITS(path)
-        print("\rread {} of {}. ndata: {}".format(i,len(files_in),ndata))
+        print("\rread {} of {}. ndata: {}".format(i-nempty,len(files_in)-nempty,ndata))
         targetid_qsos = thid[(in_pixs==pix)]
         petal_tile_qsos = plate[(in_pixs==pix)]
 
@@ -1168,7 +1170,7 @@ def read_from_desi_mocks(nside,
             except OSError:
                 pass
         h.close()
-
+        ndata_old=ndata
         data, ndata = fill_data_desi(specData,
                                      data,
                                      ndata,
@@ -1182,6 +1184,10 @@ def read_from_desi_mocks(nside,
                                      ztable,
                                      order,
                                      pk1d=pk1d)
+        if ndata==ndata_old:
+            nempty+=1
+
+    print("Total: {} files".format(len(files_in)-nempty))
 
     print("found {} quasars in input files\n".format(ndata))
     return data
