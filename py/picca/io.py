@@ -966,7 +966,7 @@ def read_from_desi_healpix(nside,
     files_in = sp.unique(in_pixs)
     data = {}
     ndata = 0
-
+    nempty=0
     ztable = {t:z for t,z in zip(thid,zqso)}
     for i,pix in enumerate(files_in):
         if(coadd_by_picca):
@@ -977,7 +977,7 @@ def read_from_desi_healpix(nside,
             continue
         elif(len(path) == 1):
             path = path[0]
-        print("\rread {} of {}. ndata: {}".format(i,len(files_in),ndata))
+        print("\rread {} of {}. ndata: {}".format(i-nempty,len(files_in)-nempty,ndata))
         try:
             if(type(path) == list):
                 h = [fitsio.FITS(path[i]) for i in range(len(path))]
@@ -1053,6 +1053,7 @@ def read_from_desi_healpix(nside,
         else:
             h.close()
 
+        ndata_old=ndata
         data, ndata = fill_data_desi(specData,
                                      data,
                                      ndata,
@@ -1068,8 +1069,10 @@ def read_from_desi_healpix(nside,
                                      coadd_by_picca=coadd_by_picca,
                                      compute_diff_flux=compute_diff_flux,
                                      pk1d=pk1d)
-        if
+        if ndata==ndata_old:
+            nempty+=1
 
+    print("found {}  files\n".format(len(files_in)-nempty))
 
     print("found {} quasars in input files\n".format(ndata))
 
