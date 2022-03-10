@@ -970,9 +970,9 @@ def read_from_desi_healpix(nside,
     ztable = {t:z for t,z in zip(thid,zqso)}
     for i,pix in enumerate(files_in):
         if(coadd_by_picca):
-            path=glob.glob(in_dir+"/"+str(int(pix//100))+"/"+str(pix)+"/spectra*-"+str(pix)+".fits")
+            path=glob.glob(in_dir+"/"+str(int(pix//100))+"/"+str(pix)+"/spectra*-dark-*"+str(pix)+".fits")
         else:
-            path=glob.glob(in_dir+"/"+str(int(pix//100))+"/"+str(pix)+"/coadd*-"+str(pix)+".fits")
+            path=glob.glob(in_dir+"/"+str(int(pix//100))+"/"+str(pix)+"/coadd-*-dark-*"+str(pix)+".fits")
         if not path :
             continue
         elif(len(path) == 1):
