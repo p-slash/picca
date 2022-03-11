@@ -981,10 +981,10 @@ def read_from_desi_healpix(nside,
             files_used.append(path)
     
     print("number of files {len(files_used)}")
-    for path in files_used:
+    for i,path in enumerate(files_used):
         if(len(path) == 1):
             path = path[0]
-        print("\rread {} of {}. ndata: {}".format(i-nempty,len(files_in)-nempty,ndata))
+        print("\rread {} of {}. ndata: {}".format(i,len(files_used),ndata))
         try:
             if(type(path) == list):
                 h = [fitsio.FITS(path[i]) for i in range(len(path))]
