@@ -969,6 +969,7 @@ def read_from_desi_healpix(nside,
     nempty=0
     ztable = {t:z for t,z in zip(thid,zqso)}
     files_used=[]
+    pix_used=[]
     for i,pix in enumerate(files_in):
         if(coadd_by_picca):
             path=glob.glob(in_dir+"/"+str(int(pix//100))+"/"+str(pix)+"/spectra*-dark-*"+str(pix)+".fits")
@@ -979,9 +980,10 @@ def read_from_desi_healpix(nside,
             continue
         else:
             files_used.append(path)
+            pix_used.append(pix)
     
     print("number of files {len(files_used)}")
-    for i,path in enumerate(files_used):
+    for i,(path,pix) in enumerate(zip(files_used,pix_used)):
         if(len(path) == 1):
             path = path[0]
         print("\rread {} of {}. ndata: {}".format(i,len(files_used),ndata))
