@@ -974,6 +974,7 @@ def read_from_desi_healpix(nside,
         else:
             path=glob.glob(in_dir+"/"+str(int(pix//100))+"/"+str(pix)+"/coadd-*-dark-*"+str(pix)+".fits")
         if not path :
+            nempty+=1
             continue
         elif(len(path) == 1):
             path = path[0]
@@ -1069,8 +1070,8 @@ def read_from_desi_healpix(nside,
                                      coadd_by_picca=coadd_by_picca,
                                      compute_diff_flux=compute_diff_flux,
                                      pk1d=pk1d)
-        if ndata==ndata_old:
-            nempty+=1
+        #if ndata==ndata_old:
+        #    nempty+=1
 
     print("found {}  files\n".format(len(files_in)-nempty))
 
