@@ -160,11 +160,14 @@ def read_drq(drq_filename,
     print(f" and z < {z_max}         : nb object in cat = {np.sum(w)}")
 
     if 'desi' in mode and 'TARGETID' in catalog.colnames:
-        w &= catalog['ZWARN'] == 0
-        print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
+        #w &= catalog['ZWARN'] == 0
+        #print(" Redrock no ZWARN                 : nb object in cat = {}".format(w.sum()) )
         #checking if all fibers are fine
-        w &= catalog['FIBERSTATUS']==0
-        print(" FIBERSTATUS==0 : nb object in cat = {}".format(w.sum()) )
+#        w &= catalog['FIBERSTATUS']==0
+#        print(" FIBERSTATUS==0 : nb object in cat = {}".format(w.sum()) )
+
+#        w &= (catalog['SURVEY'] == "sv1")
+#        print(" SURVEY == SV1 : nb object in cat = {}".format(w.sum()) )
 
         #note that in principle we could also check for subtypes here...
         print('no checks for targeting spectype have been performed, assuming that has been done at cat creation')
@@ -982,7 +985,7 @@ def read_from_desi_healpix(nside,
             files_used.append(path)
             pix_used.append(pix)
     
-    print("number of files {len(files_used)}")
+    print(f"number of files {len(files_used)}")
     for i,(path,pix) in enumerate(zip(files_used,pix_used)):
         if(len(path) == 1):
             path = path[0]
