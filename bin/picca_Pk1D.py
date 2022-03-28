@@ -106,7 +106,6 @@ if __name__ == '__main__':
         fi = glob.glob(args.in_dir+"/*.fits*")
     elif (args.in_format=='ascii') :
         fi = glob.glob(args.in_dir+"/*.txt")
-
     data = {}
     ndata = 0
     # initialize randoms

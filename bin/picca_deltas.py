@@ -164,7 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--coadd-by-picca', action='store_true', default = False,
         help='let picca do the coadding of spectra files (instead of using existing coadds)')
 
-    parser.add_argument('--compute-diff-flux', action='store_true', default = False,
+    parser.add_argument('--compute-diff-flux',type=str,default="None",required=False,
         help='let picca do the diff coadding of spectra files')
 
     parser.add_argument('--reject-bal-from-truth', action='store_true', default = False,

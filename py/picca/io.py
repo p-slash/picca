@@ -254,7 +254,7 @@ def read_dust_map(drq, Rv = 3.793):
 target_mobj = 500
 nside_min = 8
 
-def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None,useall=False,usesinglenights=False,coadd_by_picca=False, reject_bal_from_truth=False,compute_diff_flux=False):
+def read_data(in_dir,drq,mode,zmin = 2.1,zmax = 3.5,nspec=None,log=None,keep_bal=False,bi_max=None,order=1, best_obs=False, single_exp=False, pk1d=None,useall=False,usesinglenights=False,coadd_by_picca=False, reject_bal_from_truth=False,compute_diff_flux="None"):
 
     print("mode: "+mode)
     try:
@@ -850,7 +850,7 @@ def read_from_desi_tiles(in_dir,
                          order,
                          pk1d=None,
                          coadd_by_picca=False,
-                         compute_diff_flux=False):
+                         compute_diff_flux="None"):
 
     if not coadd_by_picca:
         files_in = glob.glob(os.path.join(in_dir, "**/coadd-*.fits"),
@@ -961,7 +961,7 @@ def read_from_desi_healpix(nside,
                            order,
                            pk1d=None,
                            coadd_by_picca=False,
-                           compute_diff_flux=False):
+                           compute_diff_flux="None"):
 
 
     in_nside = 64
@@ -984,7 +984,7 @@ def read_from_desi_healpix(nside,
         else:
             files_used.append(path)
             pix_used.append(pix)
-    
+
     print(f"number of files {len(files_used)}")
     for i,(path,pix) in enumerate(zip(files_used,pix_used)):
         if(len(path) == 1):
@@ -1223,7 +1223,7 @@ def fill_data_desi(specData,
                    ztable,
                    order,
                    coadd_by_picca=False,
-                   compute_diff_flux=False,
+                   compute_diff_flux="None",
                    pk1d=None):
     """Fill data dic.
 
@@ -1241,11 +1241,11 @@ def fill_data_desi(specData,
         for tspecData in specData.values():
             iv = tspecData['IV'][wt]
             fl = (iv*tspecData['FL'][wt]).sum(axis=0)
-            if(coadd_by_picca&compute_diff_flux):
-                diff_sp = exp_diff_desi(tspecData,wt)
+            if(coadd_by_picca&(compute_diff_flux != "None")):
+                diff_sp = exp_diff_desi(tspecData,wt,compute_diff_flux)
                 if(diff_sp is None):
                     continue
-            elif((not coadd_by_picca)&compute_diff_flux):
+            elif((not coadd_by_picca)&(compute_diff_flux != "None")):
                 raise ValueError("Option coadd_by_picca need to be used when DIFF is not pre-computed in the coadd files")
             else:
                 diff_sp = None
@@ -1283,8 +1283,8 @@ def fill_data_desi(specData,
 
 
 
-def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False,coadd_by_picca=False, reject_bal_from_truth=False,compute_diff_flux=False):
-
+def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,minisv=False, usesinglenights=False, useall=False,coadd_by_picca=False, reject_bal_from_truth=False,compute_diff_flux="None"):
+    "obsolete"
     if not minisv:
         try:
             in_nside = int(in_dir.split('spectra-')[-1].replace('/',''))
@@ -1571,7 +1571,7 @@ def read_from_desi(nside,in_dir,thid,ra,dec,zqso,plate,mjd,fid,order,pk1d=None,m
                     w = iv.sum(axis=0)>0.
                     diff_sp[w] /= iv[w]
                 elif(coadd_by_picca&compute_diff_flux):
-                    diff_sp = exp_diff_desi(tspecData,wt)
+                    diff_sp = exp_diff_desi(tspecData,wt,compute_diff_flux)
                     if(diff_sp is None):
                         continue
                 elif((not coadd_by_picca)&compute_diff_flux):
